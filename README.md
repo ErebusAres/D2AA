@@ -31,6 +31,9 @@ D2 Armor Analyzer is a web-based tool for Destiny 2 players to analyze, compare,
    - Use "Restore last" to reload your last uploaded CSV.
    - Use "Clear" to remove all data from the app and browser storage.
 
+## Example Image
+<img width="1920" height="918" alt="example" src="https://github.com/user-attachments/assets/db88270b-e7ef-40d7-8f83-32c210f74594" />
+
 ## License
 
 This project is **free to use, modify, and distribute at your own risk**.
