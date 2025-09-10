@@ -365,7 +365,7 @@ input[type="number"] {
 
     <section class="list">
       <div class="row header">
-        <div class="center">R</div>
+        <div class="center">Tag</div>
         <div>Item</div>
         <div class="center">Tier</div>
         <div>Base Stats <div class="center-info">(Weapons, Health, Class, Grenade, Super, Melee)</div></div>
@@ -410,6 +410,20 @@ input[type="number"] {
   const SLOT_OPTIONS = ["all", "Helmet", "Gauntlets", "Chest Armor", "Leg Armor", "Class Item"];
   const RARITY_OPTIONS = ["All", "Legendary", "Exotic"];
   const classItemByClass = { Warlock: "Warlock Bond", Hunter: "Hunter Cloak", Titan: "Titan Mark" };
+  const TAG_EMOJIS = {
+    favorite: "❤️",
+    keep: "🏷️",
+    junk: "🚫",
+    infuse: "⚡",
+    archive: "📦"
+  };
+  const TAG_LABELS = {
+    favorite: "Favorite",
+    keep: "Keep",
+    junk: "Junk",
+    infuse: "Infuse",
+    archive: "Archive"
+  };
 
   // ====== Helpers ======
   const normId = (s) => (s ? String(s).trim().replace(/^"|"$/g, "") : "");
@@ -581,8 +595,12 @@ input[type="number"] {
       }
       const row=document.createElement('div');
       row.className = 'row item ' + (altToggle ? 'altA' : 'altB');
-      // Rarity dot
-      const cRare=document.createElement('div'); cRare.className='center'; cRare.textContent = (it.Rarity==='Exotic'? '🟡' : '🟣');
+      // Tag emoji (DIM tag)
+      const cTag = document.createElement('div');
+      cTag.className = 'center';
+      const tag = (it.Tag || '').toLowerCase();
+      cTag.textContent = TAG_EMOJIS[tag] || '';
+      cTag.title = TAG_LABELS[tag] || '';
       // Item
       const cItem=document.createElement('div');
       cItem.innerHTML=`<div style="font-weight:700">${it.Name}</div>
@@ -623,7 +641,7 @@ input[type="number"] {
       btn.addEventListener('click', async ()=>{ const ok=await copyTextSafe(`id:${normId(it.Id)}`); btn.textContent= ok? 'Copied!' : 'Copy id'; setTimeout(()=> btn.textContent='Copy id', 1200); });
       cCopy.appendChild(btn);
 
-      row.append(cRare,cItem,cTier,cStats,cTotal,cGroup,cRank,cCopy);
+      row.append(cTag,cItem,cTier,cStats,cTotal,cGroup,cRank,cCopy);
       host.appendChild(row);
     }
   }
