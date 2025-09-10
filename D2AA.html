@@ -24,6 +24,8 @@
   --gold: #ffe066;
   --border: #2e3350;
   --shadow: 0 2px 24px 0 rgba(80,120,255,0.10);
+  --shadow-purple: 0 2px 24px 0 rgba(178, 83, 255, 0.18);
+  --shadow-gold: 0 2px 24px 0 rgba(253, 215, 62, 0.18);
 
   /* Stat colors (D2 style, more saturated) */
   --stat-red: #ff3b3b;
@@ -136,6 +138,16 @@ h1 {
   background: var(--accent);
   color: #181d26;
   border-color: var(--gold);
+}
+.chip .chip-icon:not(.rarity) {
+  filter: brightness(1.2) grayscale(1) opacity(0.7);
+  transition: filter 0.2s;
+}
+.chip.active .chip-icon:not(.rarity) {
+  filter: none;
+}
+.chip-icon.rarity {
+  filter: none !important;
 }
 .list {
   background: var(--panel);
@@ -333,6 +345,25 @@ input[type="number"] {
 }
 .row.altA { background: rgba(24,28,38,0.92); }
 .row.altB { background: rgba(16,19,26,0.92); }
+
+.chip-icon-mask {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  vertical-align: middle;
+  margin-right: 4px;
+  background-color: var(--text);
+  mask-size: contain;
+  mask-repeat: no-repeat;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  transition: background-color 0.2s;
+}
+.chip.active .chip-icon-mask {
+  background-color: #181d26; /* match .chip.active color */
+}
   </style>
 </head>
 <body>
@@ -406,10 +437,13 @@ input[type="number"] {
     "Super (Base)":"https://www.bungie.net/common/destiny2_content/icons/585ae4ede9c3da96b34086fccccdc8cd.png",
     "Melee (Base)":"https://www.bungie.net/common/destiny2_content/icons/fa534aca76d7f2d7e7b4ba4df4271b42.png"
   };
+  const RARITY_ICONS = {
+    "Legendary": "https://www.bungie.net/common/destiny2_content/icons/f846f489c2a97afb289b357e431ecf8d.png",
+    "Exotic": "https://www.bungie.net/common/destiny2_content/icons/3e6a698e1a8a5fb446fdcbf1e63c5269.png"
+  };
   const CLASS_OPTIONS = ["Warlock", "Hunter", "Titan"];
-  const SLOT_OPTIONS = ["all", "Helmet", "Gauntlets", "Chest Armor", "Leg Armor", "Class Item"];
-  const RARITY_OPTIONS = ["All", "Legendary", "Exotic"];
-  const DUPES_OPTIONS = ["All", "Only Dupes", "Only Same-Name"];
+  const SLOT_OPTIONS = ["All", "Helmet", "Gauntlets", "Chest Armor", "Leg Armor", "Class Item"];
+  const RARITY_OPTIONS = ["All", "Legendary", "Exotic"];  const DUPES_OPTIONS = ["All", "Only Dupes", "Only Same-Name"];
   const classItemByClass = { Warlock: "Warlock Bond", Hunter: "Hunter Cloak", Titan: "Titan Mark" };
   const TAG_EMOJIS = {
     favorite: "❤️",
@@ -424,6 +458,18 @@ input[type="number"] {
     junk: "Junk",
     infuse: "Infuse",
     archive: "Archive"
+  };
+  const CLASS_ICONS = {
+    "Warlock": "https://www.bungie.net/common/destiny2_content/icons/e4006d9a8fe167bd7e83193d7601c89a.png",
+    "Hunter":  "https://www.bungie.net/common/destiny2_content/icons/05e32a388d9a65a0ef59b2193eee2db4.png",
+    "Titan":   "https://www.bungie.net/common/destiny2_content/icons/46a19ddd00d0f6ca822230943103b54a.png"
+  };
+  const SLOT_ICONS = {
+    "Helmet": "https://raw.githubusercontent.com/justrealmilk/destiny-icons/master/armor_types/helmet.svg",
+    "Gauntlets": "https://raw.githubusercontent.com/justrealmilk/destiny-icons/master/armor_types/gloves.svg",
+    "Chest Armor": "https://raw.githubusercontent.com/justrealmilk/destiny-icons/master/armor_types/chest.svg",
+    "Leg Armor": "https://raw.githubusercontent.com/justrealmilk/destiny-icons/master/armor_types/boots.svg",
+    "Class Item": "https://raw.githubusercontent.com/justrealmilk/destiny-icons/master/armor_types/class.svg"
   };
 
   // ====== Helpers ======
@@ -468,7 +514,7 @@ input[type="number"] {
   let STATE = { 
     rows:[], 
     classFilter:'Warlock', 
-    slotFilter:'all', 
+    slotFilter:'All', 
     rarityFilter:'All', 
     tol:5, 
     dupesFilter:'All' // NEW
@@ -479,15 +525,26 @@ input[type="number"] {
 
   // ====== Filters UI ======
   function makeSeg(containerId, options, key){
-    const el = document.getElementById(containerId); if(!el) return; el.innerHTML='';
-    options.forEach(opt => {
-      const btn = document.createElement('button');
-      btn.className = 'chip' + (STATE[key]===opt ? ' active' : '');
-      btn.textContent = (containerId==='classSeg' ? (STATE[key]===opt?'☑ ':'☐ ') : (STATE[key]===opt? '● ' : '○ ')) + (opt==='all'?'All':opt);
-      btn.addEventListener('click', ()=>{ STATE[key]=opt; render(); makeSeg(containerId, options, key); });
-      el.appendChild(btn);
-    });
-  }
+  const el = document.getElementById(containerId); if(!el) return; el.innerHTML='';
+  options.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.className = 'chip' + (STATE[key]===opt ? ' active' : '');
+    let label = opt;
+    // Add icons for class, rarity, and slot filters
+    if (containerId === 'classSeg' && CLASS_ICONS[opt]) {
+      label = `<span class="chip-icon-mask" style="mask-image:url('${CLASS_ICONS[opt]}');-webkit-mask-image:url('${CLASS_ICONS[opt]}');"></span>${opt}`;
+    }
+    if (containerId === 'raritySeg' && RARITY_ICONS[opt]) {
+      label = `<img src="${RARITY_ICONS[opt]}" alt="${opt}" title="${opt}" class="chip-icon rarity" style="height:1em;vertical-align:middle;margin-right:4px;">${opt}`;
+    }
+    if (containerId === 'slotSeg' && SLOT_ICONS[opt]) {
+      label = `<span class="chip-icon-mask" style="mask-image:url('${SLOT_ICONS[opt]}');-webkit-mask-image:url('${SLOT_ICONS[opt]}');"></span>${opt}`;
+    }
+    btn.innerHTML = (STATE[key]===opt? '● ' : '○ ') + label;
+    btn.addEventListener('click', ()=>{ STATE[key]=opt; render(); makeSeg(containerId, options, key); });
+    el.appendChild(btn);
+  });
+}
   function initFilters(){
     makeSeg('classSeg', CLASS_OPTIONS, 'classFilter');
     makeSeg('raritySeg', RARITY_OPTIONS, 'rarityFilter');
@@ -501,7 +558,7 @@ input[type="number"] {
   // Always group on the full set for dupe logic
   let baseFiltered = STATE.rows.filter(r =>
     (STATE.classFilter ? r.Equippable === STATE.classFilter : true) &&
-    (STATE.slotFilter==='all' ? true : STATE.slotFilter==='Class Item' ? r.Type===expected : r.Type===STATE.slotFilter) &&
+    (STATE.slotFilter==='All' ? true : STATE.slotFilter==='Class Item' ? r.Type===expected : r.Type===STATE.slotFilter) &&
     (STATE.rarityFilter==='All' ? true : r.Rarity === STATE.rarityFilter)
   );
   // Get all grouped rows for this filtered set
@@ -649,6 +706,7 @@ out.sort((a, b) => {
 
   // ====== Render ======
   function render(){
+  updateShadowColor(); 
     const tolEl=document.getElementById('tol'); if(tolEl) tolEl.value = STATE.tol;
     initFilters();
 
@@ -682,7 +740,11 @@ out.sort((a, b) => {
       // Item
       const cItem=document.createElement('div');
       cItem.innerHTML=`<div style="font-weight:700">${it.Name}</div>
-        <div class="itemmeta">${(["Warlock Bond","Hunter Cloak","Titan Mark"].includes(it.Type)?"Class Item":it.Type)} • ${it.Equippable} • ${it.Rarity==='Exotic'?"🟡":"🟣"}</div>
+        <div class="itemmeta">
+          ${(["Warlock Bond","Hunter Cloak","Titan Mark"].includes(it.Type)?"Class Item":it.Type)}
+          • ${it.Equippable}
+          • <img src="${RARITY_ICONS[it.Rarity] || ''}" alt="${it.Rarity}" title="${it.Rarity}" style="height:1em;vertical-align:middle;">
+        </div>
         <div class="tiny mono">${normId(it.Id)}</div>`;
       // Tier
       const cTier=document.createElement('div'); 
@@ -739,9 +801,21 @@ document.getElementById('restoreBtn').addEventListener('click', ()=>{ const rows
   document.getElementById('clearBtn').addEventListener('click', ()=>{ STATE.rows=[]; localStorage.removeItem(LS_KEY); document.getElementById('file').value=''; render(); });
   document.getElementById('tol').addEventListener('input', (e)=>{ const v=Number(e.target.value); STATE.tol = isFinite(v)? v: STATE.tol; render(); });
 
+  function updateShadowColor() {
+  const root = document.documentElement;
+  if (STATE.rarityFilter === "Legendary") {
+    root.style.setProperty('--shadow', 'var(--shadow-purple)');
+  } else if (STATE.rarityFilter === "Exotic") {
+    root.style.setProperty('--shadow', 'var(--shadow-gold)');
+  } else {
+    root.style.setProperty('--shadow', '0 2px 24px 0 rgba(80,120,255,0.10)');
+  }
+}
+
   // Initial
   const cached = loadRows(); if(cached){ STATE.rows=cached; }
   render();
+  updateShadowColor();
 </script>
 </body>
 </html>
