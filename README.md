@@ -43,4 +43,4 @@ No warranty is provided. Use at your own risk.
 
 ---
 
-Made
+Made by ErebusAres.
