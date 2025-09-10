@@ -2,6 +2,10 @@
 
 D2 Armor Analyzer is a web-based tool for Destiny 2 players to analyze, compare, and group their armor stats using CSV exports from [Destiny Item Manager (DIM)](https://app.destinyitemmanager.com/).
 
+> **Disclaimer:**  
+> This project is not affiliated with Destiny Item Manager (DIM) or Bungie in any way.  
+> I do not work with DIM and cannot assist with any issues related to the DIM website, your Bungie account, or CSV downloads from DIM.
+
 ## Features
 
 - Upload your DIM Armor CSV and view all your armor pieces in a sortable, filterable table.
@@ -14,6 +18,7 @@ D2 Armor Analyzer is a web-based tool for Destiny 2 players to analyze, compare,
 
 1. **Export your Armor CSV from DIM:**
    - Go to [DIM Organizer](https://app.destinyitemmanager.com/organizer).
+     - Note: You must authorize DIM with your Bungie Account to download your item csv.
    - Select any class.
    - Click the "Armor.csv" button at the top right to download your armor data.
 
