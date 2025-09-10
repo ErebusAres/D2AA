@@ -1,5 +1,7 @@
 # D2 Armor Analyzer
 
+Download zip [HERE](https://github.com/ErebusAres/D2AA/archive/refs/tags/d2aa.zip).
+
 D2 Armor Analyzer is a web-based tool for Destiny 2 players to analyze, compare, and group their armor stats using CSV exports from [Destiny Item Manager (DIM)](https://app.destinyitemmanager.com/).
 
 > **Disclaimer:**  
