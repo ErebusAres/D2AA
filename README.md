@@ -39,7 +39,7 @@ D2 Armor Analyzer is a web-based tool for Destiny 2 players to analyze, compare,
    - Use "Clear" to remove all data from the app and browser storage.
 
 ## Example Image
-<img width="1920" height="918" alt="example" src="https://github.com/user-attachments/assets/db88270b-e7ef-40d7-8f83-32c210f74594" />
+<img width="1920" height="918" alt="image" src="https://github.com/user-attachments/assets/48944ff6-f808-4522-a515-435bad185b76" />
 
 ## License
 
