@@ -1,0 +1,652 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>D2 Armor Analyzer - By ErebusAres</title>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <style>
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700&display=swap');
+
+:root {
+  --bg: #0a0e17;
+  --starfield: repeating-radial-gradient(circle at 20% 30%, #1b2236 0 1px, transparent 1px 100px), repeating-radial-gradient(circle at 80% 70%, #1b2236 0 1px, transparent 1px 120px);
+  --panel: linear-gradient(135deg, #181d26 60%, #232943 100%);
+  --panel2: #181d26;
+  --muted: #232943;
+  --muted2: #1b2236;
+  --text: #e6eaf3;
+  --sub: #8b9bb8;
+  --emerald: #43ff8e;
+  --accent: #3fd0ff;
+  --orange: #ffb347;
+  --purple: #a78bfa;
+  --gold: #ffe066;
+  --border: #2e3350;
+  --shadow: 0 2px 24px 0 rgba(80,120,255,0.10);
+
+  /* Stat colors (D2 style, more saturated) */
+  --stat-red: #ff3b3b;
+  --stat-yellow: #ffe066;
+  --stat-green: #43ff8e;
+  --stat-blue: #3fd0ff;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  background-image: var(--starfield);
+  color: var(--text);
+  font-family: 'Rajdhani', 'Inter', 'Segoe UI', 'Roboto', Arial, sans-serif;
+  letter-spacing: 0.01em;
+}
+.wrap {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px;
+}
+h1 {
+  margin: 0 0 6px;
+  font-size: 24px;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+  text-shadow: 0 2px 8px #1a1e2e;
+  font-family: 'Rajdhani', 'Inter', sans-serif;
+}
+.muted {
+  color: var(--sub);
+  font-size: 12px;
+}
+.panel {
+  background: var(--panel);
+  border: 1.5px solid var(--border);
+  border-radius: 18px;
+  padding: 16px;
+  box-shadow: var(--shadow);
+  position: relative;
+  overflow: hidden;
+}
+.panel:before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(135deg, transparent, transparent 12px, rgba(255,255,255,0.01) 12px, rgba(255,255,255,0.01) 16px);
+  z-index: 0;
+}
+.toolbar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.btn {
+  border: 1.5px solid var(--accent);
+  background: var(--panel2);
+  color: var(--accent);
+  padding: 7px 14px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 13px;
+  transition: background 0.2s, color 0.2s, border 0.2s, box-shadow 0.2s;
+  font-family: 'Rajdhani', 'Inter', sans-serif;
+  box-shadow: 0 2px 8px 0 rgba(79,223,255,0.08);
+}
+.btn:hover {
+  background: var(--accent);
+  color: #181d26;
+  border-color: var(--gold);
+  box-shadow: 0 0 8px 2px var(--accent);
+}
+.filters {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.line {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.label {
+  width: 80px;
+  font-size: 12px;
+  color: var(--gold);
+  letter-spacing: 0.03em;
+  font-family: 'Rajdhani', 'Inter', sans-serif;
+}
+.seg {
+  display: inline-flex;
+  gap: 8px;
+}
+.seg .chip {
+  border: 1.5px solid var(--muted);
+  background: var(--panel2);
+  color: var(--text);
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, border 0.2s;
+  font-family: 'Rajdhani', 'Inter', sans-serif;
+}
+.seg .chip.active {
+  background: var(--accent);
+  color: #181d26;
+  border-color: var(--gold);
+}
+.list {
+  background: var(--panel);
+  border: 1.5px solid var(--border);
+  border-radius: 18px;
+  padding: 16px;
+  box-shadow: var(--shadow);
+  position: relative;
+  overflow: hidden;
+}
+.row {
+  display: grid;
+  grid-template-columns: 0.6fr 2fr 1fr 4fr 1fr 2fr 2fr 1fr;
+  gap: 12px;
+  align-items: center;
+  min-height: 32px;
+  position: relative;
+  z-index: 1;
+}
+.row.header {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--gold);
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--muted);
+  letter-spacing: 0.03em;
+  font-family: 'Rajdhani', 'Inter', sans-serif;
+  background: none !important;
+}
+.row.item {
+  padding: 3px 0;
+  border-bottom: 1px solid var(--muted2);
+  transition: background 0.2s;
+  min-height: 32px;
+}
+.row.item:hover {
+  background: rgba(63,208,255,0.06);
+}
+.row.altA { background: rgba(24,28,38,0.92); }
+.row.altB { background: rgba(16,19,26,0.92); }
+.empty {
+  padding: 14px;
+  color: var(--sub);
+  font-size: 13px;
+}
+.chips {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 4px;
+  align-items: center;
+  min-width: 0;
+}
+.chipStat {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  font-size: 12px;
+  border: 1.5px solid var(--muted);
+  background: linear-gradient(120deg, #232943 60%, #181d26 100%);
+  width: 48px;
+  height: 20px;
+  box-sizing: border-box;
+  padding: 0 4px;
+  border-radius: 9px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  box-shadow: 0 1px 4px 0 rgba(30,40,80,0.10) inset, 0 0 2px 0 #0008;
+  font-family: 'Rajdhani', 'Inter', sans-serif;
+  transition: border 0.2s, background 0.2s;
+}
+.stat-ico {
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
+  filter: brightness(1.2) drop-shadow(0 0 2px #fff8);
+}
+.mono {
+  font-variant-numeric: tabular-nums;
+  font-family: 'Rajdhani', 'Inter', monospace;
+  font-size: 14px;
+  font-weight: 700;
+  text-align: center;
+  width: 20px;
+  display: inline-block;
+}
+.stat-red {
+  color: var(--stat-red);
+  border-color: var(--stat-red);
+  background: linear-gradient(120deg, #2a181a 60%, #3b2329 100%);
+  box-shadow: 0 0 4px 0 #ff3b3b55;
+}
+.stat-yellow {
+  color: var(--stat-yellow);
+  border-color: var(--stat-yellow);
+  background: linear-gradient(120deg, #2a2618 60%, #3b3623 100%);
+  box-shadow: 0 0 4px 0 #ffe06655;
+}
+.stat-green {
+  color: var(--stat-green);
+  border-color: var(--stat-green);
+  background: linear-gradient(120deg, #182a1a 60%, #233b23 100%);
+  box-shadow: 0 0 4px 0 #43ff8e55;
+}
+.stat-cyan {
+  color: var(--stat-blue);
+  border-color: var(--stat-blue);
+  background: linear-gradient(120deg, #18232a 60%, #23313b 100%);
+  box-shadow: 0 0 4px 0 #3fd0ff55;
+}
+.badge-warn {
+  color: var(--orange);
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: underline dotted var(--orange) 1px;
+  text-underline-offset: 3px;
+  background: rgba(255,179,71,0.08);
+  border-radius: 6px;
+  padding: 2px 8px;
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  font-family: 'Rajdhani', 'Inter', sans-serif;
+  border: 1px solid var(--orange);
+}
+.badge-ok {
+  color: #43ff8e;
+  font-weight: 700;
+  background: rgba(67,252,130,0.08);
+  border-radius: 6px;
+  padding: 2px 8px;
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  font-family: 'Rajdhani', 'Inter', sans-serif;
+  border: 1px solid #43ff8e;
+}
+.itemmeta {
+  color: #8b9bb8;
+  font-size: 11px;
+}
+.tiny {
+  font-size: 10px;
+  color: #3fd0ff;
+}
+.right {
+  text-align: right;
+}
+.center {
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.center-info {
+  font-size: 8px;
+  color: var(--accent);
+  display: inline-flex;
+}
+.tier {
+  font-family: 'Rajdhani', monospace;
+  text-align: center;
+  color: var(--gold);
+  font-size: 18px;
+  letter-spacing: 0.08em;
+  text-shadow: 0 1px 4px #181c2a;
+}
+input[type="number"] {
+  background: var(--panel2);
+  border: 1px solid var(--muted);
+  color: var(--text);
+  padding: 8px 10px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-family: 'Rajdhani', 'Inter', sans-serif;
+}
+::-webkit-scrollbar {
+  height: 8px;
+  width: 10px;
+  background: #181d26;
+}
+::-webkit-scrollbar-thumb {
+  background: #232943;
+  border-radius: 8px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #3a425a;
+}
+.row > .center.mono {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-weight: 700;
+  font-size: 14px;
+  min-height: 20px;
+  text-align: center;
+}
+.row.altA { background: rgba(24,28,38,0.92); }
+.row.altB { background: rgba(16,19,26,0.92); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="panel" style="margin-bottom:16px">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px">
+        <div>
+          <h1>D2 Armor Analyzer</h1>
+          <div class="muted">♦ Upload your DIM CSV; dupes use top‑3 stat identities within ± tolerance. Exotics compare only against same‑name items.</div>
+          <div class="muted">♦ Click "Restore last" to reload the last uploaded CSV from this browser.</div>
+          <div class="muted">♦ Click "Copy ID" or A Group Badge to copy to clipboard.</div>
+        </div>
+        <div class="toolbar">
+          <input id="file" type="file" accept=".csv" />
+          <button class="btn" id="restoreBtn" aria-label="Restore last uploaded CSV">Restore last</button>
+          <button class="btn" id="clearBtn" aria-label="Clear all data">Clear</button>
+        </div>
+      </div>
+    </header>
+
+    <section class="panel" style="margin-bottom:16px">
+      <div class="filters">
+        <div class="line"><span class="label">Class</span><div id="classSeg" class="seg"></div></div>
+        <div class="line"><span class="label">Rarity</span><div id="raritySeg" class="seg"></div></div>
+        <div class="line"><span class="label">Slot</span><div id="slotSeg" class="seg"></div></div>
+        <div class="line"><span class="label">Tolerance</span><input id="tol" type="number" min="0" max="20" value="5" style="width:80px"/> <span class="muted">± top‑3 stat</span></div>
+        <div class="line"><span class="label">Dupes</span><label><input id="sameNameOnly" type="checkbox"/> Same‑name only</label></div>
+      </div>
+    </section>
+
+    <section class="list">
+      <div class="row header">
+        <div class="center">R</div>
+        <div>Item</div>
+        <div class="center">Tier</div>
+        <div>Base Stats <div class="center-info">(Weapons, Health, Class, Grenade, Super, Melee)</div></div>
+        <div class="center">Total</div>
+        <div class="center">Group</div>
+        <div class="center">Rank</div>
+        <div class="right">Copy</div>
+      </div>
+      <div id="rows"></div>
+      <div id="empty" class="empty" style="display:none"><p>
+        No items yet — upload a DIM CSV or click Restore last.<br/><br/>
+
+        To export from DIM: <br/>
+        - Go to https://app.destinyitemmanager.com/ and sign in. <br/>
+        - Navigate to Organizer. <br/>
+        - Select any class. <br/>
+        - Click the "Armor.csv" button at the top right to download your armor data. <br/>
+        - Upload the downloaded CSV file here. <br/>
+      </p></div>
+    </section>
+  </div>
+
+  <script>
+  // ====== Constants ======
+  const STAT_COLS = [
+    "Weapons (Base)",
+    "Health (Base)",
+    "Class (Base)",
+    "Grenade (Base)",
+    "Super (Base)",
+    "Melee (Base)"
+  ];
+  const STAT_ICONS = {
+    "Weapons (Base)":"https://www.bungie.net/common/destiny2_content/icons/bc69675acdae9e6b9a68a02fb4d62e07.png",
+    "Health (Base)":"https://www.bungie.net/common/destiny2_content/icons/717b8b218cc14325a54869bef21d2964.png",
+    "Class (Base)":"https://www.bungie.net/common/destiny2_content/icons/7eb845acb5b3a4a9b7e0b2f05f5c43f1.png",
+    "Grenade (Base)":"https://www.bungie.net/common/destiny2_content/icons/065cdaabef560e5808e821cefaeaa22c.png",
+    "Super (Base)":"https://www.bungie.net/common/destiny2_content/icons/585ae4ede9c3da96b34086fccccdc8cd.png",
+    "Melee (Base)":"https://www.bungie.net/common/destiny2_content/icons/fa534aca76d7f2d7e7b4ba4df4271b42.png"
+  };
+  const CLASS_OPTIONS = ["Warlock", "Hunter", "Titan"];
+  const SLOT_OPTIONS = ["all", "Helmet", "Gauntlets", "Chest Armor", "Leg Armor", "Class Item"];
+  const RARITY_OPTIONS = ["All", "Legendary", "Exotic"];
+  const classItemByClass = { Warlock: "Warlock Bond", Hunter: "Hunter Cloak", Titan: "Titan Mark" };
+
+  // ====== Helpers ======
+  const normId = (s) => (s ? String(s).trim().replace(/^"|"$/g, "") : "");
+  const normName = (s) => String(s || "").trim().toLowerCase();
+  const num = (v) => (v == null || v === "" ? 0 : Number(v));
+  function slotNumber(type){
+    if(type === "Helmet") return 1;
+    if(type === "Gauntlets") return 2;
+    if(type === "Chest Armor") return 3;
+    if(type === "Leg Armor") return 4;
+    if(["Warlock Bond","Hunter Cloak","Titan Mark"].includes(type)) return 5;
+    return 9;
+  }
+  function starsLegendary(t){ const n=num(t); if(n>=75) return "★★★★★"; if(n===74) return "★★★★☆"; if(n===73) return "★★★☆☆"; if(n===72) return "★★☆☆☆"; if(n===71) return "★☆☆☆☆"; return "💩"; }
+  function starsExotic(t){ const n=num(t); if(n>=63) return "★★★★★"; if(n===62) return "★★★★☆"; if(n===61) return "★★★☆☆"; if(n===60) return "★★☆☆☆"; if(n===59) return "★☆☆☆☆"; return "💩"; }
+  function statColorCls(v){ if(v>=30) return "stat-cyan"; if(v>=24) return "stat-green"; if(v>=15) return "stat-yellow"; return "stat-red"; }
+  function top3Entries(item){
+    const arr = STAT_COLS.map(k => ({ name:k, value:num(item[k]) }));
+    arr.sort((a,b)=> (b.value - a.value) || a.name.localeCompare(b.name));
+    return arr.slice(0,3);
+  }
+  function similarTop3(a,b,tol){
+    const ta = top3Entries(a), tb = top3Entries(b);
+    for(let i=0;i<3;i++){
+      if(ta[i].name !== tb[i].name) return false;
+      if(Math.abs(ta[i].value - tb[i].value) > tol) return false;
+    }
+    return true;
+  }
+  function rankScore(rank){ if(!rank) return -1; const stars=(rank.match(/★/g)||[]).length; if(stars>0) return stars; return 0; }
+  async function copyTextSafe(text){
+    try{
+      if(navigator.clipboard && window.isSecureContext){ await navigator.clipboard.writeText(text); return true; }
+      throw new Error('clipboard api not available');
+    }catch(e){
+      try{ const ta=document.createElement('textarea'); ta.value=text; ta.setAttribute('readonly',''); ta.style.position='fixed'; ta.style.left='-9999px'; document.body.appendChild(ta); ta.select(); const ok=document.execCommand('copy'); document.body.removeChild(ta); return ok; }catch(e2){ alert('Copy failed: '+e2); return false; }
+    }
+  }
+
+  // ====== State & Storage ======
+  let STATE = { rows:[], classFilter:'Warlock', slotFilter:'all', rarityFilter:'All', tol:5, sameNameOnly:false };
+  const LS_KEY = 'd2_armor_rows_v1';
+  function saveRows(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(STATE.rows)); }catch(_){} }
+  function loadRows(){ try{ const s=localStorage.getItem(LS_KEY); if(!s) return null; return JSON.parse(s); }catch(_){ return null; } }
+
+  // ====== Filters UI ======
+  function makeSeg(containerId, options, key){
+    const el = document.getElementById(containerId); if(!el) return; el.innerHTML='';
+    options.forEach(opt => {
+      const btn = document.createElement('button');
+      btn.className = 'chip' + (STATE[key]===opt ? ' active' : '');
+      btn.textContent = (containerId==='classSeg' ? (STATE[key]===opt?'☑ ':'☐ ') : (STATE[key]===opt? '● ' : '○ ')) + (opt==='all'?'All':opt);
+      btn.addEventListener('click', ()=>{ STATE[key]=opt; render(); makeSeg(containerId, options, key); });
+      el.appendChild(btn);
+    });
+  }
+  function initFilters(){
+    makeSeg('classSeg', CLASS_OPTIONS, 'classFilter');
+    makeSeg('raritySeg', RARITY_OPTIONS, 'rarityFilter');
+    makeSeg('slotSeg',   SLOT_OPTIONS,   'slotFilter');
+  }
+
+  // ====== Data selection ======
+  function getFiltered(){
+    const expected = classItemByClass[STATE.classFilter];
+    return STATE.rows.filter(r =>
+      (STATE.classFilter ? r.Equippable === STATE.classFilter : true) &&
+      (STATE.slotFilter==='all' ? true : STATE.slotFilter==='Class Item' ? r.Type===expected : r.Type===STATE.slotFilter) &&
+      (STATE.rarityFilter==='All' ? true : r.Rarity === STATE.rarityFilter)
+    );
+  }
+
+  // ====== Grouping & Sorting ======
+  function clusterRows(filtered){
+    const byKey = new Map();
+    for(const r of filtered){
+      const k = r.Rarity==='Exotic' ? `${r.Type}|${normName(r.Name)}` : r.Type; // exotics cluster by name
+      if(!byKey.has(k)) byKey.set(k,[]);
+      byKey.get(k).push({...r});
+    }
+    const out=[]; const A='ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    for(const [key,items] of byKey){
+      const assigned = Array(items.length).fill(false);
+      const rawGroups = [];
+      for(let i=0;i<items.length;i++){
+        if(assigned[i]) continue;
+        const grp=[i]; assigned[i]=true;
+        for(let j=i+1;j<items.length;j++){
+          if(assigned[j]) continue;
+          if(STATE.sameNameOnly && normName(items[i].Name)!==normName(items[j].Name)) continue;
+          if(similarTop3(items[i],items[j],STATE.tol)){ grp.push(j); assigned[j]=true; }
+        }
+        rawGroups.push(grp);
+      }
+      // Order groups by best total first, then id to stabilize
+      rawGroups.sort((g1,g2)=>{
+        const best1 = Math.max(...g1.map(ix=>num(items[ix]["Total (Base)"])));
+        const best2 = Math.max(...g2.map(ix=>num(items[ix]["Total (Base)"])));
+        if(best1!==best2) return best2-best1;
+        return String(items[g1[0]].Id).localeCompare(String(items[g2[0]].Id));
+      });
+      const isExoticKey = key.includes('|');
+      let letterIdx = 0;
+      for(const grp of rawGroups){
+        const first = items[grp[0]];
+        let label = 'X';
+        if(grp.length > 1) {
+          const letter = A[Math.min(letterIdx, A.length-1)];
+          if(isExoticKey) {
+            label = `⚠️🟡${slotNumber(first.Type)}${letter}`;
+          } else {
+            label = `⚠️${slotNumber(first.Type)}${letter}`;
+          }
+          letterIdx++;
+        }
+        for(const gi of grp){
+          const it = items[gi];
+          const rank = it.Rarity==='Exotic' ? starsExotic(it["Total (Base)"]) : starsLegendary(it["Total (Base)"]); 
+          out.push({ ...it, GroupKey:key, Dupe_Group:label, Rank:rank, RankScore:rankScore(rank), Is_Dupe: label!=='X' });
+        }
+      }
+    }
+    // Final sort: slot → cluster → dupes first → group label → name alpha → rank desc → total desc → id
+    out.sort((a,b)=>{
+      const sa=slotNumber(a.Type), sb=slotNumber(b.Type); if(sa!==sb) return sa-sb;
+      const clusterA=(a.GroupKey&&a.GroupKey.includes('|'))?a.GroupKey:a.Type;
+      const clusterB=(b.GroupKey&&b.GroupKey.includes('|'))?b.GroupKey:b.Type;
+      if(clusterA!==clusterB) return String(clusterA).localeCompare(String(clusterB));
+      const da=a.Dupe_Group!=='X', db=b.Dupe_Group!=='X'; if(da!==db) return da? -1 : 1;
+      if(da && db && a.Dupe_Group!==b.Dupe_Group){
+        const ga=String(a.Dupe_Group).replace(/^[^A-Za-z]*/, '').toLowerCase();
+        const gb=String(b.Dupe_Group).replace(/^[^A-Za-z]*/, '').toLowerCase();
+        if(ga!==gb) return ga<gb? -1 : 1;
+      }
+      if(da && db){ const na=String(a.Name).toLowerCase(), nb=String(b.Name).toLowerCase(); if(na!==nb) return na.localeCompare(nb); }
+      if(!da && !db){ const na=String(a.Name).toLowerCase(), nb=String(b.Name).toLowerCase(); if(na!==nb) return na.localeCompare(nb); }
+      if(b.RankScore!==a.RankScore) return b.RankScore-a.RankScore;
+      const ta=num(a["Total (Base)"]), tb=num(b["Total (Base)"]); if(tb!==ta) return tb-ta;
+      return String(a.Id).localeCompare(String(b.Id));
+    });
+    return out;
+  }
+
+  // ====== Render ======
+  function render(){
+    const tolEl=document.getElementById('tol'); if(tolEl) tolEl.value = STATE.tol;
+    const sameNameEl=document.getElementById('sameNameOnly'); if(sameNameEl) sameNameEl.checked = !!STATE.sameNameOnly;
+    initFilters();
+
+    const filtered = getFiltered();
+    const grouped = clusterRows(filtered);
+
+    // Build group->ids for copy-all
+    const groupToIds = new Map();
+    for(const it of grouped){ if(it.Dupe_Group==='X') continue; const key=`${it.GroupKey||''}::${it.Dupe_Group}`; if(!groupToIds.has(key)) groupToIds.set(key,[]); groupToIds.get(key).push(normId(it.Id)); }
+
+    const host=document.getElementById('rows');
+    const empty=document.getElementById('empty');
+    host.innerHTML='';
+    if(grouped.length===0){ if(empty) empty.style.display='block'; return; } else { if(empty) empty.style.display='none'; }
+
+    let lastGroup = null;
+    let altToggle = false;
+    for(const it of grouped){
+      // Alternate shade when group changes (by Dupe_Group label)
+      if (it.Dupe_Group !== lastGroup) {
+        altToggle = !altToggle;
+        lastGroup = it.Dupe_Group;
+      }
+      const row=document.createElement('div');
+      row.className = 'row item ' + (altToggle ? 'altA' : 'altB');
+      // Rarity dot
+      const cRare=document.createElement('div'); cRare.className='center'; cRare.textContent = (it.Rarity==='Exotic'? '🟡' : '🟣');
+      // Item
+      const cItem=document.createElement('div');
+      cItem.innerHTML=`<div style="font-weight:700">${it.Name}</div>
+        <div class="itemmeta">${(["Warlock Bond","Hunter Cloak","Titan Mark"].includes(it.Type)?"Class Item":it.Type)} • ${it.Equippable} • ${it.Rarity==='Exotic'?"🟡":"🟣"}</div>
+        <div class="tiny mono">${normId(it.Id)}</div>`;
+      // Tier
+      const cTier=document.createElement('div'); 
+      cTier.className='tier'; 
+      const tVal = Number.isFinite(it.Tier) ? Number(it.Tier) : 0; 
+      cTier.textContent = '♦'.repeat(Math.max(1, Math.min(5, tVal)));
+      // Stats chips
+      const cStats=document.createElement('div'); cStats.className='chips';
+      for(const k of STAT_COLS){
+        const pill=document.createElement('span'); pill.className=`chipStat ${statColorCls(it[k])}`; pill.title=k.replace(' (Base)','');
+        const img=document.createElement('img'); img.className='stat-ico'; img.alt=k; img.src=STAT_ICONS[k]||''; if(img.src) pill.appendChild(img);
+        const strong=document.createElement('strong'); strong.className='mono'; strong.textContent=String(it[k]||0); pill.appendChild(strong);
+        cStats.appendChild(pill);
+      }
+      // Total
+      const cTotal=document.createElement('div'); cTotal.className='center'; cTotal.style.fontWeight='700'; cTotal.textContent=String(it["Total (Base)"]||0);
+      // Group (click to copy all group ids)
+      const cGroup=document.createElement('div'); cGroup.className='center';
+      if(it.Dupe_Group!=='X'){
+        const label = it.Dupe_Group;
+        const key=`${it.GroupKey||''}::${it.Dupe_Group}`;
+        const list=(groupToIds.get(key)||[]).map(id=>`id:${id}`).join(' or ');
+        const span=document.createElement('span'); span.className='badge-warn'; span.textContent=label; span.title='Click to copy all IDs in this dupe group';
+        span.addEventListener('click', async ()=>{ const ok=await copyTextSafe(list); if(!ok) alert('Copy failed'); });
+        cGroup.appendChild(span);
+      } else {
+        cGroup.innerHTML = `<span class='badge-ok'>✅</span>`;
+      }
+      // Rank
+      const cRank=document.createElement('div'); cRank.className='center'; cRank.textContent=it.Rank||'';
+      // Copy single id
+      const cCopy=document.createElement('div'); cCopy.className='right';
+      const btn=document.createElement('button'); btn.className='btn'; btn.textContent='Copy id';
+      btn.addEventListener('click', async ()=>{ const ok=await copyTextSafe(`id:${normId(it.Id)}`); btn.textContent= ok? 'Copied!' : 'Copy id'; setTimeout(()=> btn.textContent='Copy id', 1200); });
+      cCopy.appendChild(btn);
+
+      row.append(cRare,cItem,cTier,cStats,cTotal,cGroup,cRank,cCopy);
+      host.appendChild(row);
+    }
+  }
+
+  // ====== Events ======
+document.getElementById('file').addEventListener('change', (e)=>{
+    const f=e.target.files?.[0]; if(!f) return;
+  Papa.parse(f,{header:true, skipEmptyLines:true, complete:(res)=>{
+    const data=res.data||[];
+    STATE.rows = data.map(r=>{ const x={...r}; for(const k of [...STAT_COLS,'Total (Base)','Tier']) { if(x[k]!==undefined) { const n = num(x[k]); x[k] = Number.isFinite(n) ? n : 0; } } x.Id=normId(x.Id); return x; });
+    saveRows();
+    render();
+    document.getElementById('file').value = '';
+  }});
+});
+document.getElementById('restoreBtn').addEventListener('click', ()=>{ const rows=loadRows(); if(rows&&Array.isArray(rows)){ STATE.rows=rows; render(); } else { alert('No saved CSV found in this browser. Upload a DIM CSV first.'); } });
+  document.getElementById('clearBtn').addEventListener('click', ()=>{ STATE.rows=[]; localStorage.removeItem(LS_KEY); document.getElementById('file').value=''; render(); });
+  document.getElementById('tol').addEventListener('input', (e)=>{ const v=Number(e.target.value); STATE.tol = isFinite(v)? v: STATE.tol; render(); });
+  document.getElementById('sameNameOnly').addEventListener('change', (e)=>{ STATE.sameNameOnly=!!e.target.checked; render(); });
+
+  // Initial
+  const cached = loadRows(); if(cached){ STATE.rows=cached; }
+  render();
+</script>
+</body>
+</html>
