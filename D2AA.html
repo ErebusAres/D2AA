@@ -471,7 +471,14 @@ input[type="number"] {
     "Leg Armor": "https://raw.githubusercontent.com/justrealmilk/destiny-icons/master/armor_types/boots.svg",
     "Class Item": "https://raw.githubusercontent.com/justrealmilk/destiny-icons/master/armor_types/class.svg"
   };
-
+  const ARMOR_ARCHETYPES = {
+    "Grenadier": "https://www.bungie.net/common/destiny2_content/icons/cbf4f03459ab2818a3d37b7362b2aa93.png", // Grenade, Super
+    "Paragon": "https://www.bungie.net/common/destiny2_content/icons/b5feb81f684d767d6212ca138f30b34c.png", // Super, Melee
+    "Specialist": "https://www.bungie.net/common/destiny2_content/icons/69731c603d7bcdd0a21b26c711d55f03.png", // Class, Weapons
+    "Brawler": "https://www.bungie.net/common/destiny2_content/icons/7bc3bc2bccdafc19dde31f867a06ee9f.png", // Melee, Health
+    "Bulwark": "https://www.bungie.net/common/destiny2_content/icons/cda905547dd9eac7a39e6e898f619bc5.png", // Health, Class
+    "Gunner": "https://www.bungie.net/common/destiny2_content/icons/15e3b3c25a6d4606dcb887cb67c915a1.png" // Weapons, Grenade
+  }
   // ====== Helpers ======
   const normId = (s) => (s ? String(s).trim().replace(/^"|"$/g, "") : "");
   const normName = (s) => String(s || "").trim().toLowerCase();
@@ -767,7 +774,38 @@ out.sort((a, b) => {
         const label = it.Dupe_Group;
         const key=`${it.GroupKey||''}::${it.Dupe_Group}`;
         const list=(groupToIds.get(key)||[]).map(id=>`id:${id}`).join(' or ');
-        const span=document.createElement('span'); span.className='badge-warn'; span.textContent=label; span.title='Click to copy all IDs in this dupe group';
+        const span=document.createElement('span'); 
+        span.className='badge-warn'; 
+        span.title='Click to copy all IDs in this dupe group';
+
+        // PATCH: replace 🟡 in label with a rarity <img> for Exotic groups by assembling DOM nodes
+        // We keep label text (which might contain ⚠️🟡1A, etc.) but we render the icon instead of the 🟡
+        // Detect exotic dupe groups using the label pattern OR the item's rarity
+        const exoticGroup = /🟡/.test(label) || it.Rarity === 'Exotic';
+        if (exoticGroup && RARITY_ICONS[it.Rarity]) {
+          // Split off the visible prefix before slot/letter (remove the emoji if present)
+          const textNoYellow = label.replace('🟡','');
+          // Optional: if the label still includes the ⚠️, we keep it in text
+          // Prepend the icon after ⚠️
+          const m = textNoYellow.match(/^(⚠️)?(.*)$/);
+          const prefix = (m && m[1]) ? '⚠️' : '';
+          const rest = (m && m[2]) ? m[2] : textNoYellow;
+          if (prefix) span.append(prefix);
+
+          const img = new Image();
+          img.src = RARITY_ICONS[it.Rarity];
+          img.alt = it.Rarity;
+          img.title = it.Rarity;
+          img.style.height = '1em';
+          img.style.verticalAlign = 'middle';
+          img.style.marginRight = '4px';
+          span.appendChild(img);
+
+          span.append(rest);
+        } else {
+          // Fallback: plain text
+          span.append(label);
+        }
         span.addEventListener('click', async ()=>{ const ok=await copyTextSafe(list); if(!ok) alert('Copy failed'); });
         cGroup.appendChild(span);
       } else {
