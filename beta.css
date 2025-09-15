@@ -616,6 +616,7 @@ button.tool-card {
 
 .right {
   text-align: right;
+  padding-right: 2px;
 }
 
 .center {
