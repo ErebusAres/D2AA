@@ -338,7 +338,7 @@ button.tool-card {
   border: 1px solid var(--border-strong);
   background: linear-gradient(120deg, rgba(124, 215, 255, 0.15), rgba(159, 133, 255, 0.08));
   color: var(--accent);
-  padding: 6px 18px;
+  padding: 6px 14px;
   border-radius: 999px;
   font-weight: 600;
   cursor: pointer;
@@ -616,7 +616,6 @@ button.tool-card {
 
 .right {
   text-align: right;
-  padding-right: 2px;
 }
 
 .center {
