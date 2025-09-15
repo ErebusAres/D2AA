@@ -3,29 +3,27 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>D2 Armor Analyzer - By ErebusAres</title>
+  <title>D2 Armor Analyzer Beta - Edge of Fate Theme</title>
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
   <link rel="stylesheet" href="beta.css" />
 </head>
 <body>
   <div class="wrap">
-    <header class="panel hero-panel">
-      <div class="hero-grid">
-        <div class="hero-copy">
+    <header class="panel panel-spacing">
+      <div class="header-grid">
+        <div class="header-info">
           <h1>
-            <span class="title-prefix">Destiny 2</span>
+            <span class="title-prefix">Destiny 2 Beta</span>
             <span class="title-main">Edge of Fate Armor Analyzer</span>
           </h1>
-          <p class="tagline">Deep dive your armor rolls for the Edge of Fate meta.</p>
-          <div class="hero-hints">
-            <div class="muted">♦ Upload your DIM CSV; dupes use top‑3 stat identities within ± tolerance. Exotics compare only against same‑name items.</div>
-            <div class="muted">♦ Click "Restore last" to reload the last uploaded CSV from this browser.</div>
-            <div class="muted">♦ Click "Copy ID" or a Group Badge to copy to clipboard.</div>
-          </div>
+          <p class="hero-subtitle">Edge of Fate dark mode tuned for clarity and quick reads.</p>
+          <ul class="hero-hints">
+            <li><strong>Upload a DIM CSV.</strong> Duplicate checks track the top-three stats within your ± tolerance, and Exotic armor compares only against matching names.</li>
+            <li><strong>Restore last</strong> reloads the most recent CSV saved in this browser.</li>
+            <li>Use <strong>Copy ID</strong> or a highlighted group badge to grab entries instantly.</li>
+          </ul>
         </div>
-        <div class="toolbar hero-actions">
-          <span class="hero-actions-title">Data Intake</span>
-          <p class="hero-actions-sub muted">Import your latest DIM Organizer export.</p>
+        <div class="toolbar">
           <input id="file" type="file" accept=".csv" />
           <button class="btn" id="restoreBtn" aria-label="Restore last uploaded CSV">Restore last</button>
           <button class="btn" id="clearBtn" aria-label="Clear all data">Clear</button>
@@ -33,26 +31,33 @@
       </div>
     </header>
 
-    <section class="panel filters-panel">
-      <div class="section-heading">
-        <h2>Loadout Filters</h2>
-        <p class="section-sub">Dial in the armor you're hunting.</p>
-      </div>
-
+    <section class="panel panel-spacing">
       <div class="filters">
-        <div class="line"><span class="label">Class</span><div id="classSeg" class="seg"></div></div>
-        <div class="line"><span class="label">Rarity</span><div id="raritySeg" class="seg"></div></div>
-        <div class="line"><span class="label">Slot</span><div id="slotSeg" class="seg"></div></div>
-        <div class="line"><span class="label">Dupes</span><div id="dupesSeg" class="seg"></div></div>
-        <div class="line"><span class="label">Tolerance</span><input id="tol" class="number-input" type="number" min="0" max="20" value="5"/> <span class="muted">± top‑3 stat</span></div>
+        <div class="line">
+          <span class="label">Class</span>
+          <div id="classSeg" class="seg"></div>
+        </div>
+        <div class="line">
+          <span class="label">Rarity</span>
+          <div id="raritySeg" class="seg"></div>
+        </div>
+        <div class="line">
+          <span class="label">Slot</span>
+          <div id="slotSeg" class="seg"></div>
+        </div>
+        <div class="line">
+          <span class="label">Dupes</span>
+          <div id="dupesSeg" class="seg"></div>
+        </div>
+        <div class="line">
+          <span class="label">Tolerance</span>
+          <input id="tol" class="number-input" type="number" min="0" max="20" value="5" />
+          <span class="muted">± top-3 stat</span>
+        </div>
       </div>
     </section>
 
-    <section class="list data-panel">
-      <div class="section-heading">
-        <h2>Armor Inventory</h2>
-        <p class="section-sub">Grouped by duplicates and ranked for Edge of Fate rolls.</p>
-      </div>
+    <section class="panel list">
       <div class="row header">
         <div class="center">Tag</div>
         <div>Item</div>
@@ -64,16 +69,16 @@
         <div class="right">Copy</div>
       </div>
       <div id="rows"></div>
-      <div id="empty" class="empty panel-empty" style="display:none"><p>
-        No items yet — upload a DIM CSV or click Restore last.<br/><br/>
-
-        To export from DIM: <br/>
-        ♦ Go to https://app.destinyitemmanager.com/ and sign in. <br/>
-        ♦ Navigate to Organizer. <br/>
-        ♦ Select any class. <br/>
-        ♦ Click the "Armor.csv" button at the top right to download your armor data. <br/>
-        ♦ Upload the downloaded CSV file here. <br/>
-      </p></div>
+      <div id="empty" class="empty panel-empty is-hidden">
+        <p class="empty-title">No armor loaded yet.</p>
+        <p>Upload a DIM CSV or restore your last import to start scouting duplicate rolls.</p>
+        <ol class="empty-steps">
+          <li>Go to <a href="https://app.destinyitemmanager.com/" target="_blank" rel="noreferrer noopener">destinyitemmanager.com</a> and sign in.</li>
+          <li>Open the <strong>Organizer</strong> view and pick any class.</li>
+          <li>Select <strong>Armor.csv</strong> in the top right to download your armor data.</li>
+          <li>Drop the downloaded CSV here or use <strong>Restore last</strong>.</li>
+        </ol>
+      </div>
     </section>
   </div>
 
@@ -190,26 +195,49 @@
 
   // ====== Filters UI ======
   function makeSeg(containerId, options, key){
-  const el = document.getElementById(containerId); if(!el) return; el.innerHTML='';
-  options.forEach(opt => {
-    const btn = document.createElement('button');
-    btn.className = 'chip' + (STATE[key]===opt ? ' active' : '');
-    let label = opt;
-    // Add icons for class, rarity, and slot filters
-    if (containerId === 'classSeg' && CLASS_ICONS[opt]) {
-      label = `<span class="chip-icon-mask" style="mask-image:url('${CLASS_ICONS[opt]}');-webkit-mask-image:url('${CLASS_ICONS[opt]}');"></span>${opt}`;
-    }
-    if (containerId === 'raritySeg' && RARITY_ICONS[opt]) {
-      label = `<img src="${RARITY_ICONS[opt]}" alt="${opt}" title="${opt}" class="chip-icon rarity" style="height:1em;vertical-align:middle;margin-right:4px;">${opt}`;
-    }
-    if (containerId === 'slotSeg' && SLOT_ICONS[opt]) {
-      label = `<span class="chip-icon-mask" style="mask-image:url('${SLOT_ICONS[opt]}');-webkit-mask-image:url('${SLOT_ICONS[opt]}');"></span>${opt}`;
-    }
-    btn.innerHTML = (STATE[key]===opt? '● ' : '○ ') + label;
-    btn.addEventListener('click', ()=>{ STATE[key]=opt; render(); makeSeg(containerId, options, key); });
-    el.appendChild(btn);
-  });
-}
+    const el = document.getElementById(containerId);
+    if(!el) return;
+    el.innerHTML='';
+    options.forEach(opt => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      const isActive = STATE[key]===opt;
+      btn.className = 'chip' + (isActive ? ' active' : '');
+      btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+
+      const indicator = document.createElement('span');
+      indicator.className = 'chip-indicator';
+      indicator.textContent = isActive ? '●' : '○';
+      btn.appendChild(indicator);
+
+      const maybeIcon = (src, extraClass = '') => {
+        if(!src) return;
+        const icon = document.createElement('img');
+        icon.src = src;
+        icon.alt = opt;
+        icon.title = opt;
+        icon.loading = 'lazy';
+        icon.className = 'chip-icon' + (extraClass ? ' ' + extraClass : '');
+        btn.appendChild(icon);
+      };
+
+      if(containerId === 'classSeg'){
+        maybeIcon(CLASS_ICONS[opt]);
+      } else if(containerId === 'raritySeg'){
+        maybeIcon(RARITY_ICONS[opt], 'rarity');
+      } else if(containerId === 'slotSeg'){
+        maybeIcon(SLOT_ICONS[opt]);
+      }
+
+      const label = document.createElement('span');
+      label.className = 'chip-label';
+      label.textContent = opt;
+      btn.appendChild(label);
+
+      btn.addEventListener('click', ()=>{ STATE[key]=opt; render(); makeSeg(containerId, options, key); });
+      el.appendChild(btn);
+    });
+  }
   function initFilters(){
     makeSeg('classSeg', CLASS_OPTIONS, 'classFilter');
     makeSeg('raritySeg', RARITY_OPTIONS, 'rarityFilter');
@@ -384,7 +412,7 @@ out.sort((a, b) => {
     const host=document.getElementById('rows');
     const empty=document.getElementById('empty');
     host.innerHTML='';
-    if(grouped.length===0){ if(empty) empty.style.display='block'; return; } else { if(empty) empty.style.display='none'; }
+    if(grouped.length===0){ if(empty) empty.classList.remove('is-hidden'); return; } else if(empty) { empty.classList.add('is-hidden'); }
 
     let lastGroup = null;
     let altToggle = false;
@@ -404,13 +432,36 @@ out.sort((a, b) => {
       cTag.title = TAG_LABELS[tag] || '';
       // Item
       const cItem=document.createElement('div');
-      cItem.innerHTML=`<div style="font-weight:700">${it.Name}</div>
-        <div class="itemmeta">
-          ${(["Warlock Bond","Hunter Cloak","Titan Mark"].includes(it.Type)?"Class Item":it.Type)}
-          • ${it.Equippable}
-          • <img src="${RARITY_ICONS[it.Rarity] || ''}" alt="${it.Rarity}" title="${it.Rarity}" style="height:1em;vertical-align:middle;">
-        </div>
-        <div class="tiny mono">${normId(it.Id)}</div>`;
+      const nameEl=document.createElement('div');
+      nameEl.className='item-name';
+      nameEl.textContent=it.Name;
+      cItem.appendChild(nameEl);
+
+      const meta=document.createElement('div');
+      meta.className='itemmeta';
+      const typeLabel = (["Warlock Bond","Hunter Cloak","Titan Mark"].includes(it.Type)?"Class Item":it.Type);
+      meta.append(typeLabel);
+      meta.append(' • ');
+      meta.append(it.Equippable);
+      if(RARITY_ICONS[it.Rarity]){
+        meta.append(' • ');
+        const rarityIcon=document.createElement('img');
+        rarityIcon.src=RARITY_ICONS[it.Rarity];
+        rarityIcon.alt=it.Rarity;
+        rarityIcon.title=it.Rarity;
+        rarityIcon.className='inline-icon';
+        meta.appendChild(rarityIcon);
+        const rarityText=document.createElement('span');
+        rarityText.className='rarity-label';
+        rarityText.textContent=it.Rarity;
+        meta.appendChild(rarityText);
+      }
+      cItem.appendChild(meta);
+
+      const idEl=document.createElement('div');
+      idEl.className='tiny mono';
+      idEl.textContent=normId(it.Id);
+      cItem.appendChild(idEl);
       // Tier
       const cTier=document.createElement('div'); 
       cTier.className='tier'; 
@@ -425,7 +476,7 @@ out.sort((a, b) => {
         cStats.appendChild(pill);
       }
       // Total
-      const cTotal=document.createElement('div'); cTotal.className='center'; cTotal.style.fontWeight='700'; cTotal.textContent=String(it["Total (Base)"]||0);
+      const cTotal=document.createElement('div'); cTotal.className='center total-strong'; cTotal.textContent=String(it["Total (Base)"]||0);
       // Group (click to copy all group ids)
       const cGroup=document.createElement('div'); cGroup.className='center';
       if(it.Dupe_Group!=='X'){
@@ -450,13 +501,11 @@ out.sort((a, b) => {
           const rest = (m && m[2]) ? m[2] : textNoYellow;
           if (prefix) span.append(prefix);
 
-          const img = new Image();
+          const img = document.createElement('img');
           img.src = RARITY_ICONS[it.Rarity];
           img.alt = it.Rarity;
           img.title = it.Rarity;
-          img.style.height = '1em';
-          img.style.verticalAlign = 'middle';
-          img.style.marginRight = '4px';
+          img.className = 'inline-icon';
           span.appendChild(img);
 
           span.append(rest);
@@ -473,7 +522,7 @@ out.sort((a, b) => {
       const cRank=document.createElement('div'); cRank.className='center'; cRank.textContent=it.Rank||'';
       // Copy single id
       const cCopy=document.createElement('div'); cCopy.className='right';
-      const btn=document.createElement('button'); btn.className='btn'; btn.textContent='Copy id';
+      const btn=document.createElement('button'); btn.type='button'; btn.className='btn'; btn.textContent='Copy id';
       btn.addEventListener('click', async ()=>{ const ok=await copyTextSafe(`id:${normId(it.Id)}`); btn.textContent= ok? 'Copied!' : 'Copy id'; setTimeout(()=> btn.textContent='Copy id', 1200); });
       cCopy.appendChild(btn);
 
