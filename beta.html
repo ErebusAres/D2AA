@@ -494,7 +494,7 @@ out.sort((a, b) => {
       // Rank
       const cRank=document.createElement('div'); cRank.className='center'; cRank.textContent=it.Rank||'';
       // Copy single id
-      const cCopy=document.createElement('div'); cCopy.className='center';
+      const cCopy=document.createElement('div'); cCopy.className='right';
       const btn=document.createElement('button'); btn.className='btn'; btn.textContent='Copy id';
       btn.addEventListener('click', async ()=>{ const ok=await copyTextSafe(`id:${normId(it.Id)}`); btn.textContent= ok? 'Copied!' : 'Copy id'; setTimeout(()=> btn.textContent='Copy id', 1200); });
       cCopy.appendChild(btn);
