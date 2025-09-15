@@ -174,7 +174,7 @@ h1::after {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 14px 16px;
+  padding: 8px 10px;
   border-radius: 18px;
   border: 1px solid var(--tool-border);
   background: var(--tool-bg);
