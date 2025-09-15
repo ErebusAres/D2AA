@@ -250,7 +250,7 @@ h1::after {
 
 .row {
   display: grid;
-  grid-template-columns: 0.6fr 2fr 1fr 4fr 1fr 2fr 2fr 1fr;
+  grid-template-columns: 0.6fr 2fr 1fr 5fr 1fr 2fr 2fr 1.4fr;
   gap: 12px;
   align-items: center;
   min-height: 32px;
