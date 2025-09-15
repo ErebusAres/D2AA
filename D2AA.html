@@ -5,381 +5,61 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>D2 Armor Analyzer - By ErebusAres</title>
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
-  <style>
-@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700&display=swap');
+  <link rel="stylesheet" href="D2AA.css" />
 
-:root {
-  --bg: #0a0e17;
-  --starfield: repeating-radial-gradient(circle at 20% 30%, #1b2236 0 1px, transparent 1px 100px), repeating-radial-gradient(circle at 80% 70%, #1b2236 0 1px, transparent 1px 120px);
-  --panel: linear-gradient(135deg, #181d26 60%, #232943 100%);
-  --panel2: #181d26;
-  --muted: #232943;
-  --muted2: #1b2236;
-  --text: #e6eaf3;
-  --sub: #8b9bb8;
-  --emerald: #43ff8e;
-  --accent: #3fd0ff;
-  --orange: #ffb347;
-  --purple: #a78bfa;
-  --gold: #ffe066;
-  --border: #2e3350;
-  --shadow: 0 2px 24px 0 rgba(80,120,255,0.10);
-  --shadow-purple: 0 2px 24px 0 rgba(178, 83, 255, 0.18);
-  --shadow-gold: 0 2px 24px 0 rgba(253, 215, 62, 0.18);
-
-  /* Stat colors (D2 style, more saturated) */
-  --stat-red: #ff3b3b;
-  --stat-yellow: #ffe066;
-  --stat-green: #43ff8e;
-  --stat-blue: #3fd0ff;
-}
-
-body {
-  margin: 0;
-  background: var(--bg);
-  background-image: var(--starfield);
-  color: var(--text);
-  font-family: 'Rajdhani', 'Inter', 'Segoe UI', 'Roboto', Arial, sans-serif;
-  letter-spacing: 0.01em;
-}
-.wrap {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 24px;
-}
-h1 {
-  margin: 0 0 6px;
-  font-size: 24px;
-  letter-spacing: 0.04em;
-  color: var(--accent);
-  text-shadow: 0 2px 8px #1a1e2e;
-  font-family: 'Rajdhani', 'Inter', sans-serif;
-}
-.muted {
-  color: var(--sub);
-  font-size: 12px;
-}
-.panel {
-  background: var(--panel);
-  border: 1.5px solid var(--border);
-  border-radius: 18px;
-  padding: 16px;
-  box-shadow: var(--shadow);
-  position: relative;
-  overflow: hidden;
-}
-.panel:before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: repeating-linear-gradient(135deg, transparent, transparent 12px, rgba(255,255,255,0.01) 12px, rgba(255,255,255,0.01) 16px);
-  z-index: 0;
-}
-.toolbar {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-}
-.btn {
-  border: 1.5px solid var(--accent);
-  background: var(--panel2);
-  color: var(--accent);
-  padding: 7px 14px;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  font-size: 13px;
-  transition: background 0.2s, color 0.2s, border 0.2s, box-shadow 0.2s;
-  font-family: 'Rajdhani', 'Inter', sans-serif;
-  box-shadow: 0 2px 8px 0 rgba(79,223,255,0.08);
-}
-.btn:hover {
-  background: var(--accent);
-  color: #181d26;
-  border-color: var(--gold);
-  box-shadow: 0 0 8px 2px var(--accent);
-}
-.filters {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-.line {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  flex-wrap: wrap;
-}
-.label {
-  width: 80px;
-  font-size: 12px;
-  color: var(--gold);
-  letter-spacing: 0.03em;
-  font-family: 'Rajdhani', 'Inter', sans-serif;
-}
-.seg {
-  display: inline-flex;
-  gap: 8px;
-}
-.seg .chip {
-  border: 1.5px solid var(--muted);
-  background: var(--panel2);
-  color: var(--text);
-  padding: 4px 12px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.2s, color 0.2s, border 0.2s;
-  font-family: 'Rajdhani', 'Inter', sans-serif;
-}
-.seg .chip.active {
-  background: var(--accent);
-  color: #181d26;
-  border-color: var(--gold);
-}
-.chip .chip-icon:not(.rarity) {
-  filter: brightness(1.2) grayscale(1) opacity(0.7);
-  transition: filter 0.2s;
-}
-.chip.active .chip-icon:not(.rarity) {
-  filter: none;
-}
-.chip-icon.rarity {
-  filter: none !important;
-}
-.list {
-  background: var(--panel);
-  border: 1.5px solid var(--border);
-  border-radius: 18px;
-  padding: 16px;
-  box-shadow: var(--shadow);
-  position: relative;
-  overflow: hidden;
-}
-.row {
-  display: grid;
-  grid-template-columns: 0.6fr 2fr 1fr 4fr 1fr 2fr 2fr 1fr;
-  gap: 12px;
-  align-items: center;
-  min-height: 32px;
-  position: relative;
-  z-index: 1;
-}
-.row.header {
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--gold);
-  padding-bottom: 6px;
-  border-bottom: 1px solid var(--muted);
-  letter-spacing: 0.03em;
-  font-family: 'Rajdhani', 'Inter', sans-serif;
-  background: none !important;
-}
-.row.item {
-  padding: 3px 0;
-  border-bottom: 1px solid var(--muted2);
-  transition: background 0.2s;
-  min-height: 32px;
-}
-.row.item:hover {
-  background: rgba(63,208,255,0.06);
-}
-.row.altA { background: rgba(24,28,38,0.92); }
-.row.altB { background: rgba(16,19,26,0.92); }
-.empty {
-  padding: 14px;
-  color: var(--sub);
-  font-size: 13px;
-}
-.chips {
-  display: flex;
-  flex-wrap: nowrap;
-  gap: 4px;
-  align-items: center;
-  min-width: 0;
-}
-.chipStat {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-  font-size: 12px;
-  border: 1.5px solid var(--muted);
-  background: linear-gradient(120deg, #232943 60%, #181d26 100%);
-  width: 48px;
-  height: 20px;
-  box-sizing: border-box;
-  padding: 0 4px;
-  border-radius: 9px;
-  font-weight: 700;
-  letter-spacing: 0.01em;
-  box-shadow: 0 1px 4px 0 rgba(30,40,80,0.10) inset, 0 0 2px 0 #0008;
-  font-family: 'Rajdhani', 'Inter', sans-serif;
-  transition: border 0.2s, background 0.2s;
-}
-.stat-ico {
-  width: 13px;
-  height: 13px;
-  flex-shrink: 0;
-  filter: brightness(1.2) drop-shadow(0 0 2px #fff8);
-}
-.mono {
-  font-variant-numeric: tabular-nums;
-  font-family: 'Rajdhani', 'Inter', monospace;
-  font-size: 14px;
-  font-weight: 700;
-  text-align: center;
-  width: 20px;
-  display: inline-block;
-}
-.stat-red {
-  color: var(--stat-red);
-  border-color: var(--stat-red);
-  background: linear-gradient(120deg, #2a181a 60%, #3b2329 100%);
-  box-shadow: 0 0 4px 0 #ff3b3b55;
-}
-.stat-yellow {
-  color: var(--stat-yellow);
-  border-color: var(--stat-yellow);
-  background: linear-gradient(120deg, #2a2618 60%, #3b3623 100%);
-  box-shadow: 0 0 4px 0 #ffe06655;
-}
-.stat-green {
-  color: var(--stat-green);
-  border-color: var(--stat-green);
-  background: linear-gradient(120deg, #182a1a 60%, #233b23 100%);
-  box-shadow: 0 0 4px 0 #43ff8e55;
-}
-.stat-cyan {
-  color: var(--stat-blue);
-  border-color: var(--stat-blue);
-  background: linear-gradient(120deg, #18232a 60%, #23313b 100%);
-  box-shadow: 0 0 4px 0 #3fd0ff55;
-}
-.badge-warn {
-  color: var(--orange);
-  font-weight: 700;
-  cursor: pointer;
-  text-decoration: underline dotted var(--orange) 1px;
-  text-underline-offset: 3px;
-  background: rgba(255,179,71,0.08);
-  border-radius: 6px;
-  padding: 2px 8px;
-  font-size: 13px;
-  letter-spacing: 0.02em;
-  font-family: 'Rajdhani', 'Inter', sans-serif;
-  border: 1px solid var(--orange);
-}
-.badge-ok {
-  color: #43ff8e;
-  font-weight: 700;
-  background: rgba(67,252,130,0.08);
-  border-radius: 6px;
-  padding: 2px 8px;
-  font-size: 13px;
-  letter-spacing: 0.02em;
-  font-family: 'Rajdhani', 'Inter', sans-serif;
-  border: 1px solid #43ff8e;
-}
-.itemmeta {
-  color: #8b9bb8;
-  font-size: 11px;
-}
-.tiny {
-  font-size: 10px;
-  color: #3fd0ff;
-}
-.right {
-  text-align: right;
-}
-.center {
-  text-align: center;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.center-info {
-  font-size: 8px;
-  color: var(--accent);
-  display: inline-flex;
-}
-.tier {
-  font-family: 'Rajdhani', monospace;
-  text-align: center;
-  color: var(--gold);
-  font-size: 18px;
-  letter-spacing: 0.08em;
-  text-shadow: 0 1px 4px #181c2a;
-}
-input[type="number"] {
-  background: var(--panel2);
-  border: 1px solid var(--muted);
-  color: var(--text);
-  padding: 8px 10px;
-  border-radius: 10px;
-  font-size: 13px;
-  font-family: 'Rajdhani', 'Inter', sans-serif;
-}
-::-webkit-scrollbar {
-  height: 8px;
-  width: 10px;
-  background: #181d26;
-}
-::-webkit-scrollbar-thumb {
-  background: #232943;
-  border-radius: 8px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #3a425a;
-}
-.row > .center.mono {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  font-weight: 700;
-  font-size: 14px;
-  min-height: 20px;
-  text-align: center;
-}
-.row.altA { background: rgba(24,28,38,0.92); }
-.row.altB { background: rgba(16,19,26,0.92); }
-
-.chip-icon-mask {
-  display: inline-block;
-  width: 1em;
-  height: 1em;
-  vertical-align: middle;
-  margin-right: 4px;
-  background-color: var(--text);
-  mask-size: contain;
-  mask-repeat: no-repeat;
-  mask-position: center;
-  -webkit-mask-size: contain;
-  -webkit-mask-repeat: no-repeat;
-  -webkit-mask-position: center;
-  transition: background-color 0.2s;
-}
-.chip.active .chip-icon-mask {
-  background-color: #181d26; /* match .chip.active color */
-}
-  </style>
 </head>
 <body>
   <div class="wrap">
-    <header class="panel" style="margin-bottom:16px">
-      <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px">
-        <div>
+    <header class="panel panel-header">
+      <div class="panel-header__layout">
+        <div class="panel-header__content">
           <h1>D2 Armor Analyzer</h1>
           <div class="muted">♦ Upload your DIM CSV; dupes use top‑3 stat identities within ± tolerance. Exotics compare only against same‑name items.</div>
           <div class="muted">♦ Click "Restore last" to reload the last uploaded CSV from this browser.</div>
           <div class="muted">♦ Click "Copy ID" or A Group Badge to copy to clipboard.</div>
         </div>
         <div class="toolbar">
-          <input id="file" type="file" accept=".csv" />
-          <button class="btn" id="restoreBtn" aria-label="Restore last uploaded CSV">Restore last</button>
-          <button class="btn" id="clearBtn" aria-label="Clear all data">Clear</button>
+          <input id="file" type="file" accept=".csv" class="toolbar__input" />
+          <label id="uploadTrigger" class="tool-card tool-card--upload" for="file" role="button" tabindex="0">
+            <span class="tool-icon" aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 4v9" />
+                <path d="M9 7l3-3 3 3" />
+                <path d="M5 14v6h14v-6" />
+              </svg>
+            </span>
+            <span class="tool-copy">
+              <span class="tool-title">Upload CSV</span>
+              <span class="tool-sub" id="uploadHint" data-default="Choose DIM Armor.csv" aria-live="polite">Choose DIM Armor.csv</span>
+            </span>
+          </label>
+          <button class="tool-card tool-card--restore" id="restoreBtn" type="button" aria-label="Restore last uploaded CSV">
+            <span class="tool-icon" aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20 6v6h-6" />
+                <path d="M20 12a8 8 0 1 1-8-8" />
+              </svg>
+            </span>
+            <span class="tool-copy">
+              <span class="tool-title">Restore last</span>
+              <span class="tool-sub">Load recent upload</span>
+            </span>
+          </button>
+          <button class="tool-card tool-card--clear" id="clearBtn" type="button" aria-label="Clear all data">
+            <span class="tool-icon" aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 6h16" />
+                <path d="M10 6l1-2h2l1 2" />
+                <path d="M7 6l1 14h8l1-14" />
+                <path d="M10 11v6" />
+                <path d="M14 11v6" />
+              </svg>
+            </span>
+            <span class="tool-copy">
+              <span class="tool-title">Clear</span>
+              <span class="tool-sub">Remove results</span>
+            </span>
+          </button>
         </div>
       </div>
     </header>
@@ -814,7 +494,7 @@ out.sort((a, b) => {
       // Rank
       const cRank=document.createElement('div'); cRank.className='center'; cRank.textContent=it.Rank||'';
       // Copy single id
-      const cCopy=document.createElement('div'); cCopy.className='right';
+      const cCopy=document.createElement('div'); cCopy.className='center';
       const btn=document.createElement('button'); btn.className='btn'; btn.textContent='Copy id';
       btn.addEventListener('click', async ()=>{ const ok=await copyTextSafe(`id:${normId(it.Id)}`); btn.textContent= ok? 'Copied!' : 'Copy id'; setTimeout(()=> btn.textContent='Copy id', 1200); });
       cCopy.appendChild(btn);
@@ -825,19 +505,87 @@ out.sort((a, b) => {
   }
 
   // ====== Events ======
-document.getElementById('file').addEventListener('change', (e)=>{
-    const f=e.target.files?.[0]; if(!f) return;
-  Papa.parse(f,{header:true, skipEmptyLines:true, complete:(res)=>{
-    const data=res.data||[];
-    STATE.rows = data.map(r=>{ const x={...r}; for(const k of [...STAT_COLS,'Total (Base)','Tier']) { if(x[k]!==undefined) { const n = num(x[k]); x[k] = Number.isFinite(n) ? n : 0; } } x.Id=normId(x.Id); return x; });
-    saveRows();
+  const fileInput = document.getElementById('file');
+  const restoreBtn = document.getElementById('restoreBtn');
+  const clearBtn = document.getElementById('clearBtn');
+  const uploadHint = document.getElementById('uploadHint');
+  const uploadTrigger = document.getElementById('uploadTrigger');
+  const uploadHintDefault = uploadHint?.dataset?.default ?? (uploadHint?.textContent ?? 'Choose DIM Armor.csv');
+
+  const setUploadHint = (text) => { if (uploadHint) uploadHint.textContent = text; };
+  const resetUploadHint = () => setUploadHint(uploadHintDefault);
+
+  if (uploadTrigger && fileInput) {
+    uploadTrigger.addEventListener('keydown', (evt) => {
+      if (evt.key === 'Enter' || evt.key === ' ') {
+        evt.preventDefault();
+        fileInput.click();
+      }
+    });
+  }
+
+  if (fileInput) {
+    fileInput.addEventListener('change', (e) => {
+      const f = e.target.files?.[0];
+      if (!f) {
+        resetUploadHint();
+        return;
+      }
+      const fileName = f.name || 'Selected file';
+      setUploadHint(fileName);
+      Papa.parse(f, {
+        header: true,
+        skipEmptyLines: true,
+        complete: (res) => {
+          const data = res.data || [];
+          STATE.rows = data.map((r) => {
+            const x = { ...r };
+            for (const k of [...STAT_COLS, 'Total (Base)', 'Tier']) {
+              if (x[k] !== undefined) {
+                const n = num(x[k]);
+                x[k] = Number.isFinite(n) ? n : 0;
+              }
+            }
+            x.Id = normId(x.Id);
+            return x;
+          });
+          saveRows();
+          render();
+          fileInput.value = '';
+          setUploadHint(`Loaded • ${fileName}`);
+        },
+      });
+    });
+  }
+
+  if (restoreBtn) {
+    restoreBtn.addEventListener('click', () => {
+      const rows = loadRows();
+      if (rows && Array.isArray(rows)) {
+        STATE.rows = rows;
+        render();
+        resetUploadHint();
+      } else {
+        alert('No saved CSV found in this browser. Upload a DIM CSV first.');
+      }
+    });
+  }
+
+  if (clearBtn) {
+    clearBtn.addEventListener('click', () => {
+      STATE.rows = [];
+      localStorage.removeItem(LS_KEY);
+      if (fileInput) fileInput.value = '';
+      render();
+      resetUploadHint();
+    });
+  }
+
+  document.getElementById('tol').addEventListener('input', (e) => {
+    const v = Number(e.target.value);
+    STATE.tol = isFinite(v) ? v : STATE.tol;
     render();
-    document.getElementById('file').value = '';
-  }});
-});
-document.getElementById('restoreBtn').addEventListener('click', ()=>{ const rows=loadRows(); if(rows&&Array.isArray(rows)){ STATE.rows=rows; render(); } else { alert('No saved CSV found in this browser. Upload a DIM CSV first.'); } });
-  document.getElementById('clearBtn').addEventListener('click', ()=>{ STATE.rows=[]; localStorage.removeItem(LS_KEY); document.getElementById('file').value=''; render(); });
-  document.getElementById('tol').addEventListener('input', (e)=>{ const v=Number(e.target.value); STATE.tol = isFinite(v)? v: STATE.tol; render(); });
+  });
 
   function updateShadowColor() {
   const root = document.documentElement;
@@ -846,7 +594,7 @@ document.getElementById('restoreBtn').addEventListener('click', ()=>{ const rows
   } else if (STATE.rarityFilter === "Exotic") {
     root.style.setProperty('--shadow', 'var(--shadow-gold)');
   } else {
-    root.style.setProperty('--shadow', '0 2px 24px 0 rgba(80,120,255,0.10)');
+    root.style.setProperty('--shadow', 'var(--shadow-base)');
   }
 }
 
