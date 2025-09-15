@@ -29,6 +29,7 @@ D2 Armor Analyzer is a web-based tool for Destiny 2 players to analyze, compare,
 
 3. **Upload your CSV:**
    - Click the file input and select your downloaded `Armor.csv`.
+     > Typically named `destiny-armor.csv` by default.
 
 4. **Analyze:**
    - Use the filters to view and group your armor.
