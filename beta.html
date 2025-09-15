@@ -9,15 +9,23 @@
 </head>
 <body>
   <div class="wrap">
-    <header class="panel" style="margin-bottom:16px">
-      <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px">
-        <div>
-          <h1>D2 Armor Analyzer</h1>
-          <div class="muted">♦ Upload your DIM CSV; dupes use top‑3 stat identities within ± tolerance. Exotics compare only against same‑name items.</div>
-          <div class="muted">♦ Click "Restore last" to reload the last uploaded CSV from this browser.</div>
-          <div class="muted">♦ Click "Copy ID" or A Group Badge to copy to clipboard.</div>
+    <header class="panel hero-panel">
+      <div class="hero-grid">
+        <div class="hero-copy">
+          <h1>
+            <span class="title-prefix">Destiny 2</span>
+            <span class="title-main">Edge of Fate Armor Analyzer</span>
+          </h1>
+          <p class="tagline">Deep dive your armor rolls for the Edge of Fate meta.</p>
+          <div class="hero-hints">
+            <div class="muted">♦ Upload your DIM CSV; dupes use top‑3 stat identities within ± tolerance. Exotics compare only against same‑name items.</div>
+            <div class="muted">♦ Click "Restore last" to reload the last uploaded CSV from this browser.</div>
+            <div class="muted">♦ Click "Copy ID" or a Group Badge to copy to clipboard.</div>
+          </div>
         </div>
-        <div class="toolbar">
+        <div class="toolbar hero-actions">
+          <span class="hero-actions-title">Data Intake</span>
+          <p class="hero-actions-sub muted">Import your latest DIM Organizer export.</p>
           <input id="file" type="file" accept=".csv" />
           <button class="btn" id="restoreBtn" aria-label="Restore last uploaded CSV">Restore last</button>
           <button class="btn" id="clearBtn" aria-label="Clear all data">Clear</button>
@@ -25,17 +33,26 @@
       </div>
     </header>
 
-    <section class="panel" style="margin-bottom:16px">
+    <section class="panel filters-panel">
+      <div class="section-heading">
+        <h2>Loadout Filters</h2>
+        <p class="section-sub">Dial in the armor you're hunting.</p>
+      </div>
+
       <div class="filters">
         <div class="line"><span class="label">Class</span><div id="classSeg" class="seg"></div></div>
         <div class="line"><span class="label">Rarity</span><div id="raritySeg" class="seg"></div></div>
         <div class="line"><span class="label">Slot</span><div id="slotSeg" class="seg"></div></div>
         <div class="line"><span class="label">Dupes</span><div id="dupesSeg" class="seg"></div></div>
-        <div class="line"><span class="label">Tolerance</span><input id="tol" type="number" min="0" max="20" value="5" style="width:80px"/> <span class="muted">± top‑3 stat</span></div>
+        <div class="line"><span class="label">Tolerance</span><input id="tol" class="number-input" type="number" min="0" max="20" value="5"/> <span class="muted">± top‑3 stat</span></div>
       </div>
     </section>
 
-    <section class="list">
+    <section class="list data-panel">
+      <div class="section-heading">
+        <h2>Armor Inventory</h2>
+        <p class="section-sub">Grouped by duplicates and ranked for Edge of Fate rolls.</p>
+      </div>
       <div class="row header">
         <div class="center">Tag</div>
         <div>Item</div>
@@ -47,7 +64,7 @@
         <div class="right">Copy</div>
       </div>
       <div id="rows"></div>
-      <div id="empty" class="empty" style="display:none"><p>
+      <div id="empty" class="empty panel-empty" style="display:none"><p>
         No items yet — upload a DIM CSV or click Restore last.<br/><br/>
 
         To export from DIM: <br/>
