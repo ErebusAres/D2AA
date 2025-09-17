@@ -97,6 +97,8 @@
           <select id="membershipSelect"></select>
         </label>
       </div>
+      <div class="auth-note muted">Preloaded with ErebusAres Bungie app credentials—adjust the fields if you prefer your own application.</div>
+      <div class="auth-note muted">Redirect URI for OAuth: <code class="code-inline" id="bungieRedirectUri"></code></div>
       <div class="auth-note muted">Credentials and tokens are stored locally in this browser only.</div>
       <div id="bungieStatus" class="auth-status muted" aria-live="polite"></div>
     </section>
@@ -232,6 +234,21 @@
   const BUNGIE_OAUTH_URL = 'https://www.bungie.net/en/OAuth/Authorize';
   const BUNGIE_TOKEN_URL = 'https://www.bungie.net/Platform/App/OAuth/Token/';
   const BUNGIE_API_ROOT = 'https://www.bungie.net/Platform';
+  const BUNGIE_REDIRECT_URI = (() => {
+    try {
+      const { origin, pathname } = window.location;
+      if (!origin || origin === 'null') {
+        return 'https://erebusares.github.io/D2AA/beta.html';
+      }
+      return `${origin}${pathname}`;
+    } catch (err) {
+      console.warn('Falling back to default Bungie redirect URI', err);
+      return 'https://erebusares.github.io/D2AA/beta.html';
+    }
+  })();
+  const BUNGIE_DEFAULT_API_KEY = '96e154014bdd44c0a537e482709b7473';
+  const BUNGIE_DEFAULT_CLIENT_ID = '50794';
+
   // ====== Helpers ======
   const normId = (s) => (s ? String(s).trim().replace(/^"|"$/g, "") : "");
   const normName = (s) => String(s || "").trim().toLowerCase();
@@ -289,6 +306,7 @@
     bucket: new Map()
   };
   let bungieStatusEl = null;
+  let bungieRedirectUriEl = null;
   let bungieMembershipSelect = null;
   let bungieMembershipWrap = null;
   let bungieApiKeyInput = null;
@@ -384,12 +402,21 @@
   }
 
   function loadBungieConfig(){
-    const defaults = { apiKey:'', clientId:'', clientSecret:'', membershipId:null, membershipType:null };
+    const defaults = {
+      apiKey: BUNGIE_DEFAULT_API_KEY,
+      clientId: BUNGIE_DEFAULT_CLIENT_ID,
+      clientSecret: '',
+      membershipId: null,
+      membershipType: null
+    };
     try{
       const raw = localStorage.getItem(BUNGIE_CONFIG_STORAGE);
       if(!raw) return { ...defaults };
       const parsed = JSON.parse(raw);
-      return { ...defaults, ...parsed };
+      const merged = { ...defaults, ...parsed };
+      if(!merged.apiKey) merged.apiKey = BUNGIE_DEFAULT_API_KEY;
+      if(!merged.clientId) merged.clientId = BUNGIE_DEFAULT_CLIENT_ID;
+      return merged;
     }catch(err){
       console.warn('Failed to parse Bungie config', err);
       return { ...defaults };
@@ -575,15 +602,20 @@
       const verifier = randomString(64);
       const challenge = await createCodeChallenge(verifier);
       const state = randomString(32);
+      const returnUrl = window.location.href.split('#')[0];
+      const redirectUri = BUNGIE_REDIRECT_URI || returnUrl;
       sessionStorage.setItem(BUNGIE_VERIFIER_STORAGE, verifier);
       sessionStorage.setItem(BUNGIE_STATE_STORAGE, state);
-      sessionStorage.setItem(BUNGIE_RETURN_STORAGE, window.location.href.split('#')[0]);
+      sessionStorage.setItem(BUNGIE_RETURN_STORAGE, returnUrl);
       const url = new URL(BUNGIE_OAUTH_URL);
       url.searchParams.set('client_id', bungieConfig.clientId);
       url.searchParams.set('response_type', 'code');
       url.searchParams.set('state', state);
       url.searchParams.set('code_challenge', challenge);
       url.searchParams.set('code_challenge_method', 'S256');
+      if(redirectUri){
+        url.searchParams.set('redirect_uri', redirectUri);
+      }
       window.location.href = url.toString();
     }catch(err){
       console.error(err);
@@ -592,12 +624,21 @@
   }
 
   function cleanOAuthParams(){
-    const current = new URL(window.location.href);
-    current.searchParams.delete('code');
-    current.searchParams.delete('state');
-    current.searchParams.delete('error');
-    current.searchParams.delete('error_description');
-    window.history.replaceState({}, document.title, current.toString());
+    const storedReturn = sessionStorage.getItem(BUNGIE_RETURN_STORAGE);
+    if(storedReturn){
+      window.history.replaceState({}, document.title, storedReturn);
+      return;
+    }
+    try{
+      const current = new URL(window.location.href);
+      current.searchParams.delete('code');
+      current.searchParams.delete('state');
+      current.searchParams.delete('error');
+      current.searchParams.delete('error_description');
+      window.history.replaceState({}, document.title, current.toString());
+    }catch(err){
+      console.warn('Failed to clean OAuth params', err);
+    }
   }
 
   async function handleOAuthRedirect(){
@@ -626,7 +667,8 @@
     }
     try{
       setBungieStatus('Completing Bungie authorization…', 'loading');
-      await exchangeAuthCode(code, verifier);
+      const redirectUri = sessionStorage.getItem(BUNGIE_RETURN_STORAGE) || BUNGIE_REDIRECT_URI;
+      await exchangeAuthCode(code, verifier, redirectUri);
       setBungieStatus('Authorization complete. You can now load armor automatically.', 'ok');
     }catch(err){
       console.error(err);
@@ -639,12 +681,15 @@
     }
   }
 
-  async function exchangeAuthCode(code, verifier){
+  async function exchangeAuthCode(code, verifier, redirectUri){
     const body = new URLSearchParams();
     body.set('client_id', bungieConfig?.clientId || '');
     body.set('grant_type', 'authorization_code');
     body.set('code', code);
     body.set('code_verifier', verifier);
+    if(redirectUri){
+      body.set('redirect_uri', redirectUri);
+    }
     if(bungieConfig?.clientSecret){
       body.set('client_secret', bungieConfig.clientSecret);
     }
@@ -925,7 +970,7 @@
         setBungieStatus('Your Bungie session expired. Please sign in again.', 'error');
       }
     }else if(!bungieStatusEl?.textContent){
-      setBungieStatus('Enter your Bungie credentials above to enable automatic sync.', 'info');
+      setBungieStatus('Click "Sign in with Bungie" to authenticate with the built-in ErebusAres app, or supply your own credentials above.', 'info');
     }
   }
   // ====== Grouping & Sorting ======
@@ -1155,6 +1200,7 @@ out.sort((a, b) => {
 
   // ====== Events ======
   bungieStatusEl = document.getElementById('bungieStatus');
+  bungieRedirectUriEl = document.getElementById('bungieRedirectUri');
   bungieMembershipSelect = document.getElementById('membershipSelect');
   bungieMembershipWrap = document.getElementById('membershipSelectWrap');
   bungieApiKeyInput = document.getElementById('bungieApiKey');
@@ -1164,6 +1210,11 @@ out.sort((a, b) => {
   bungieFetchBtn = document.getElementById('bungieFetch');
   bungieLogoutBtn = document.getElementById('bungieLogout');
   saveBungieConfigBtn = document.getElementById('saveBungieConfig');
+
+  if(bungieRedirectUriEl){
+    bungieRedirectUriEl.textContent = BUNGIE_REDIRECT_URI;
+    bungieRedirectUriEl.title = BUNGIE_REDIRECT_URI;
+  }
 
   const handleConfigInput = () => {
     readConfigInputs();
