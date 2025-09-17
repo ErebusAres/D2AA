@@ -214,6 +214,7 @@ h1::after {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
+  margin-bottom: 12px;
 }
 
 .auth-membership {
@@ -477,6 +478,19 @@ button.tool-card {
   border-color: var(--accent);
   box-shadow: var(--glow);
   transform: translateY(-1px);
+}
+
+.btn-primary {
+  background: linear-gradient(120deg, rgba(124, 215, 255, 0.4), rgba(159, 133, 255, 0.28));
+  color: var(--chip-active-text);
+  border-color: rgba(124, 215, 255, 0.8);
+  box-shadow: var(--glow);
+}
+
+.btn-primary:hover {
+  background: linear-gradient(120deg, rgba(124, 215, 255, 0.65), rgba(159, 133, 255, 0.45));
+  color: var(--chip-active-text);
+  border-color: var(--accent);
 }
 
 .filters {
