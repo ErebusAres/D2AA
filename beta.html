@@ -64,6 +64,26 @@
       </div>
     </header>
 
+    <section class="panel panel-auth" id="bungiePanel">
+      <div class="auth-header">
+        <h2>Connect with Bungie</h2>
+        <p class="muted">Sign in with your Bungie account to pull armor automatically, or continue using CSV uploads.</p>
+      </div>
+      <div class="auth-buttons">
+        <button id="bungieLogin" type="button" class="btn btn-primary">Sign in with Bungie</button>
+        <button id="bungieRefresh" type="button" class="btn">Refresh armor</button>
+        <button id="bungieLogout" type="button" class="btn">Sign out</button>
+      </div>
+      <div id="membershipSelectWrap" class="auth-membership" style="display:none">
+        <label class="auth-field">
+          <span class="auth-label">Active profile</span>
+          <select id="membershipSelect"></select>
+        </label>
+      </div>
+      <div class="auth-note muted">Tokens are stored locally in this browser only.</div>
+      <div id="bungieStatus" class="auth-status muted" aria-live="polite"></div>
+    </section>
+
     <section class="panel" style="margin-bottom:16px">
       <div class="filters">
         <div class="line"><span class="label">Class</span><div id="classSeg" class="seg"></div></div>
@@ -159,6 +179,90 @@
     "Bulwark": "https://www.bungie.net/common/destiny2_content/icons/cda905547dd9eac7a39e6e898f619bc5.png", // Health, Class
     "Gunner": "https://www.bungie.net/common/destiny2_content/icons/15e3b3c25a6d4606dcb887cb67c915a1.png" // Weapons, Grenade
   }
+  const CLASS_BY_TYPE = { 0: "Titan", 1: "Hunter", 2: "Warlock", 3: "Unknown", 4: "Any" };
+  const ARMOR_BUCKET_HASH_TO_TYPE = {
+    3448274439: "Helmet",
+    3551918588: "Gauntlets",
+    14239492: "Chest Armor",
+    20886954: "Leg Armor",
+    1585787867: "Class Item"
+  };
+  const STAT_HASH_TO_LABEL = {
+    392767087: "Health (Base)",
+    4244567218: "Melee (Base)",
+    1735777505: "Grenade (Base)",
+    144602215: "Super (Base)",
+    1943323491: "Class (Base)",
+    2996146975: "Weapons (Base)"
+  };
+  const ARMOR_INTRINSIC_PLUG_CATEGORY_HASHES = new Set([
+    1744546145, // PlugCategoryHashes.Intrinsics
+    748854354   // PlugCategoryHashes.ArmorStats
+  ]);
+  const ARMOR_MOD_PLUG_CATEGORY_HASHES = new Set([
+    1202876185, // PlugCategoryHashes.EnhancementsActivity
+    640682011,  // PlugCategoryHashes.EnhancementsArms
+    383756333,  // PlugCategoryHashes.EnhancementsChest
+    1955304674, // PlugCategoryHashes.EnhancementsClass
+    744326128,  // PlugCategoryHashes.EnhancementsHead
+    1175552225, // PlugCategoryHashes.EnhancementsLegs
+    3773173029, // PlugCategoryHashes.EnhancementsArtifice
+    1934732343, // PlugCategoryHashes.EnhancementsArtificeExotic
+    3422420680, // PlugCategoryHashes.EnhancementsV2Arms
+    1526202480, // PlugCategoryHashes.EnhancementsV2Chest
+    912441879,  // PlugCategoryHashes.EnhancementsV2ClassItem
+    2487827355, // PlugCategoryHashes.EnhancementsV2General
+    2912171003, // PlugCategoryHashes.EnhancementsV2Head
+    2111701510, // PlugCategoryHashes.EnhancementsV2Legs
+    3347429529  // PlugCategoryHashes.EnhancementsUniversal
+  ]);
+  const ARMOR_MOD_ITEM_CATEGORY_HASHES = new Set([
+    4104513227, // ItemCategoryHashes.ArmorMods
+    3723676689, // ItemCategoryHashes.ArmorModsChest
+    3196106184, // ItemCategoryHashes.ArmorModsClass
+    1037516129, // ItemCategoryHashes.ArmorModsClassHunter
+    1650311619, // ItemCategoryHashes.ArmorModsClassTitan
+    2955376534, // ItemCategoryHashes.ArmorModsClassWarlock
+    3872696960, // ItemCategoryHashes.ArmorModsGauntlets
+    1362265421, // ItemCategoryHashes.ArmorModsHelmet
+    3607371986, // ItemCategoryHashes.ArmorModsLegs
+    4062965806  // ItemCategoryHashes.ArmorModsGameplay
+  ]);
+  const MEMBERSHIP_TYPE_NAMES = {
+    1: "Xbox",
+    2: "PlayStation",
+    3: "Steam",
+    4: "Blizzard",
+    5: "Stadia",
+    6: "Epic",
+    7: "Demon",
+    10: "Tiger",
+    254: "BungieNet"
+  };
+  const BUNGIE_CONFIG_STORAGE = 'd2aa_bungie_cfg_v1';
+  const BUNGIE_TOKEN_STORAGE = 'd2aa_bungie_tokens_v1';
+  const BUNGIE_STATE_STORAGE = 'd2aa_bungie_state_v1';
+  const BUNGIE_VERIFIER_STORAGE = 'd2aa_bungie_verifier_v1';
+  const BUNGIE_RETURN_STORAGE = 'd2aa_bungie_return_v1';
+  const BUNGIE_COMPONENTS = '100,102,200,201,205,300,304,305';
+  const BUNGIE_OAUTH_URL = 'https://www.bungie.net/en/OAuth/Authorize';
+  const BUNGIE_TOKEN_URL = 'https://www.bungie.net/Platform/App/OAuth/Token/';
+  const BUNGIE_API_ROOT = 'https://www.bungie.net/Platform';
+  const BUNGIE_REDIRECT_URI = (() => {
+    try {
+      const { origin, pathname } = window.location;
+      if (!origin || origin === 'null') {
+        return 'https://erebusares.github.io/D2AA/beta.html';
+      }
+      return `${origin}${pathname}`;
+    } catch (err) {
+      console.warn('Falling back to default Bungie redirect URI', err);
+      return 'https://erebusares.github.io/D2AA/beta.html';
+    }
+  })();
+  const BUNGIE_DEFAULT_API_KEY = '96e154014bdd44c0a537e482709b7473';
+  const BUNGIE_DEFAULT_CLIENT_ID = '50794';
+  const BUNGIE_ALLOWED_ORIGIN = 'https://erebusares.github.io';
   // ====== Helpers ======
   const normId = (s) => (s ? String(s).trim().replace(/^"|"$/g, "") : "");
   const normName = (s) => String(s || "").trim().toLowerCase();
@@ -198,15 +302,30 @@
   }
 
   // ====== State & Storage ======
-  let STATE = { 
-    rows:[], 
-    classFilter:'Warlock', 
-    slotFilter:'All', 
-    rarityFilter:'All', 
-    tol:5, 
+  let STATE = {
+    rows:[],
+    classFilter:'Warlock',
+    slotFilter:'All',
+    rarityFilter:'All',
+    tol:5,
     dupesFilter:'All' // NEW
   };
   const LS_KEY = 'd2_armor_rows_v1';
+  let bungieConfig = loadBungieConfig();
+  let bungieTokens = loadBungieTokens();
+  let bungieMemberships = [];
+  let bungieIsFetching = false;
+  let bungieAutoLoadedOnce = false;
+  const manifestCache = {
+    inventoryItem: new Map(),
+    bucket: new Map()
+  };
+  let bungieStatusEl = null;
+  let bungieMembershipSelect = null;
+  let bungieMembershipWrap = null;
+  let bungieLoginBtn = null;
+  let bungieRefreshBtn = null;
+  let bungieLogoutBtn = null;
   function saveRows(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(STATE.rows)); }catch(_){} }
   function loadRows(){ try{ const s=localStorage.getItem(LS_KEY); if(!s) return null; return JSON.parse(s); }catch(_){ return null; } }
 
@@ -279,6 +398,946 @@
   return grouped;
 }
 
+  // ====== Bungie API Integration ======
+  function getDefaultTokenState(){
+    return {
+      accessToken:null,
+      refreshToken:null,
+      accessTokenExpires:0,
+      refreshTokenExpires:0,
+      tokenType:'Bearer',
+      membershipId:null,
+      membershipType:null
+    };
+  }
+
+  function loadBungieConfig(){
+    const defaults = {
+      apiKey: BUNGIE_DEFAULT_API_KEY,
+      clientId: BUNGIE_DEFAULT_CLIENT_ID,
+      membershipId: null,
+      membershipType: null
+    };
+    try{
+      const raw = localStorage.getItem(BUNGIE_CONFIG_STORAGE);
+      if(!raw) return { ...defaults };
+      const parsed = JSON.parse(raw);
+      return {
+        apiKey: BUNGIE_DEFAULT_API_KEY,
+        clientId: BUNGIE_DEFAULT_CLIENT_ID,
+        membershipId: parsed?.membershipId ?? null,
+        membershipType: parsed?.membershipType ?? null
+      };
+    }catch(err){
+      console.warn('Failed to parse Bungie config', err);
+      return { ...defaults };
+    }
+  }
+
+  function saveBungieConfig(){
+    try{
+      const payload = {
+        membershipId: bungieConfig?.membershipId ?? null,
+        membershipType: bungieConfig?.membershipType ?? null
+      };
+      localStorage.setItem(BUNGIE_CONFIG_STORAGE, JSON.stringify(payload));
+    }catch(err){
+      console.warn('Failed to persist Bungie config', err);
+    }
+  }
+
+  function ensureBungieConfigDefaults(){
+    if(!bungieConfig) bungieConfig = loadBungieConfig();
+    bungieConfig.apiKey = BUNGIE_DEFAULT_API_KEY;
+    bungieConfig.clientId = BUNGIE_DEFAULT_CLIENT_ID;
+    if(bungieConfig.membershipId == null) bungieConfig.membershipId = null;
+    if(bungieConfig.membershipType == null) bungieConfig.membershipType = null;
+  }
+
+  function loadBungieTokens(){
+    const defaults = getDefaultTokenState();
+    try{
+      const raw = localStorage.getItem(BUNGIE_TOKEN_STORAGE);
+      if(!raw) return { ...defaults };
+      const parsed = JSON.parse(raw);
+      return { ...defaults, ...parsed };
+    }catch(err){
+      console.warn('Failed to load Bungie tokens', err);
+      return { ...defaults };
+    }
+  }
+
+  function saveBungieTokens(){
+    try{
+      if(!bungieTokens || (!bungieTokens.accessToken && !bungieTokens.refreshToken)){
+        localStorage.removeItem(BUNGIE_TOKEN_STORAGE);
+        return;
+      }
+      localStorage.setItem(BUNGIE_TOKEN_STORAGE, JSON.stringify(bungieTokens));
+    }catch(err){
+      console.warn('Failed to persist Bungie tokens', err);
+    }
+  }
+
+  function clearBungieTokens(showMessage){
+    bungieTokens = getDefaultTokenState();
+    bungieMemberships = [];
+    bungieAutoLoadedOnce = false;
+    localStorage.removeItem(BUNGIE_TOKEN_STORAGE);
+    renderMembershipOptions();
+    updateBungieUI();
+    if(showMessage){
+      setBungieStatus('Signed out. You can still upload CSV files manually.', 'info');
+    }
+  }
+
+  function updateBungieUI(){
+    const hasConfig = Boolean((bungieConfig?.apiKey || '').trim() && (bungieConfig?.clientId || '').trim());
+    const hasRefresh = Boolean(bungieTokens?.refreshToken);
+    const refreshValid = hasRefresh && Date.now() < ((bungieTokens.refreshTokenExpires || 0) - 60000);
+    const signedIn = hasRefresh && refreshValid;
+    if(bungieLoginBtn) bungieLoginBtn.disabled = bungieIsFetching || !hasConfig;
+    if(bungieRefreshBtn) bungieRefreshBtn.disabled = bungieIsFetching || !signedIn || !hasConfig;
+    if(bungieLogoutBtn) bungieLogoutBtn.disabled = bungieIsFetching || !hasRefresh;
+    if(bungieMembershipWrap){
+      bungieMembershipWrap.style.display = bungieMemberships.length ? 'block' : 'none';
+    }
+  }
+
+  function renderMembershipOptions(){
+    if(!bungieMembershipSelect || !bungieMembershipWrap){
+      return;
+    }
+    bungieMembershipSelect.innerHTML = '';
+    if(!bungieMemberships.length){
+      bungieMembershipWrap.style.display = 'none';
+      return;
+    }
+    bungieMembershipWrap.style.display = 'block';
+    let hasSelection = false;
+    for(const mem of bungieMemberships){
+      const opt = document.createElement('option');
+      opt.value = `${mem.membershipType}:${mem.membershipId}`;
+      opt.textContent = mem.label;
+      if(String(bungieConfig?.membershipType) === String(mem.membershipType) && String(bungieConfig?.membershipId) === String(mem.membershipId)){
+        opt.selected = true;
+        hasSelection = true;
+      }
+      bungieMembershipSelect.appendChild(opt);
+    }
+    if(!hasSelection && bungieMembershipSelect.options.length > 0){
+      bungieMembershipSelect.selectedIndex = 0;
+      const [type,id] = bungieMembershipSelect.value.split(':');
+      bungieConfig.membershipType = Number(type);
+      bungieConfig.membershipId = id;
+      saveBungieConfig();
+    }
+    updateBungieUI();
+  }
+
+  function formatMembershipLabel(mem){
+    const code = mem?.bungieGlobalDisplayNameCode != null ? String(mem.bungieGlobalDisplayNameCode).padStart(4,'0') : '';
+    const baseName = mem?.bungieGlobalDisplayName ? `${mem.bungieGlobalDisplayName}${code ? '#' + code : ''}` : (mem?.displayName || mem?.lastSeenDisplayName || 'Guardian');
+    const platform = MEMBERSHIP_TYPE_NAMES[mem?.membershipType] || `Type ${mem?.membershipType}`;
+    return `${baseName} • ${platform}`;
+  }
+
+  function getSelectedMembership(){
+    if(!bungieMemberships.length) return null;
+    const found = bungieMemberships.find(mem => String(mem.membershipType) === String(bungieConfig?.membershipType) && String(mem.membershipId) === String(bungieConfig?.membershipId));
+    if(found) return found;
+    const fallback = bungieMemberships[0];
+    if(fallback){
+      bungieConfig.membershipType = fallback.membershipType;
+      bungieConfig.membershipId = fallback.membershipId;
+      saveBungieConfig();
+      renderMembershipOptions();
+    }
+    return fallback || null;
+  }
+
+  function setBungieStatus(message, type='info'){
+    if(!bungieStatusEl) return;
+    bungieStatusEl.textContent = message || '';
+    bungieStatusEl.classList.remove('status-ok','status-error','status-loading');
+    const isInfo = !message || type === 'info';
+    bungieStatusEl.classList.toggle('muted', isInfo);
+    if(type === 'ok') bungieStatusEl.classList.add('status-ok');
+    else if(type === 'error') bungieStatusEl.classList.add('status-error');
+    else if(type === 'loading') bungieStatusEl.classList.add('status-loading');
+  }
+
+  const PKCE_CHARSET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~';
+
+  function randomString(length){
+    const array = new Uint8Array(length);
+    if(window.crypto?.getRandomValues){
+      window.crypto.getRandomValues(array);
+    }else{
+      for(let i=0;i<length;i++){ array[i] = Math.floor(Math.random()*PKCE_CHARSET.length); }
+    }
+    let out = '';
+    for(let i=0;i<length;i++){
+      out += PKCE_CHARSET[array[i] % PKCE_CHARSET.length];
+    }
+    return out;
+  }
+
+  function base64UrlEncode(buffer){
+    let binary = '';
+    const bytes = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer);
+    for(let i=0;i<bytes.byteLength;i++){
+      binary += String.fromCharCode(bytes[i]);
+    }
+    return btoa(binary).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+  }
+
+  async function createCodeChallenge(verifier){
+    if(!window.crypto?.subtle){
+      throw new Error('Browser crypto API is not available for PKCE.');
+    }
+    const data = new TextEncoder().encode(verifier);
+    const digest = await window.crypto.subtle.digest('SHA-256', data);
+    return base64UrlEncode(new Uint8Array(digest));
+  }
+
+  async function startBungieAuth(){
+    try{
+      ensureBungieConfigDefaults();
+      if(!bungieConfig?.clientId || !bungieConfig?.apiKey){
+        setBungieStatus('Bungie credentials are missing. Refresh and try again.', 'error');
+        return;
+      }
+      saveBungieConfig();
+      const verifier = randomString(64);
+      const challenge = await createCodeChallenge(verifier);
+      const state = randomString(32);
+      const returnUrl = window.location.href.split('#')[0];
+      const redirectUri = BUNGIE_REDIRECT_URI || returnUrl;
+      sessionStorage.setItem(BUNGIE_VERIFIER_STORAGE, verifier);
+      sessionStorage.setItem(BUNGIE_STATE_STORAGE, state);
+      sessionStorage.setItem(BUNGIE_RETURN_STORAGE, returnUrl);
+      const url = new URL(BUNGIE_OAUTH_URL);
+      url.searchParams.set('client_id', bungieConfig.clientId);
+      url.searchParams.set('response_type', 'code');
+      url.searchParams.set('state', state);
+      url.searchParams.set('code_challenge', challenge);
+      url.searchParams.set('code_challenge_method', 'S256');
+      if(redirectUri){
+        url.searchParams.set('redirect_uri', redirectUri);
+      }
+      setBungieStatus('Redirecting to Bungie for sign-in…', 'loading');
+      window.location.href = url.toString();
+    }catch(err){
+      console.error(err);
+      setBungieStatus('Unable to start Bungie sign-in: ' + (err?.message || err), 'error');
+    }
+  }
+
+  function cleanOAuthParams(){
+    const storedReturn = sessionStorage.getItem(BUNGIE_RETURN_STORAGE);
+    if(storedReturn){
+      window.history.replaceState({}, document.title, storedReturn);
+      return;
+    }
+    try{
+      const current = new URL(window.location.href);
+      current.searchParams.delete('code');
+      current.searchParams.delete('state');
+      current.searchParams.delete('error');
+      current.searchParams.delete('error_description');
+      window.history.replaceState({}, document.title, current.toString());
+    }catch(err){
+      console.warn('Failed to clean OAuth params', err);
+    }
+  }
+
+  async function handleOAuthRedirect(){
+    const params = new URLSearchParams(window.location.search);
+    const error = params.get('error');
+    if(error){
+      cleanOAuthParams();
+      setBungieStatus(`Authorization failed: ${error}`, 'error');
+      sessionStorage.removeItem(BUNGIE_VERIFIER_STORAGE);
+      sessionStorage.removeItem(BUNGIE_STATE_STORAGE);
+      sessionStorage.removeItem(BUNGIE_RETURN_STORAGE);
+      return;
+    }
+    const code = params.get('code');
+    if(!code) return;
+    const state = params.get('state');
+    const storedState = sessionStorage.getItem(BUNGIE_STATE_STORAGE);
+    const verifier = sessionStorage.getItem(BUNGIE_VERIFIER_STORAGE);
+    if(!storedState || !verifier || storedState !== state){
+      cleanOAuthParams();
+      setBungieStatus('Authorization state mismatch. Please try signing in again.', 'error');
+      sessionStorage.removeItem(BUNGIE_VERIFIER_STORAGE);
+      sessionStorage.removeItem(BUNGIE_STATE_STORAGE);
+      sessionStorage.removeItem(BUNGIE_RETURN_STORAGE);
+      return;
+    }
+    try{
+      setBungieStatus('Completing Bungie authorization…', 'loading');
+      const redirectUri = sessionStorage.getItem(BUNGIE_RETURN_STORAGE) || BUNGIE_REDIRECT_URI;
+      const loaded = await exchangeAuthCode(code, verifier, redirectUri);
+      if(!loaded){
+        const hasError = bungieStatusEl?.classList?.contains('status-error');
+        if(!hasError){
+          setBungieStatus('Authorization complete. Use Refresh armor to pull your gear.', 'ok');
+        }
+      }
+    }catch(err){
+      console.error(err);
+      setBungieStatus('Failed to complete authorization: ' + (err?.message || err), 'error');
+    }finally{
+      cleanOAuthParams();
+      sessionStorage.removeItem(BUNGIE_VERIFIER_STORAGE);
+      sessionStorage.removeItem(BUNGIE_STATE_STORAGE);
+      sessionStorage.removeItem(BUNGIE_RETURN_STORAGE);
+    }
+  }
+
+  async function exchangeAuthCode(code, verifier, redirectUri){
+    ensureBungieConfigDefaults();
+    const body = new URLSearchParams();
+    body.set('client_id', bungieConfig?.clientId || '');
+    body.set('grant_type', 'authorization_code');
+    body.set('code', code);
+    body.set('code_verifier', verifier);
+    if(redirectUri){
+      body.set('redirect_uri', redirectUri);
+    }
+    const headers = new Headers({
+      'Content-Type':'application/x-www-form-urlencoded',
+      'Accept':'application/json'
+    });
+    let resp;
+    try{
+      resp = await fetch(BUNGIE_TOKEN_URL, {
+        method:'POST',
+        headers,
+        body
+      });
+    }catch(err){
+      throw new Error(formatBungieNetworkError(err));
+    }
+    const data = await resp.json().catch(()=>null);
+    if(!resp.ok){
+      const rawMsg = data?.error_description || data?.Message || `HTTP ${resp.status}`;
+      const msg = rawMsg === 'OriginHeaderDoesNotMatchKey'
+        ? 'OriginHeaderDoesNotMatchKey: Add https://erebusares.github.io to the Origin Header whitelist for your Bungie application and redeploy.'
+        : rawMsg;
+      throw new Error(msg);
+    }
+    if(!data?.access_token){
+      throw new Error('Missing access token in Bungie response.');
+    }
+    bungieTokens = {
+      accessToken: data.access_token,
+      refreshToken: data.refresh_token,
+      accessTokenExpires: Date.now() + (Number(data.expires_in || 0) * 1000),
+      refreshTokenExpires: Date.now() + (Number(data.refresh_expires_in || 0) * 1000),
+      tokenType: data.token_type || 'Bearer',
+      membershipId: data.membership_id || bungieConfig?.membershipId || null,
+      membershipType: data.membership_type != null ? data.membership_type : bungieConfig?.membershipType || null
+    };
+    saveBungieTokens();
+    updateBungieUI();
+    const membership = await fetchMemberships();
+    if(membership){
+      const loaded = await loadArmorFromBungie({ reason: 'auto' });
+      return loaded;
+    }
+    return false;
+  }
+
+  async function ensureAccessToken(){
+    const hasAccess = Boolean(bungieTokens?.accessToken);
+    const hasRefresh = Boolean(bungieTokens?.refreshToken);
+    const now = Date.now();
+    const accessExpires = Number(bungieTokens?.accessTokenExpires || 0);
+    const refreshExpires = Number(bungieTokens?.refreshTokenExpires || 0);
+
+    // If we have a usable access token, return it even if no refresh token exists yet.
+    if(hasAccess && (!accessExpires || now < (accessExpires - 60000))){
+      return bungieTokens.accessToken;
+    }
+
+    if(!hasRefresh){
+      throw new Error('No Bungie session available. Sign in first.');
+    }
+
+    if(refreshExpires && now >= (refreshExpires - 60000)){
+      clearBungieTokens(false);
+      throw new Error('Bungie session expired. Please sign in again.');
+    }
+
+    await refreshAccessToken();
+    return bungieTokens.accessToken;
+  }
+
+  async function refreshAccessToken(){
+    ensureBungieConfigDefaults();
+    const body = new URLSearchParams();
+    body.set('client_id', bungieConfig?.clientId || '');
+    body.set('grant_type', 'refresh_token');
+    body.set('refresh_token', bungieTokens?.refreshToken || '');
+    const headers = new Headers({
+      'Content-Type':'application/x-www-form-urlencoded',
+      'Accept':'application/json'
+    });
+    let resp;
+    try{
+      resp = await fetch(BUNGIE_TOKEN_URL, {
+        method:'POST',
+        headers,
+        body
+      });
+    }catch(err){
+      throw new Error(formatBungieNetworkError(err));
+    }
+    const data = await resp.json().catch(()=>null);
+    if(!resp.ok || !data?.access_token){
+      const rawMsg = data?.error_description || data?.Message || `HTTP ${resp.status}`;
+      const msg = rawMsg === 'OriginHeaderDoesNotMatchKey'
+        ? 'OriginHeaderDoesNotMatchKey: Add https://erebusares.github.io to the Origin Header whitelist for your Bungie application and redeploy.'
+        : rawMsg;
+      clearBungieTokens(false);
+      throw new Error(msg);
+    }
+    bungieTokens.accessToken = data.access_token;
+    bungieTokens.accessTokenExpires = Date.now() + (Number(data.expires_in || 0) * 1000);
+    if(data.refresh_token){
+      bungieTokens.refreshToken = data.refresh_token;
+    }
+    if(data.refresh_expires_in){
+      bungieTokens.refreshTokenExpires = Date.now() + Number(data.refresh_expires_in) * 1000;
+    }
+    if(data.token_type){
+      bungieTokens.tokenType = data.token_type;
+    }
+    if(data.membership_id){
+      bungieTokens.membershipId = data.membership_id;
+    }
+    if(data.membership_type != null){
+      bungieTokens.membershipType = data.membership_type;
+    }
+    saveBungieTokens();
+  }
+
+  function formatBungieNetworkError(err){
+    const rawMessage = (err?.message || '').trim();
+    const normalized = rawMessage || 'Network request failed.';
+    const lowered = normalized.toLowerCase();
+    if(lowered.includes('failed to fetch') || lowered.includes('networkerror') || lowered.includes('load failed')){
+      let currentOrigin = '';
+      try{
+        currentOrigin = window.location?.origin || '';
+      }catch(_){
+        currentOrigin = '';
+      }
+      const isOpaque = !currentOrigin || currentOrigin === 'null';
+      if(isOpaque){
+        return `Network error contacting Bungie. Serve this page from ${BUNGIE_ALLOWED_ORIGIN} or another web server and add that origin to your Bungie application's Origin Header whitelist before trying again.`;
+      }
+      if(currentOrigin !== BUNGIE_ALLOWED_ORIGIN){
+        return `Network error contacting Bungie from ${currentOrigin}. Add this origin (without a trailing slash) to the Bungie application's Origin Header whitelist alongside ${BUNGIE_ALLOWED_ORIGIN}, publish the change, and reload before trying again.`;
+      }
+      return `Network error contacting Bungie from ${currentOrigin}. Confirm this origin appears in the Bungie application's Origin Header whitelist and try again in a few moments.`;
+    }
+    return normalized;
+  }
+
+  function formatBungieError(data, status){
+    const rawMessage = data?.Message || data?.message || data?.error_description || data?.error || `HTTP ${status}`;
+    const errorStatus = data?.ErrorStatus || data?.Error || data?.error;
+    const normalized = (rawMessage || '').trim();
+    const originMismatch = normalized === 'Origin header does not match the provided API key.'
+      || normalized === 'OriginHeaderDoesNotMatchKey'
+      || errorStatus === 'OriginHeaderDoesNotMatchKey';
+    if(originMismatch){
+      let currentOrigin = '';
+      try{
+        currentOrigin = window.location?.origin || '';
+      }catch(_){
+        currentOrigin = '';
+      }
+      const isOpaqueOrigin = !currentOrigin || currentOrigin === 'null';
+      if(isOpaqueOrigin){
+        return `OriginHeaderDoesNotMatchKey: Bungie rejected the request because local files do not set an Origin header. Serve this page from ${BUNGIE_ALLOWED_ORIGIN} or run it through a local web server (for example, http://localhost:4173) and add that origin to the Bungie application's Origin Header whitelist before retrying.`;
+      }
+      if(currentOrigin !== BUNGIE_ALLOWED_ORIGIN){
+        return `OriginHeaderDoesNotMatchKey: Bungie rejected the request because ${currentOrigin} is not on the API key's Origin Header whitelist. Add both ${currentOrigin} and ${BUNGIE_ALLOWED_ORIGIN} (no trailing slashes) in the Bungie developer portal, publish the change, and reload.`;
+      }
+      return `OriginHeaderDoesNotMatchKey: Bungie rejected the request even though the page is hosted on ${BUNGIE_ALLOWED_ORIGIN}. Double-check the application's Origin Header whitelist in the Bungie developer portal, publish the update, wait a few minutes for it to propagate, and reload before trying again.`;
+    }
+    return normalized || `HTTP ${status}`;
+  }
+
+  async function bungieApiRequest(path, options={}, retry=true){
+    ensureBungieConfigDefaults();
+    const cfg = bungieConfig || {};
+    if(!cfg.apiKey){
+      throw new Error('Bungie API key is missing.');
+    }
+    await ensureAccessToken();
+    const headers = new Headers(options.headers || {});
+    headers.set('X-API-Key', cfg.apiKey);
+    headers.set('Authorization', `${bungieTokens?.tokenType || 'Bearer'} ${bungieTokens?.accessToken || ''}`);
+    headers.set('Accept', 'application/json');
+    let resp;
+    try{
+      resp = await fetch(`${BUNGIE_API_ROOT}${path}`, {
+        method: options.method || 'GET',
+        ...options,
+        headers
+      });
+    }catch(err){
+      throw new Error(formatBungieNetworkError(err));
+    }
+    if(resp.status === 401 && retry){
+      await refreshAccessToken();
+      return bungieApiRequest(path, options, false);
+    }
+    const data = await resp.json().catch(()=>null);
+    if(!resp.ok){
+      throw new Error(formatBungieError(data, resp.status));
+    }
+    if(data?.ErrorCode && data.ErrorCode !== 1){
+      throw new Error(formatBungieError(data, resp.status));
+    }
+    return data?.Response;
+  }
+
+  function hashKey(hash){
+    const num = Number(hash);
+    if(Number.isNaN(num)) return String(hash);
+    return String(num >>> 0);
+  }
+
+  async function getInventoryItemDefinition(hash){
+    const key = hashKey(hash);
+    if(manifestCache.inventoryItem.has(key)){
+      return manifestCache.inventoryItem.get(key);
+    }
+    const def = await bungieApiRequest(`/Destiny2/Manifest/DestinyInventoryItemDefinition/${key}/`);
+    manifestCache.inventoryItem.set(key, def);
+    return def;
+  }
+
+  async function prefetchInventoryItemDefinitions(hashes, concurrency = 10){
+    if(!Array.isArray(hashes) || hashes.length === 0){
+      return;
+    }
+    const queue = [];
+    const seen = new Set();
+    for(const rawHash of hashes){
+      const key = hashKey(rawHash);
+      if(!key || seen.has(key)){
+        continue;
+      }
+      seen.add(key);
+      if(manifestCache.inventoryItem.has(key)){
+        continue;
+      }
+      queue.push(key);
+    }
+    while(queue.length){
+      const batch = queue.splice(0, Math.max(1, concurrency));
+      await Promise.all(batch.map(async hash => {
+        try{
+          await getInventoryItemDefinition(hash);
+        }catch(err){
+          console.error('Failed to preload manifest definition', hash, err);
+          throw err;
+        }
+      }));
+    }
+  }
+
+  async function transformProfileToRows(profile){
+    const itemsMap = new Map();
+    const addItems = (items)=>{
+      if(!Array.isArray(items)) return;
+      for(const item of items){
+        if(!item || !item.itemInstanceId) continue;
+        if(itemsMap.has(item.itemInstanceId)) continue;
+        itemsMap.set(item.itemInstanceId, item);
+      }
+    };
+    addItems(profile?.profileInventory?.data?.items);
+    const charInventories = profile?.characterInventories?.data || {};
+    for(const inv of Object.values(charInventories)){
+      addItems(inv?.items);
+    }
+    const charEquipment = profile?.characterEquipment?.data || {};
+    for(const equip of Object.values(charEquipment)){
+      addItems(equip?.items);
+    }
+    if(itemsMap.size === 0) return [];
+    const instances = profile?.itemComponents?.instances?.data || {};
+    const statsByItem = profile?.itemComponents?.stats?.data || {};
+    const socketsByItem = profile?.itemComponents?.sockets?.data || {};
+    const relevantItems = [];
+    for(const [instanceId, item] of itemsMap.entries()){
+      const bucketKey = hashKey(item.bucketHash);
+      let isArmorCandidate = !!ARMOR_BUCKET_HASH_TO_TYPE[bucketKey];
+      if(!isArmorCandidate){
+        const statMap = statsByItem?.[instanceId]?.stats;
+        if(statMap){
+          for(const statHash of Object.keys(statMap)){
+            if(STAT_HASH_TO_LABEL[hashKey(statHash)]){
+              isArmorCandidate = true;
+              break;
+            }
+          }
+        }
+      }
+      if(!isArmorCandidate){
+        const energy = instances?.[instanceId]?.energy;
+        if(energy && (Number.isFinite(energy?.energyCapacity) || Number.isFinite(energy?.energyLevel))){
+          isArmorCandidate = true;
+        }
+      }
+      if(isArmorCandidate){
+        relevantItems.push(item);
+      }
+    }
+    if(relevantItems.length === 0) return [];
+    const uniqueItemKeys = new Set();
+    const uniqueItemHashes = [];
+    const plugKeys = new Set();
+    const plugHashList = [];
+    for(const item of relevantItems){
+      const itemKey = hashKey(item.itemHash);
+      if(itemKey && !uniqueItemKeys.has(itemKey)){
+        uniqueItemKeys.add(itemKey);
+        uniqueItemHashes.push(item.itemHash);
+      }
+      const sockets = socketsByItem?.[item.itemInstanceId]?.sockets;
+      if(!Array.isArray(sockets)) continue;
+      for(const socket of sockets){
+        if(!socket || socket.isEnabled === false || socket?.plugged?.enabled === false) continue;
+        const plugHash = getSocketPlugHash(socket);
+        const plugKey = plugHash != null ? hashKey(plugHash) : null;
+        if(!plugKey || plugKeys.has(plugKey)) continue;
+        plugKeys.add(plugKey);
+        plugHashList.push(plugHash);
+      }
+    }
+    await prefetchInventoryItemDefinitions(uniqueItemHashes.concat(plugHashList));
+    const rows = [];
+    for(const item of relevantItems){
+      const def = await getInventoryItemDefinition(item.itemHash);
+      const sockets = socketsByItem?.[item.itemInstanceId]?.sockets || [];
+      const row = buildRowFromDefinition(
+        item,
+        def,
+        instances[item.itemInstanceId],
+        statsByItem[item.itemInstanceId]?.stats || {},
+        sockets
+      );
+      if(row) rows.push(row);
+    }
+    return rows;
+  }
+
+  function getSocketPlugHash(socket){
+    if(!socket) return null;
+    const plugHash = socket?.plugged?.plugItemHash
+      ?? socket?.plugged?.plugHash
+      ?? socket?.plugHash
+      ?? socket?.plugItemHash;
+    return plugHash != null ? plugHash : null;
+  }
+
+  // Destiny Item Manager removes every socket-provided stat bonus except for intrinsic
+  // or frame plugs when it has to derive base stats manually. We mostly rely on Bungie's
+  // provided `stat.base` values, but we still need this filter for the few cases where
+  // the API omits those base numbers and we have to fall back to subtraction.
+  function shouldSubtractPlugFromBaseStats(def, plugStats){
+    if(!plugStats || plugStats.size === 0) return false;
+    if(!def) return true;
+    const plugCategoryHash = Number(def?.plug?.plugCategoryHash);
+    if(Number.isFinite(plugCategoryHash)){
+      if(ARMOR_INTRINSIC_PLUG_CATEGORY_HASHES.has(plugCategoryHash)){
+        return false;
+      }
+      if(ARMOR_MOD_PLUG_CATEGORY_HASHES.has(plugCategoryHash)){
+        return true;
+      }
+    }
+    const plugCat = String(def?.plug?.plugCategoryIdentifier || '').toLowerCase();
+    if(plugCat){
+      if(plugCat === 'intrinsics' || plugCat.startsWith('intrinsics.')) return false;
+      if(plugCat.startsWith('frames')) return false;
+      if(plugCat.includes('ornament') || plugCat.includes('cosmetic') || plugCat.includes('spawnfx')) return false;
+      if(plugCat.includes('tracker')) return false;
+      if(plugCat.includes('armor_mod')) return true;
+      if(plugCat.includes('enhancements')) return true;
+    }
+    if(isMasterworkStatPlug(def)){
+      return true;
+    }
+    const itemCategories = Array.isArray(def?.itemCategoryHashes) ? def.itemCategoryHashes : [];
+    for(const catHash of itemCategories){
+      if(ARMOR_MOD_ITEM_CATEGORY_HASHES.has(Number(catHash))){
+        return true;
+      }
+    }
+    const typeName = String(def?.itemTypeDisplayName || '').toLowerCase();
+    if(typeName.includes('ornament') || typeName.includes('shader') || typeName.includes('projection')) return false;
+    if(typeName.includes('mod')) return true;
+    const displayName = String(def?.displayProperties?.name || '').toLowerCase();
+    if(displayName.includes('ornament') || displayName.includes('shader')) return false;
+    if(displayName.includes('mod')) return true;
+    return false;
+  }
+
+  function isMasterworkStatPlug(def){
+    if(!def) return false;
+    const plugCat = String(def?.plug?.plugCategoryIdentifier || '').toLowerCase();
+    if(plugCat && plugCat.includes('masterwork')) return true;
+    const typeName = String(def?.itemTypeDisplayName || '').toLowerCase();
+    if(typeName.includes('masterwork')) return true;
+    const displayName = String(def?.displayProperties?.name || '').toLowerCase();
+    if(displayName.includes('masterwork')) return true;
+    return false;
+  }
+
+  function getPlugStatValues(socket, plugDef){
+    const values = new Map();
+    const plugStats = socket?.plugged?.stats;
+    if(plugStats && typeof plugStats === 'object'){
+      for(const [hash, entry] of Object.entries(plugStats)){
+        const statKey = hashKey(hash);
+        const label = STAT_HASH_TO_LABEL[statKey];
+        if(!label) continue;
+        const raw = typeof entry === 'object' && entry !== null ? entry.value : entry;
+        const numeric = Number(raw ?? 0);
+        if(!Number.isFinite(numeric) || numeric === 0) continue;
+        values.set(label, (values.get(label) || 0) + numeric);
+      }
+    }
+    if(values.size === 0 && plugDef){
+      const invStats = Array.isArray(plugDef?.investmentStats) ? plugDef.investmentStats : [];
+      for(const stat of invStats){
+        const statKey = hashKey(stat?.statTypeHash);
+        const label = STAT_HASH_TO_LABEL[statKey];
+        const value = Number(stat?.value ?? 0);
+        if(!label || !Number.isFinite(value) || value === 0) continue;
+        values.set(label, (values.get(label) || 0) + value);
+      }
+    }
+    return values;
+  }
+
+  function getStatAdjustmentsFromSockets(sockets){
+    const adjustments = {};
+    const masterworkAdjustments = {};
+    if(!Array.isArray(sockets)) return { adjustments, masterworkAdjustments };
+    for(const socket of sockets){
+      if(!socket || socket.isEnabled === false || socket?.plugged?.enabled === false) continue;
+      const plugHash = getSocketPlugHash(socket);
+      if(plugHash == null) continue;
+      const plugDef = manifestCache.inventoryItem.get(hashKey(plugHash));
+      const plugStats = getPlugStatValues(socket, plugDef);
+      if(!shouldSubtractPlugFromBaseStats(plugDef, plugStats)) continue;
+      const isMasterwork = isMasterworkStatPlug(plugDef);
+      for(const [label, value] of plugStats.entries()){
+        adjustments[label] = (adjustments[label] || 0) + value;
+        if(isMasterwork){
+          masterworkAdjustments[label] = (masterworkAdjustments[label] || 0) + value;
+        }
+      }
+    }
+    return { adjustments, masterworkAdjustments };
+  }
+
+  function buildRowFromDefinition(item, def, instance, stats, sockets){
+    if(!def || !def.inventory) return null;
+    if(def.itemType !== 2) return null;
+    if(def.classType != null && def.classType > 2 && def.classType !== 3 && def.classType !== 4) return null;
+    const bucketKey = hashKey(def.inventory.bucketTypeHash);
+    if(!ARMOR_BUCKET_HASH_TO_TYPE[bucketKey]) return null;
+    const className = CLASS_BY_TYPE[def.classType] || 'Any';
+    const isClassItem = bucketKey === String(1585787867);
+    const typeName = isClassItem
+      ? (classItemByClass[className] || def.itemTypeDisplayName || 'Class Item')
+      : (def.itemTypeDisplayName || ARMOR_BUCKET_HASH_TO_TYPE[bucketKey] || 'Armor');
+    let tierValue = 0;
+    const energy = instance?.energy;
+    if(energy){
+      const capacity = Number(energy?.energyCapacity);
+      const level = Number(energy?.energyLevel);
+      const source = Number.isFinite(capacity) ? capacity : level;
+      if(Number.isFinite(source)){
+        tierValue = Math.ceil(Math.max(0, source) / 2);
+      }
+    }
+    const row = {
+      Id: normId(item.itemInstanceId || item.itemHash),
+      Name: def?.displayProperties?.name || 'Unknown Item',
+      Type: typeName,
+      Equippable: className === 'Unknown' ? 'Any' : className,
+      Rarity: def?.inventory?.tierTypeName || '',
+      Tag: '',
+      Power: instance?.primaryStat?.value ?? '',
+      Tier: Number.isFinite(tierValue) ? tierValue : 0,
+      'Total (Base)': 0
+    };
+    const socketDetails = getStatAdjustmentsFromSockets(sockets);
+    const isMasterworked = Number(instance?.energy?.energyLevel) === 10;
+    for(const [hash,label] of Object.entries(STAT_HASH_TO_LABEL)){
+      const stat = stats?.[hash];
+      const value = Number(stat?.value ?? 0);
+      const numericValue = Number.isFinite(value) ? value : 0;
+      const adjustment = Number(socketDetails?.adjustments?.[label] ?? 0);
+      let baseValue = Number.isFinite(adjustment)
+        ? Math.max(0, numericValue - adjustment)
+        : Math.max(0, numericValue);
+      if(baseValue === numericValue){
+        const candidates = [];
+        const investmentValue = Number(stat?.investmentValue);
+        if(Number.isFinite(investmentValue) && investmentValue >= 0){
+          candidates.push(investmentValue);
+        }
+        const apiBase = Number(stat?.base);
+        if(Number.isFinite(apiBase) && apiBase >= 0){
+          candidates.push(apiBase);
+        }
+        if(candidates.length){
+          const bestCandidate = Math.min(...candidates);
+          if(bestCandidate > 0 || baseValue <= 0){
+            baseValue = bestCandidate;
+          }
+        }
+      }
+      if(!Number.isFinite(baseValue)){
+        baseValue = 0;
+      }
+      const masterworkContribution = Number(socketDetails?.masterworkAdjustments?.[label] ?? 0);
+      if(isMasterworked && (!Number.isFinite(masterworkContribution) || masterworkContribution < 2)){
+        baseValue = Math.max(0, baseValue - 2);
+      }
+      row[label] = baseValue;
+      row['Total (Base)'] += baseValue;
+    }
+    row['Total (Base)'] = Number.isFinite(row['Total (Base)']) ? row['Total (Base)'] : 0;
+    return row;
+  }
+
+  async function fetchMemberships(){
+    try{
+      const resp = await bungieApiRequest('/User/GetMembershipsForCurrentUser/');
+      const memberships = Array.isArray(resp?.destinyMemberships) ? resp.destinyMemberships : [];
+      bungieMemberships = memberships.map(m => ({
+        membershipId: m.membershipId,
+        membershipType: m.membershipType,
+        label: formatMembershipLabel(m)
+      }));
+      let selected = null;
+      if(!bungieMemberships.length){
+        setBungieStatus('No Destiny 2 memberships were found for this account.', 'error');
+      }else{
+        selected = bungieMemberships.find(mem => String(mem.membershipType) === String(bungieConfig?.membershipType) && String(mem.membershipId) === String(bungieConfig?.membershipId)) || null;
+        if(!selected){
+          selected = bungieMemberships[0];
+          bungieConfig.membershipType = selected.membershipType;
+          bungieConfig.membershipId = selected.membershipId;
+          saveBungieConfig();
+        }
+        if(selected){
+          setBungieStatus(`Signed in as ${selected.label}.`, 'ok');
+        }else{
+          setBungieStatus('Signed in, but no profile is selected.', 'error');
+        }
+      }
+      renderMembershipOptions();
+      return selected;
+    }catch(err){
+      console.error(err);
+      setBungieStatus('Failed to load memberships: ' + (err?.message || err), 'error');
+    }
+  }
+
+  async function loadArmorFromBungie(options={}){
+    if(bungieIsFetching) return false;
+    const reason = options?.reason || 'manual';
+    let success = false;
+    try{
+      bungieIsFetching = true;
+      updateBungieUI();
+      const membership = getSelectedMembership();
+      if(!membership){
+        setBungieStatus('Select a Destiny profile before loading armor.', 'error');
+        return false;
+      }
+      const startMessage = reason === 'manual' ? 'Refreshing armor from Bungie…' : 'Loading armor from Bungie…';
+      setBungieStatus(startMessage, 'loading');
+      const profile = await bungieApiRequest(`/Destiny2/${membership.membershipType}/Profile/${membership.membershipId}/?components=${BUNGIE_COMPONENTS}`);
+      const rows = await transformProfileToRows(profile);
+      if(!rows.length){
+        setBungieStatus('No armor items were found for this profile.', 'error');
+        return false;
+      }
+      STATE.rows = rows;
+      saveRows();
+      render();
+      setUploadHint('Loaded via Bungie API');
+      const successMessage = reason === 'manual'
+        ? `Refreshed ${rows.length} armor items from Bungie.`
+        : `Loaded ${rows.length} armor items from Bungie.`;
+      setBungieStatus(successMessage, 'ok');
+      if(reason === 'auto'){
+        bungieAutoLoadedOnce = true;
+      }
+      success = true;
+    }catch(err){
+      console.error(err);
+      setBungieStatus('Failed to load armor: ' + (err?.message || err), 'error');
+    }finally{
+      bungieIsFetching = false;
+      updateBungieUI();
+    }
+    return success;
+  }
+
+  async function initBungieIntegration(){
+    updateBungieUI();
+    await handleOAuthRedirect();
+    if(bungieTokens?.refreshToken){
+      const refreshValid = Date.now() < ((bungieTokens.refreshTokenExpires || 0) - 60000);
+      if(!refreshValid){
+        clearBungieTokens(false);
+        setBungieStatus('Your Bungie session expired. Please sign in again.', 'error');
+        return;
+      }
+      try{
+        await ensureAccessToken();
+        let membership = getSelectedMembership();
+        if(!membership){
+          membership = await fetchMemberships();
+        }else{
+          renderMembershipOptions();
+        }
+        if(membership && !bungieAutoLoadedOnce){
+          const loaded = await loadArmorFromBungie({ reason: 'auto' });
+          if(!loaded && !bungieStatusEl?.textContent){
+            setBungieStatus(`Signed in as ${membership.label}. Use Refresh armor to try again.`, 'info');
+          }
+        }else if(membership && !bungieStatusEl?.textContent){
+          setBungieStatus(`Signed in as ${membership.label}.`, 'ok');
+        }
+      }catch(err){
+        console.error(err);
+        clearBungieTokens(false);
+        setBungieStatus('Your Bungie session expired. Please sign in again.', 'error');
+      }
+    }else if(!bungieStatusEl?.textContent){
+      setBungieStatus('Sign in with Bungie to sync your armor automatically.', 'info');
+    }
+  }
   // ====== Grouping & Sorting ======
   function clusterRows(filtered){
     const byKey = new Map();
@@ -505,6 +1564,29 @@ out.sort((a, b) => {
   }
 
   // ====== Events ======
+  bungieStatusEl = document.getElementById('bungieStatus');
+  bungieMembershipSelect = document.getElementById('membershipSelect');
+  bungieMembershipWrap = document.getElementById('membershipSelectWrap');
+  bungieLoginBtn = document.getElementById('bungieLogin');
+  bungieRefreshBtn = document.getElementById('bungieRefresh');
+  bungieLogoutBtn = document.getElementById('bungieLogout');
+
+  if(bungieLoginBtn) bungieLoginBtn.addEventListener('click', () => startBungieAuth());
+  if(bungieRefreshBtn) bungieRefreshBtn.addEventListener('click', () => loadArmorFromBungie({ reason: 'manual' }));
+  if(bungieLogoutBtn) bungieLogoutBtn.addEventListener('click', () => { clearBungieTokens(true); });
+  if(bungieMembershipSelect){
+    bungieMembershipSelect.addEventListener('change', (event) => {
+      const value = event.target.value;
+      if(!value) return;
+      const [type, id] = value.split(':');
+      bungieConfig.membershipType = Number(type);
+      bungieConfig.membershipId = id;
+      saveBungieConfig();
+      updateBungieUI();
+      loadArmorFromBungie({ reason: 'auto' });
+    });
+  }
+
   const fileInput = document.getElementById('file');
   const restoreBtn = document.getElementById('restoreBtn');
   const clearBtn = document.getElementById('clearBtn');
@@ -599,6 +1681,7 @@ out.sort((a, b) => {
 }
 
   // Initial
+  initBungieIntegration().catch((err)=>{ console.error('Bungie init error', err); });
   const cached = loadRows(); if(cached){ STATE.rows=cached; }
   render();
   updateShadowColor();
