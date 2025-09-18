@@ -928,8 +928,6 @@
       if(!Array.isArray(items)) return;
       for(const item of items){
         if(!item || !item.itemInstanceId) continue;
-        const bucketKey = hashKey(item.bucketHash);
-        if(!ARMOR_BUCKET_HASH_TO_TYPE[bucketKey]) continue;
         if(itemsMap.has(item.itemInstanceId)) continue;
         itemsMap.set(item.itemInstanceId, item);
       }
@@ -947,11 +945,37 @@
     const instances = profile?.itemComponents?.instances?.data || {};
     const statsByItem = profile?.itemComponents?.stats?.data || {};
     const socketsByItem = profile?.itemComponents?.sockets?.data || {};
+    const relevantItems = [];
+    for(const [instanceId, item] of itemsMap.entries()){
+      const bucketKey = hashKey(item.bucketHash);
+      let isArmorCandidate = !!ARMOR_BUCKET_HASH_TO_TYPE[bucketKey];
+      if(!isArmorCandidate){
+        const statMap = statsByItem?.[instanceId]?.stats;
+        if(statMap){
+          for(const statHash of Object.keys(statMap)){
+            if(STAT_HASH_TO_LABEL[hashKey(statHash)]){
+              isArmorCandidate = true;
+              break;
+            }
+          }
+        }
+      }
+      if(!isArmorCandidate){
+        const energy = instances?.[instanceId]?.energy;
+        if(energy && (Number.isFinite(energy?.energyCapacity) || Number.isFinite(energy?.energyLevel))){
+          isArmorCandidate = true;
+        }
+      }
+      if(isArmorCandidate){
+        relevantItems.push(item);
+      }
+    }
+    if(relevantItems.length === 0) return [];
     const uniqueItemKeys = new Set();
     const uniqueItemHashes = [];
     const plugKeys = new Set();
     const plugHashList = [];
-    for(const item of itemsMap.values()){
+    for(const item of relevantItems){
       const itemKey = hashKey(item.itemHash);
       if(itemKey && !uniqueItemKeys.has(itemKey)){
         uniqueItemKeys.add(itemKey);
@@ -970,7 +994,7 @@
     }
     await prefetchInventoryItemDefinitions(uniqueItemHashes.concat(plugHashList));
     const rows = [];
-    for(const item of itemsMap.values()){
+    for(const item of relevantItems){
       const def = await getInventoryItemDefinition(item.itemHash);
       const sockets = socketsByItem?.[item.itemInstanceId]?.sockets || [];
       const row = buildRowFromDefinition(
