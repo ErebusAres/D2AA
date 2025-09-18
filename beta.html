@@ -80,8 +80,6 @@
           <select id="membershipSelect"></select>
         </label>
       </div>
-      <div class="auth-note muted">Using the ErebusAres Bungie application (Client ID 50794) registered for this site.</div>
-      <div class="auth-note muted">OAuth redirect: <code class="code-inline" id="bungieRedirectUri"></code></div>
       <div class="auth-note muted">Tokens are stored locally in this browser only.</div>
       <div id="bungieStatus" class="auth-status muted" aria-live="polite"></div>
     </section>
@@ -231,7 +229,6 @@
   })();
   const BUNGIE_DEFAULT_API_KEY = '96e154014bdd44c0a537e482709b7473';
   const BUNGIE_DEFAULT_CLIENT_ID = '50794';
-
   // ====== Helpers ======
   const normId = (s) => (s ? String(s).trim().replace(/^"|"$/g, "") : "");
   const normName = (s) => String(s || "").trim().toLowerCase();
@@ -290,7 +287,6 @@
     bucket: new Map()
   };
   let bungieStatusEl = null;
-  let bungieRedirectUriEl = null;
   let bungieMembershipSelect = null;
   let bungieMembershipWrap = null;
   let bungieLoginBtn = null;
@@ -679,8 +675,13 @@
     if(redirectUri){
       body.set('redirect_uri', redirectUri);
     }
+    const headers = new Headers({
+      'Content-Type':'application/x-www-form-urlencoded',
+      'Accept':'application/json'
+    });
     const resp = await fetch(BUNGIE_TOKEN_URL, {
       method:'POST',
+      headers,
       body
     });
     const data = await resp.json().catch(()=>null);
@@ -731,8 +732,13 @@
     body.set('client_id', bungieConfig?.clientId || '');
     body.set('grant_type', 'refresh_token');
     body.set('refresh_token', bungieTokens?.refreshToken || '');
+    const headers = new Headers({
+      'Content-Type':'application/x-www-form-urlencoded',
+      'Accept':'application/json'
+    });
     const resp = await fetch(BUNGIE_TOKEN_URL, {
       method:'POST',
+      headers,
       body
     });
     const data = await resp.json().catch(()=>null);
@@ -1212,17 +1218,11 @@ out.sort((a, b) => {
 
   // ====== Events ======
   bungieStatusEl = document.getElementById('bungieStatus');
-  bungieRedirectUriEl = document.getElementById('bungieRedirectUri');
   bungieMembershipSelect = document.getElementById('membershipSelect');
   bungieMembershipWrap = document.getElementById('membershipSelectWrap');
   bungieLoginBtn = document.getElementById('bungieLogin');
   bungieRefreshBtn = document.getElementById('bungieRefresh');
   bungieLogoutBtn = document.getElementById('bungieLogout');
-
-  if(bungieRedirectUriEl){
-    bungieRedirectUriEl.textContent = BUNGIE_REDIRECT_URI;
-    bungieRedirectUriEl.title = BUNGIE_REDIRECT_URI;
-  }
 
   if(bungieLoginBtn) bungieLoginBtn.addEventListener('click', () => startBungieAuth());
   if(bungieRefreshBtn) bungieRefreshBtn.addEventListener('click', () => loadArmorFromBungie({ reason: 'manual' }));
