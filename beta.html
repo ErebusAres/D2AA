@@ -928,6 +928,8 @@
       if(!Array.isArray(items)) return;
       for(const item of items){
         if(!item || !item.itemInstanceId) continue;
+        const bucketKey = hashKey(item.bucketHash);
+        if(!ARMOR_BUCKET_HASH_TO_TYPE[bucketKey]) continue;
         if(itemsMap.has(item.itemInstanceId)) continue;
         itemsMap.set(item.itemInstanceId, item);
       }
@@ -1045,11 +1047,20 @@
       Tier: Number.isFinite(tierValue) ? tierValue : 0,
       'Total (Base)': 0
     };
-    const socketAdjustments = getStatAdjustmentsFromSockets(sockets);
+    let socketAdjustments = null;
     for(const [hash,label] of Object.entries(STAT_HASH_TO_LABEL)){
       const stat = stats?.[hash];
+      const baseValue = Number(stat?.base);
+      if(Number.isFinite(baseValue)){
+        row[label] = baseValue;
+        row['Total (Base)'] += baseValue;
+        continue;
+      }
       const value = Number(stat?.value ?? 0);
       const numericValue = Number.isFinite(value) ? value : 0;
+      if(socketAdjustments === null){
+        socketAdjustments = getStatAdjustmentsFromSockets(sockets);
+      }
       const adjustment = Number(socketAdjustments?.[label] ?? 0);
       const adjustedValue = Number.isFinite(adjustment)
         ? Math.max(0, numericValue - adjustment)
