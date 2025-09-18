@@ -229,6 +229,15 @@
     3607371986, // ItemCategoryHashes.ArmorModsLegs
     4062965806  // ItemCategoryHashes.ArmorModsGameplay
   ]);
+  const ARMOR_BASE_SOCKET_CATEGORY_HASHES = new Set([
+    3154740035, // SocketCategoryHashes.ArmorPerks_LargePerk (intrinsic stat frames)
+    2518356196, // SocketCategoryHashes.ArmorPerks_Reusable
+    3956125808  // SocketCategoryHashes.IntrinsicTraits
+  ]);
+  const ARMOR_MOD_SOCKET_CATEGORY_HASHES = new Set([
+    590099826,  // SocketCategoryHashes.ArmorMods
+    760375309   // SocketCategoryHashes.ArmorTier (masterwork)
+  ]);
   const MEMBERSHIP_TYPE_NAMES = {
     1: "Xbox",
     2: "PlayStation",
@@ -319,7 +328,8 @@
   let bungieAutoLoadedOnce = false;
   const manifestCache = {
     inventoryItem: new Map(),
-    bucket: new Map()
+    bucket: new Map(),
+    socketType: new Map()
   };
   let bungieStatusEl = null;
   let bungieMembershipSelect = null;
@@ -926,6 +936,16 @@
     return def;
   }
 
+  async function getSocketTypeDefinition(hash){
+    const key = hashKey(hash);
+    if(manifestCache.socketType.has(key)){
+      return manifestCache.socketType.get(key);
+    }
+    const def = await bungieApiRequest(`/Destiny2/Manifest/DestinySocketTypeDefinition/${key}/`);
+    manifestCache.socketType.set(key, def);
+    return def;
+  }
+
   async function prefetchInventoryItemDefinitions(hashes, concurrency = 10){
     if(!Array.isArray(hashes) || hashes.length === 0){
       return;
@@ -1056,8 +1076,16 @@
   // or frame plugs when it has to derive base stats manually. We mostly rely on Bungie's
   // provided `stat.base` values, but we still need this filter for the few cases where
   // the API omits those base numbers and we have to fall back to subtraction.
-  function shouldSubtractPlugFromBaseStats(def, plugStats){
+  function shouldSubtractPlugFromBaseStats(def, plugStats, socketCategoryHash){
     if(!plugStats || plugStats.size === 0) return false;
+    if(Number.isFinite(socketCategoryHash)){
+      if(ARMOR_BASE_SOCKET_CATEGORY_HASHES.has(socketCategoryHash)){
+        return false;
+      }
+      if(ARMOR_MOD_SOCKET_CATEGORY_HASHES.has(socketCategoryHash)){
+        return true;
+      }
+    }
     if(!def) return true;
     const plugCategoryHash = Number(def?.plug?.plugCategoryHash);
     if(Number.isFinite(plugCategoryHash)){
@@ -1142,12 +1170,27 @@
     return values;
   }
 
-  async function getStatAdjustmentsFromSockets(sockets){
+  async function getStatAdjustmentsFromSockets(sockets, socketDefs){
     const adjustments = {};
     const masterworkAdjustments = {};
     if(!Array.isArray(sockets)) return { adjustments, masterworkAdjustments };
-    for(const socket of sockets){
+    for(let index = 0; index < sockets.length; index++){
+      const socket = sockets[index];
       if(!socket) continue;
+      const socketDef = Array.isArray(socketDefs) ? socketDefs[index] : null;
+      let socketCategoryHash = null;
+      const socketTypeHash = socketDef?.socketTypeHash;
+      if(socketTypeHash != null){
+        try{
+          const socketTypeDef = await getSocketTypeDefinition(socketTypeHash);
+          const categoryHash = Number(socketTypeDef?.socketCategoryHash);
+          if(Number.isFinite(categoryHash)){
+            socketCategoryHash = categoryHash;
+          }
+        }catch(err){
+          console.warn('Failed to load socket type definition for stat adjustments', socketTypeHash, err);
+        }
+      }
       const plugHash = getSocketPlugHash(socket);
       if(plugHash == null) continue;
       const enabledFlags = [
@@ -1168,7 +1211,7 @@
         }
       }
       const plugStats = getPlugStatValues(socket, plugDef);
-      if(!shouldSubtractPlugFromBaseStats(plugDef, plugStats)) continue;
+      if(!shouldSubtractPlugFromBaseStats(plugDef, plugStats, socketCategoryHash)) continue;
       const isMasterwork = isMasterworkStatPlug(plugDef);
       for(const [label, value] of plugStats.entries()){
         adjustments[label] = (adjustments[label] || 0) + value;
@@ -1200,10 +1243,10 @@
       const unused = Number(energy?.energyUnused);
       const level = Number(energy?.energyLevel);
       const candidates = [
-        Number.isFinite(capacity) ? capacity : null,
+        Number.isFinite(level) ? level : null,
         Number.isFinite(used) ? used : null,
         (Number.isFinite(capacity) && Number.isFinite(unused)) ? capacity - unused : null,
-        Number.isFinite(level) ? level : null
+        Number.isFinite(capacity) ? capacity : null
       ];
       for(const candidate of candidates){
         if(Number.isFinite(candidate)){
@@ -1226,7 +1269,8 @@
       Tier: Number.isFinite(tierValue) ? tierValue : 0,
       'Total (Base)': 0
     };
-    const socketDetails = await getStatAdjustmentsFromSockets(sockets);
+    const socketDefs = Array.isArray(def?.sockets?.socketEntries) ? def.sockets.socketEntries : [];
+    const socketDetails = await getStatAdjustmentsFromSockets(sockets, socketDefs);
     const isMasterworked = Number.isFinite(currentEnergy) && currentEnergy >= 10;
     for(const [hash,label] of Object.entries(STAT_HASH_TO_LABEL)){
       const stat = stats?.[hash];
@@ -1234,17 +1278,19 @@
       const numericValue = Number.isFinite(value) ? value : 0;
       const adjustment = Number(socketDetails?.adjustments?.[label] ?? 0);
       const masterworkContribution = Number(socketDetails?.masterworkAdjustments?.[label] ?? 0);
-      const derivedBase = Number.isFinite(adjustment)
-        ? Math.max(0, numericValue - adjustment)
-        : (Number.isFinite(numericValue) ? Math.max(0, numericValue) : 0);
-      const investmentValue = Number(stat?.investmentValue);
-      const apiBase = Number(stat?.base);
       const expectedMasterwork = 2;
       const treatAsMasterworked = isMasterworked || (Number.isFinite(masterworkContribution) && Math.abs(masterworkContribution) > 0.001);
+      const recognizedMasterwork = Number.isFinite(masterworkContribution) ? masterworkContribution : 0;
+      const missingMasterwork = treatAsMasterworked
+        ? Math.max(0, expectedMasterwork - (Math.abs(recognizedMasterwork) > 0.001 ? recognizedMasterwork : 0))
+        : 0;
+      const derivedBase = Number.isFinite(adjustment)
+        ? Math.max(0, numericValue - adjustment - missingMasterwork)
+        : (Number.isFinite(numericValue) ? Math.max(0, numericValue - missingMasterwork) : 0);
+      const investmentValue = Number(stat?.investmentValue);
+      const apiBase = Number(stat?.base);
       const masterworkToRemove = treatAsMasterworked
-        ? (Number.isFinite(masterworkContribution) && Math.abs(masterworkContribution) > 0.001
-            ? masterworkContribution
-            : expectedMasterwork)
+        ? (Math.abs(recognizedMasterwork) > 0.001 ? recognizedMasterwork : expectedMasterwork)
         : 0;
       const candidates = [];
       if(Number.isFinite(derivedBase)){
