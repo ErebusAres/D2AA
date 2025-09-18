@@ -1031,7 +1031,7 @@
     for(const item of relevantItems){
       const def = await getInventoryItemDefinition(item.itemHash);
       const sockets = socketsByItem?.[item.itemInstanceId]?.sockets || [];
-      const row = buildRowFromDefinition(
+      const row = await buildRowFromDefinition(
         item,
         def,
         instances[item.itemInstanceId],
@@ -1142,15 +1142,26 @@
     return values;
   }
 
-  function getStatAdjustmentsFromSockets(sockets){
+  async function getStatAdjustmentsFromSockets(sockets){
     const adjustments = {};
     const masterworkAdjustments = {};
     if(!Array.isArray(sockets)) return { adjustments, masterworkAdjustments };
     for(const socket of sockets){
-      if(!socket || socket?.plugged?.enabled === false) continue;
+      if(!socket || !socket.plugged) continue;
+      const enabled = socket.plugged.enabled;
+      const isEnabled = socket.plugged.isEnabled;
+      if(enabled === false && isEnabled === false) continue;
       const plugHash = getSocketPlugHash(socket);
       if(plugHash == null) continue;
-      const plugDef = manifestCache.inventoryItem.get(hashKey(plugHash));
+      let plugDef = manifestCache.inventoryItem.get(hashKey(plugHash));
+      if(!plugDef){
+        try{
+          plugDef = await getInventoryItemDefinition(plugHash);
+        }catch(err){
+          console.warn('Failed to load plug definition for stat adjustments', plugHash, err);
+          plugDef = undefined;
+        }
+      }
       const plugStats = getPlugStatValues(socket, plugDef);
       if(!shouldSubtractPlugFromBaseStats(plugDef, plugStats)) continue;
       const isMasterwork = isMasterworkStatPlug(plugDef);
@@ -1164,7 +1175,7 @@
     return { adjustments, masterworkAdjustments };
   }
 
-  function buildRowFromDefinition(item, def, instance, stats, sockets){
+  async function buildRowFromDefinition(item, def, instance, stats, sockets){
     if(!def || !def.inventory) return null;
     if(def.itemType !== 2) return null;
     if(def.classType != null && def.classType > 2 && def.classType !== 3 && def.classType !== 4) return null;
@@ -1196,7 +1207,7 @@
       Tier: Number.isFinite(tierValue) ? tierValue : 0,
       'Total (Base)': 0
     };
-    const socketDetails = getStatAdjustmentsFromSockets(sockets);
+    const socketDetails = await getStatAdjustmentsFromSockets(sockets);
     const isMasterworked = Number(instance?.energy?.energyLevel) === 10;
     for(const [hash,label] of Object.entries(STAT_HASH_TO_LABEL)){
       const stat = stats?.[hash];
