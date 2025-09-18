@@ -683,9 +683,6 @@
       'Content-Type':'application/x-www-form-urlencoded',
       'Accept':'application/json'
     });
-    if(bungieConfig?.apiKey){
-      headers.set('X-API-Key', bungieConfig.apiKey);
-    }
     const resp = await fetch(BUNGIE_TOKEN_URL, {
       method:'POST',
       headers,
@@ -743,9 +740,6 @@
       'Content-Type':'application/x-www-form-urlencoded',
       'Accept':'application/json'
     });
-    if(bungieConfig?.apiKey){
-      headers.set('X-API-Key', bungieConfig.apiKey);
-    }
     const resp = await fetch(BUNGIE_TOKEN_URL, {
       method:'POST',
       headers,
