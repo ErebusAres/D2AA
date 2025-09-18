@@ -1168,9 +1168,9 @@
     let tierValue = 0;
     const energy = instance?.energy;
     if(energy){
-      const capacity = Number(energy?.energyCapacity);
       const level = Number(energy?.energyLevel);
-      const source = Number.isFinite(capacity) ? capacity : level;
+      const capacity = Number(energy?.energyCapacity);
+      const source = Number.isFinite(level) ? level : capacity;
       if(Number.isFinite(source)){
         tierValue = Math.ceil(Math.max(0, source) / 2);
       }
@@ -1226,8 +1226,16 @@
         baseValue = 0;
       }
       const masterworkContribution = Number(socketDetails?.masterworkAdjustments?.[label] ?? 0);
-      if(isMasterworked && (!Number.isFinite(masterworkContribution) || masterworkContribution < 2)){
-        baseValue = Math.max(0, baseValue - 2);
+      if(isMasterworked){
+        const expectedBoost = 2;
+        const hasPlugDelta = Number.isFinite(masterworkContribution) && masterworkContribution >= expectedBoost;
+        const derivedDelta = Number.isFinite(numericValue) && Number.isFinite(baseValue)
+          ? numericValue - baseValue
+          : null;
+        const alreadyAccountsForMasterwork = Number.isFinite(derivedDelta) && derivedDelta >= expectedBoost - 0.01;
+        if(!hasPlugDelta && !alreadyAccountsForMasterwork){
+          baseValue = Math.max(0, numericValue - expectedBoost);
+        }
       }
       row[label] = baseValue;
       row['Total (Base)'] += baseValue;
