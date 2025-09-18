@@ -1187,13 +1187,24 @@
       ? (classItemByClass[className] || def.itemTypeDisplayName || 'Class Item')
       : (def.itemTypeDisplayName || ARMOR_BUCKET_HASH_TO_TYPE[bucketKey] || 'Armor');
     let tierValue = 0;
+    let currentEnergy = null;
     const energy = instance?.energy;
     if(energy){
-      const level = Number(energy?.energyLevel);
       const capacity = Number(energy?.energyCapacity);
-      const source = Number.isFinite(level) ? level : capacity;
-      if(Number.isFinite(source)){
-        tierValue = Math.ceil(Math.max(0, source) / 2);
+      const unused = Number(energy?.energyUnused);
+      const used = Number(energy?.energyUsed);
+      const level = Number(energy?.energyLevel);
+      if(Number.isFinite(level)){
+        currentEnergy = level;
+      }else if(Number.isFinite(capacity) && Number.isFinite(unused)){
+        currentEnergy = capacity - unused;
+      }else if(Number.isFinite(used)){
+        currentEnergy = used;
+      }else if(Number.isFinite(capacity)){
+        currentEnergy = capacity;
+      }
+      if(Number.isFinite(currentEnergy)){
+        tierValue = Math.max(0, Math.ceil(Math.max(0, currentEnergy) / 2));
       }
     }
     const row = {
@@ -1208,56 +1219,56 @@
       'Total (Base)': 0
     };
     const socketDetails = await getStatAdjustmentsFromSockets(sockets);
-    const isMasterworked = Number(instance?.energy?.energyLevel) === 10;
+    const isMasterworked = Number.isFinite(currentEnergy) && currentEnergy >= 10;
     for(const [hash,label] of Object.entries(STAT_HASH_TO_LABEL)){
       const stat = stats?.[hash];
       const value = Number(stat?.value ?? 0);
       const numericValue = Number.isFinite(value) ? value : 0;
       const adjustment = Number(socketDetails?.adjustments?.[label] ?? 0);
-      let baseValue = Number.isFinite(adjustment)
+      const masterworkContribution = Number(socketDetails?.masterworkAdjustments?.[label] ?? 0);
+      const derivedBase = Number.isFinite(adjustment)
         ? Math.max(0, numericValue - adjustment)
-        : Math.max(0, numericValue);
-      const candidates = [];
+        : (Number.isFinite(numericValue) ? Math.max(0, numericValue) : 0);
       const investmentValue = Number(stat?.investmentValue);
-      if(Number.isFinite(investmentValue) && investmentValue >= 0){
-        candidates.push(investmentValue);
-      }
       const apiBase = Number(stat?.base);
+      const expectedMasterwork = 2;
+      const treatAsMasterworked = isMasterworked || (Number.isFinite(masterworkContribution) && Math.abs(masterworkContribution) > 0.001);
+      const masterworkToRemove = treatAsMasterworked
+        ? (Number.isFinite(masterworkContribution) && Math.abs(masterworkContribution) > 0.001
+            ? masterworkContribution
+            : expectedMasterwork)
+        : 0;
+      const candidates = [];
+      if(Number.isFinite(derivedBase)){
+        candidates.push(derivedBase);
+      }
+      if(Number.isFinite(investmentValue) && investmentValue >= 0){
+        let adjustedInvestment = investmentValue;
+        if(masterworkToRemove > 0){
+          adjustedInvestment -= masterworkToRemove;
+        }
+        if(Number.isFinite(adjustedInvestment)){
+          candidates.push(Math.max(0, adjustedInvestment));
+        }
+      }
       if(Number.isFinite(apiBase) && apiBase >= 0){
         candidates.push(apiBase);
       }
-      if(baseValue === numericValue && candidates.length){
-        const positiveCandidates = candidates.filter(v => v > 0);
-        const fallback = positiveCandidates.length
-          ? Math.min(...positiveCandidates)
-          : Math.min(...candidates);
-        if(Number.isFinite(fallback) && (fallback > 0 || baseValue <= 0)){
-          baseValue = fallback;
-        }
-      }else if(candidates.length){
-        const positiveCandidates = candidates.filter(v => v > 0);
-        if(positiveCandidates.length){
-          const bestCandidate = Math.min(...positiveCandidates);
-          if(baseValue <= 0 || baseValue > bestCandidate){
-            baseValue = bestCandidate;
-          }
-        }
+      const finiteCandidates = candidates.filter(v => Number.isFinite(v));
+      const positiveCandidates = finiteCandidates.filter(v => v > 0);
+      let baseValue = positiveCandidates.length
+        ? Math.min(...positiveCandidates)
+        : (finiteCandidates.length ? Math.min(...finiteCandidates) : Math.max(0, numericValue));
+      if(Number.isFinite(derivedBase) && derivedBase > 0 && derivedBase < baseValue - 0.01){
+        baseValue = derivedBase;
       }
       if(!Number.isFinite(baseValue)){
         baseValue = 0;
       }
-      const masterworkContribution = Number(socketDetails?.masterworkAdjustments?.[label] ?? 0);
-      if(isMasterworked){
-        const expectedBoost = 2;
-        const hasPlugDelta = Number.isFinite(masterworkContribution) && masterworkContribution >= expectedBoost;
-        const derivedDelta = Number.isFinite(numericValue) && Number.isFinite(baseValue)
-          ? numericValue - baseValue
-          : null;
-        const alreadyAccountsForMasterwork = Number.isFinite(derivedDelta) && derivedDelta >= expectedBoost - 0.01;
-        if(!hasPlugDelta && !alreadyAccountsForMasterwork){
-          baseValue = Math.max(0, numericValue - expectedBoost);
-        }
+      if(Number.isFinite(numericValue) && baseValue > numericValue){
+        baseValue = numericValue;
       }
+      baseValue = Math.round(baseValue);
       row[label] = baseValue;
       row['Total (Base)'] += baseValue;
     }
