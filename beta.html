@@ -678,11 +678,16 @@
       'Content-Type':'application/x-www-form-urlencoded',
       'Accept':'application/json'
     });
-    const resp = await fetch(BUNGIE_TOKEN_URL, {
-      method:'POST',
-      headers,
-      body
-    });
+    let resp;
+    try{
+      resp = await fetch(BUNGIE_TOKEN_URL, {
+        method:'POST',
+        headers,
+        body
+      });
+    }catch(err){
+      throw new Error(formatBungieNetworkError(err));
+    }
     const data = await resp.json().catch(()=>null);
     if(!resp.ok){
       const rawMsg = data?.error_description || data?.Message || `HTTP ${resp.status}`;
@@ -748,11 +753,16 @@
       'Content-Type':'application/x-www-form-urlencoded',
       'Accept':'application/json'
     });
-    const resp = await fetch(BUNGIE_TOKEN_URL, {
-      method:'POST',
-      headers,
-      body
-    });
+    let resp;
+    try{
+      resp = await fetch(BUNGIE_TOKEN_URL, {
+        method:'POST',
+        headers,
+        body
+      });
+    }catch(err){
+      throw new Error(formatBungieNetworkError(err));
+    }
     const data = await resp.json().catch(()=>null);
     if(!resp.ok || !data?.access_token){
       const rawMsg = data?.error_description || data?.Message || `HTTP ${resp.status}`;
@@ -780,6 +790,29 @@
       bungieTokens.membershipType = data.membership_type;
     }
     saveBungieTokens();
+  }
+
+  function formatBungieNetworkError(err){
+    const rawMessage = (err?.message || '').trim();
+    const normalized = rawMessage || 'Network request failed.';
+    const lowered = normalized.toLowerCase();
+    if(lowered.includes('failed to fetch') || lowered.includes('networkerror') || lowered.includes('load failed')){
+      let currentOrigin = '';
+      try{
+        currentOrigin = window.location?.origin || '';
+      }catch(_){
+        currentOrigin = '';
+      }
+      const isOpaque = !currentOrigin || currentOrigin === 'null';
+      if(isOpaque){
+        return `Network error contacting Bungie. Serve this page from ${BUNGIE_ALLOWED_ORIGIN} or another web server and add that origin to your Bungie application's Origin Header whitelist before trying again.`;
+      }
+      if(currentOrigin !== BUNGIE_ALLOWED_ORIGIN){
+        return `Network error contacting Bungie from ${currentOrigin}. Add this origin (without a trailing slash) to the Bungie application's Origin Header whitelist alongside ${BUNGIE_ALLOWED_ORIGIN}, publish the change, and reload before trying again.`;
+      }
+      return `Network error contacting Bungie from ${currentOrigin}. Confirm this origin appears in the Bungie application's Origin Header whitelist and try again in a few moments.`;
+    }
+    return normalized;
   }
 
   function formatBungieError(data, status){
@@ -819,11 +852,16 @@
     headers.set('X-API-Key', cfg.apiKey);
     headers.set('Authorization', `${bungieTokens?.tokenType || 'Bearer'} ${bungieTokens?.accessToken || ''}`);
     headers.set('Accept', 'application/json');
-    const resp = await fetch(`${BUNGIE_API_ROOT}${path}`, {
-      method: options.method || 'GET',
-      ...options,
-      headers
-    });
+    let resp;
+    try{
+      resp = await fetch(`${BUNGIE_API_ROOT}${path}`, {
+        method: options.method || 'GET',
+        ...options,
+        headers
+      });
+    }catch(err){
+      throw new Error(formatBungieNetworkError(err));
+    }
     if(resp.status === 401 && retry){
       await refreshAccessToken();
       return bungieApiRequest(path, options, false);
@@ -890,8 +928,10 @@
         plugHashes.add(hashKey(plugHash));
       }
     }
-    const allDefinitionHashes = new Set([...uniqueHashes, ...plugHashes]);
-    await Promise.all(Array.from(allDefinitionHashes).map(h => getInventoryItemDefinition(h)));
+    const allDefinitionHashes = Array.from(new Set([...uniqueHashes, ...plugHashes]));
+    for(const hash of allDefinitionHashes){
+      await getInventoryItemDefinition(hash);
+    }
     const rows = [];
     for(const item of itemsMap.values()){
       const def = await getInventoryItemDefinition(item.itemHash);
