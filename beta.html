@@ -84,6 +84,31 @@
       <div id="bungieStatus" class="auth-status muted" aria-live="polite"></div>
     </section>
 
+    <section class="panel panel-debug" id="debugPanel">
+      <div class="debug-header">
+        <h2>Debug Console</h2>
+        <div class="debug-actions">
+          <button id="debugToggle" type="button" class="btn btn-small">Show details</button>
+          <button id="debugCopy" type="button" class="btn btn-small">Copy snapshot</button>
+        </div>
+      </div>
+      <div id="debugContent" class="debug-content" hidden>
+        <div class="debug-section">
+          <div class="debug-section__title">Session snapshot</div>
+          <pre id="debugSnapshot" class="debug-pre">Collecting state…</pre>
+        </div>
+        <div class="debug-section">
+          <div class="debug-section__title">Recent events</div>
+          <div id="debugLog" class="debug-log" role="log" aria-live="polite"></div>
+        </div>
+        <div class="debug-section">
+          <label class="debug-section__title" for="debugNotes">Your observations (saved locally)</label>
+          <textarea id="debugNotes" class="debug-notes" placeholder="Add steps, timestamps, or anything else that might help troubleshoot issues."></textarea>
+          <div class="debug-note muted">Notes never leave this browser — copy them with the snapshot when you need to share details.</div>
+        </div>
+      </div>
+    </section>
+
     <section class="panel" style="margin-bottom:16px">
       <div class="filters">
         <div class="line"><span class="label">Class</span><div id="classSeg" class="seg"></div></div>
@@ -311,6 +336,247 @@
     }
   }
 
+  // ====== Debug Panel ======
+  const DEBUG_LOG_LIMIT = 200;
+  const DEBUG_NOTES_STORAGE = 'd2aa_debug_notes_v1';
+  const debugState = {
+    entries: [],
+    snapshotText: '',
+    snapshotData: null,
+    isOpen: false,
+    lastStatus: { message: '', type: 'info' },
+    lastUiStateSignature: '',
+    copyResetTimer: null,
+    lastRenderCount: null
+  };
+  const debugEls = {
+    panel: null,
+    toggle: null,
+    copy: null,
+    content: null,
+    log: null,
+    snapshot: null,
+    notes: null
+  };
+
+  function safeSerialize(value){
+    if(value == null) return '';
+    if(typeof value === 'string') return value;
+    try{
+      return JSON.stringify(value, null, 2);
+    }catch(err){
+      return String(value);
+    }
+  }
+
+  function escapeHtml(value){
+    return String(value ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function maskSecret(value){
+    if(!value) return null;
+    const str = String(value);
+    if(str.length <= 4) return '••••';
+    const visible = str.slice(-4);
+    return `${'•'.repeat(Math.max(0, str.length - 4))}${visible}`;
+  }
+
+  function loadDebugNotes(){
+    try{
+      return localStorage.getItem(DEBUG_NOTES_STORAGE) || '';
+    }catch(err){
+      console.warn('Failed to load debug notes', err);
+      return '';
+    }
+  }
+
+  function saveDebugNotes(notes){
+    try{
+      if(notes && notes.trim()){
+        localStorage.setItem(DEBUG_NOTES_STORAGE, notes);
+      }else{
+        localStorage.removeItem(DEBUG_NOTES_STORAGE);
+      }
+    }catch(err){
+      console.warn('Failed to persist debug notes', err);
+    }
+  }
+
+  function renderDebugLog(){
+    if(!debugEls.log){
+      return;
+    }
+    if(!debugState.entries.length){
+      debugEls.log.innerHTML = '<div class="debug-empty">No debug events yet.</div>';
+      return;
+    }
+    const items = [...debugState.entries].reverse().map((entry) => {
+      const detailsHtml = entry.details ? `<div class="debug-entry__details">${escapeHtml(entry.details)}</div>` : '';
+      return `<div class="debug-entry"><div class="debug-entry__time">${escapeHtml(entry.timestamp)}</div><div class="debug-entry__message">${escapeHtml(entry.message)}</div>${detailsHtml}</div>`;
+    }).join('');
+    debugEls.log.innerHTML = items;
+  }
+
+  function buildDebugSnapshotData(){
+    const now = Date.now();
+    const selected = bungieMemberships.find((mem) => String(mem.membershipType) === String(bungieConfig?.membershipType) && String(mem.membershipId) === String(bungieConfig?.membershipId)) || null;
+    const inventorySize = manifestCache?.inventoryItem instanceof Map ? manifestCache.inventoryItem.size : 0;
+    const bucketSize = manifestCache?.bucket instanceof Map ? manifestCache.bucket.size : 0;
+    const socketSize = manifestCache?.socketType instanceof Map ? manifestCache.socketType.size : 0;
+    return {
+      generatedAt: new Date(now).toISOString(),
+      status: debugState.lastStatus,
+      ui: {
+        bungieIsFetching,
+        bungieAutoLoadedOnce,
+        rowsLoaded: Array.isArray(STATE?.rows) ? STATE.rows.length : 0
+      },
+      config: {
+        clientId: bungieConfig?.clientId || null,
+        membershipId: bungieConfig?.membershipId || null,
+        membershipType: bungieConfig?.membershipType || null,
+        apiKeyMasked: maskSecret(bungieConfig?.apiKey)
+      },
+      tokens: {
+        hasAccessToken: Boolean(bungieTokens?.accessToken),
+        hasRefreshToken: Boolean(bungieTokens?.refreshToken),
+        accessTokenExpiresInMs: bungieTokens?.accessTokenExpires ? bungieTokens.accessTokenExpires - now : null,
+        refreshTokenExpiresInMs: bungieTokens?.refreshTokenExpires ? bungieTokens.refreshTokenExpires - now : null,
+        tokenType: bungieTokens?.tokenType || null
+      },
+      memberships: {
+        total: bungieMemberships.length,
+        selected: selected ? { membershipId: selected.membershipId, membershipType: selected.membershipType, label: selected.label } : null
+      },
+      manifestCache: {
+        inventoryItem: inventorySize,
+        bucket: bucketSize,
+        socketType: socketSize
+      }
+    };
+  }
+
+  function updateDebugSnapshot(){
+    const snapshot = buildDebugSnapshotData();
+    debugState.snapshotData = snapshot;
+    debugState.snapshotText = safeSerialize(snapshot);
+    if(debugEls.snapshot){
+      debugEls.snapshot.textContent = debugState.snapshotText;
+    }
+  }
+
+  function logDebug(message, details){
+    const entry = {
+      timestamp: new Date().toISOString(),
+      message: String(message || 'log'),
+      details: safeSerialize(details)
+    };
+    debugState.entries.push(entry);
+    if(debugState.entries.length > DEBUG_LOG_LIMIT){
+      debugState.entries.splice(0, debugState.entries.length - DEBUG_LOG_LIMIT);
+    }
+    renderDebugLog();
+  }
+
+  function buildDebugDump(){
+    const lines = [];
+    lines.push('D2 Armor Analyzer Debug Snapshot');
+    lines.push(`Generated: ${new Date().toISOString()}`);
+    lines.push('');
+    lines.push('--- Snapshot ---');
+    lines.push(debugState.snapshotText || safeSerialize(buildDebugSnapshotData()));
+    lines.push('');
+    lines.push('--- Recent events ---');
+    if(debugState.entries.length){
+      for(const entry of debugState.entries){
+        lines.push(`${entry.timestamp} :: ${entry.message}`);
+        if(entry.details){
+          lines.push(entry.details);
+        }
+        lines.push('');
+      }
+    }else{
+      lines.push('(no events logged)');
+    }
+    lines.push('--- Notes ---');
+    const notesValue = debugEls.notes?.value ?? loadDebugNotes();
+    lines.push(notesValue ? notesValue : '(none)');
+    return lines.join('\n');
+  }
+
+  function setDebugContentOpen(force){
+    if(!debugEls.content){
+      return;
+    }
+    const next = force != null ? Boolean(force) : !debugState.isOpen;
+    debugState.isOpen = next;
+    if(next){
+      debugEls.content.hidden = false;
+      debugEls.content.classList.add('is-open');
+      if(debugEls.toggle){
+        debugEls.toggle.textContent = 'Hide details';
+      }
+    }else{
+      debugEls.content.hidden = true;
+      debugEls.content.classList.remove('is-open');
+      if(debugEls.toggle){
+        debugEls.toggle.textContent = 'Show details';
+      }
+    }
+  }
+
+  function initDebugPanel(){
+    debugEls.panel = document.getElementById('debugPanel');
+    if(!debugEls.panel){
+      return;
+    }
+    debugEls.toggle = document.getElementById('debugToggle');
+    debugEls.copy = document.getElementById('debugCopy');
+    debugEls.content = document.getElementById('debugContent');
+    debugEls.log = document.getElementById('debugLog');
+    debugEls.snapshot = document.getElementById('debugSnapshot');
+    debugEls.notes = document.getElementById('debugNotes');
+    if(debugEls.toggle){
+      debugEls.toggle.addEventListener('click', () => {
+        setDebugContentOpen();
+        updateDebugSnapshot();
+      });
+    }
+    if(debugEls.copy){
+      debugEls.copy.addEventListener('click', async () => {
+        const dump = buildDebugDump();
+        const ok = await copyTextSafe(dump);
+        if(debugState.copyResetTimer){
+          clearTimeout(debugState.copyResetTimer);
+          debugState.copyResetTimer = null;
+        }
+        if(ok){
+          debugEls.copy.textContent = 'Copied!';
+        }else{
+          debugEls.copy.textContent = 'Copy failed';
+        }
+        debugState.copyResetTimer = setTimeout(() => {
+          debugEls.copy.textContent = 'Copy snapshot';
+        }, 2000);
+      });
+    }
+    if(debugEls.notes){
+      debugEls.notes.value = loadDebugNotes();
+      debugEls.notes.addEventListener('input', (event) => {
+        saveDebugNotes(event.target.value);
+      });
+    }
+    renderDebugLog();
+    updateDebugSnapshot();
+    setDebugContentOpen(false);
+    logDebug('Debug panel initialized');
+  }
+
   // ====== State & Storage ======
   let STATE = {
     rows:[],
@@ -455,6 +721,11 @@
     }catch(err){
       console.warn('Failed to persist Bungie config', err);
     }
+    logDebug('saveBungieConfig', {
+      membershipId: bungieConfig?.membershipId ?? null,
+      membershipType: bungieConfig?.membershipType ?? null
+    });
+    updateDebugSnapshot();
   }
 
   function ensureBungieConfigDefaults(){
@@ -479,15 +750,22 @@
   }
 
   function saveBungieTokens(){
+    const hasAccessToken = Boolean(bungieTokens?.accessToken);
+    const hasRefreshToken = Boolean(bungieTokens?.refreshToken);
     try{
-      if(!bungieTokens || (!bungieTokens.accessToken && !bungieTokens.refreshToken)){
+      if(!hasAccessToken && !hasRefreshToken){
         localStorage.removeItem(BUNGIE_TOKEN_STORAGE);
-        return;
+      }else{
+        localStorage.setItem(BUNGIE_TOKEN_STORAGE, JSON.stringify(bungieTokens));
       }
-      localStorage.setItem(BUNGIE_TOKEN_STORAGE, JSON.stringify(bungieTokens));
     }catch(err){
       console.warn('Failed to persist Bungie tokens', err);
     }
+    logDebug('saveBungieTokens', {
+      hasAccessToken,
+      hasRefreshToken
+    });
+    updateDebugSnapshot();
   }
 
   function clearBungieTokens(showMessage){
@@ -500,6 +778,8 @@
     if(showMessage){
       setBungieStatus('Signed out. You can still upload CSV files manually.', 'info');
     }
+    logDebug('clearBungieTokens', { showMessage: Boolean(showMessage) });
+    updateDebugSnapshot();
   }
 
   function updateBungieUI(){
@@ -513,6 +793,12 @@
     if(bungieMembershipWrap){
       bungieMembershipWrap.style.display = bungieMemberships.length ? 'block' : 'none';
     }
+    const uiSignature = JSON.stringify({ hasConfig, hasRefresh, refreshValid, signedIn, bungieIsFetching });
+    if(uiSignature !== debugState.lastUiStateSignature){
+      debugState.lastUiStateSignature = uiSignature;
+      logDebug('updateBungieUI', { hasConfig, hasRefresh, refreshValid, signedIn, bungieIsFetching });
+    }
+    updateDebugSnapshot();
   }
 
   function renderMembershipOptions(){
@@ -543,6 +829,10 @@
       bungieConfig.membershipId = id;
       saveBungieConfig();
     }
+    logDebug('renderMembershipOptions', {
+      totalMemberships: bungieMemberships.length,
+      selectedMembership: bungieMembershipSelect?.value || null
+    });
     updateBungieUI();
   }
 
@@ -568,10 +858,17 @@
   }
 
   function setBungieStatus(message, type='info'){
+    const normalizedMessage = message || '';
+    const changed = debugState.lastStatus.message !== normalizedMessage || debugState.lastStatus.type !== type;
+    debugState.lastStatus = { message: normalizedMessage, type };
+    if(changed){
+      logDebug('status', { message: normalizedMessage, type });
+    }
+    updateDebugSnapshot();
     if(!bungieStatusEl) return;
-    bungieStatusEl.textContent = message || '';
+    bungieStatusEl.textContent = normalizedMessage;
     bungieStatusEl.classList.remove('status-ok','status-error','status-loading');
-    const isInfo = !message || type === 'info';
+    const isInfo = !normalizedMessage || type === 'info';
     bungieStatusEl.classList.toggle('muted', isInfo);
     if(type === 'ok') bungieStatusEl.classList.add('status-ok');
     else if(type === 'error') bungieStatusEl.classList.add('status-error');
@@ -615,6 +912,10 @@
   async function startBungieAuth(){
     try{
       ensureBungieConfigDefaults();
+      logDebug('startBungieAuth', {
+        hasClientId: Boolean(bungieConfig?.clientId),
+        hasApiKey: Boolean(bungieConfig?.apiKey)
+      });
       if(!bungieConfig?.clientId || !bungieConfig?.apiKey){
         setBungieStatus('Bungie credentials are missing. Refresh and try again.', 'error');
         return;
@@ -638,9 +939,16 @@
         url.searchParams.set('redirect_uri', redirectUri);
       }
       setBungieStatus('Redirecting to Bungie for sign-in…', 'loading');
+      logDebug('bungieAuthRedirect', {
+        redirectUri,
+        returnUrl,
+        state,
+        hasVerifier: Boolean(verifier)
+      });
       window.location.href = url.toString();
     }catch(err){
       console.error(err);
+      logDebug('startBungieAuth error', { error: err?.message || err });
       setBungieStatus('Unable to start Bungie sign-in: ' + (err?.message || err), 'error');
     }
   }
@@ -666,12 +974,17 @@
   async function handleOAuthRedirect(){
     const params = new URLSearchParams(window.location.search);
     const error = params.get('error');
+    logDebug('handleOAuthRedirect', {
+      hasCode: params.has('code'),
+      hasError: Boolean(error)
+    });
     if(error){
       cleanOAuthParams();
       setBungieStatus(`Authorization failed: ${error}`, 'error');
       sessionStorage.removeItem(BUNGIE_VERIFIER_STORAGE);
       sessionStorage.removeItem(BUNGIE_STATE_STORAGE);
       sessionStorage.removeItem(BUNGIE_RETURN_STORAGE);
+      logDebug('handleOAuthRedirect error', { error });
       return;
     }
     const code = params.get('code');
@@ -685,10 +998,12 @@
       sessionStorage.removeItem(BUNGIE_VERIFIER_STORAGE);
       sessionStorage.removeItem(BUNGIE_STATE_STORAGE);
       sessionStorage.removeItem(BUNGIE_RETURN_STORAGE);
+      logDebug('handleOAuthRedirect stateMismatch', { storedState, state, hasVerifier: Boolean(verifier) });
       return;
     }
     try{
       setBungieStatus('Completing Bungie authorization…', 'loading');
+      logDebug('exchangeAuthCode start', { hasCode: Boolean(code), hasVerifier: Boolean(verifier) });
       const redirectUri = sessionStorage.getItem(BUNGIE_RETURN_STORAGE) || BUNGIE_REDIRECT_URI;
       const loaded = await exchangeAuthCode(code, verifier, redirectUri);
       if(!loaded){
@@ -696,9 +1011,11 @@
         if(!hasError){
           setBungieStatus('Authorization complete. Use Refresh armor to pull your gear.', 'ok');
         }
+        logDebug('exchangeAuthCode completed', { autoLoaded: Boolean(loaded) });
       }
     }catch(err){
       console.error(err);
+      logDebug('handleOAuthRedirect exception', { error: err?.message || err });
       setBungieStatus('Failed to complete authorization: ' + (err?.message || err), 'error');
     }finally{
       cleanOAuthParams();
@@ -722,6 +1039,11 @@
       'Content-Type':'application/x-www-form-urlencoded',
       'Accept':'application/json'
     });
+    logDebug('exchangeAuthCode fetch', {
+      hasCode: Boolean(code),
+      hasVerifier: Boolean(verifier),
+      redirectUri
+    });
     let resp;
     try{
       resp = await fetch(BUNGIE_TOKEN_URL, {
@@ -730,6 +1052,7 @@
         body
       });
     }catch(err){
+      logDebug('exchangeAuthCode networkError', { error: err?.message || err });
       throw new Error(formatBungieNetworkError(err));
     }
     const data = await resp.json().catch(()=>null);
@@ -738,9 +1061,11 @@
       const msg = rawMsg === 'OriginHeaderDoesNotMatchKey'
         ? 'OriginHeaderDoesNotMatchKey: Add https://erebusares.github.io to the Origin Header whitelist for your Bungie application and redeploy.'
         : rawMsg;
+      logDebug('exchangeAuthCode failed', { status: resp.status, message: msg });
       throw new Error(msg);
     }
     if(!data?.access_token){
+      logDebug('exchangeAuthCode missingAccessToken', { hasAccessToken: Boolean(data?.access_token) });
       throw new Error('Missing access token in Bungie response.');
     }
     bungieTokens = {
@@ -754,6 +1079,12 @@
     };
     saveBungieTokens();
     updateBungieUI();
+    logDebug('exchangeAuthCode success', {
+      membershipId: bungieTokens.membershipId,
+      membershipType: bungieTokens.membershipType,
+      accessExpiresIn: Number(data.expires_in || 0),
+      refreshExpiresIn: Number(data.refresh_expires_in || 0)
+    });
     const membership = await fetchMemberships();
     if(membership){
       const loaded = await loadArmorFromBungie({ reason: 'auto' });
@@ -771,18 +1102,28 @@
 
     // If we have a usable access token, return it even if no refresh token exists yet.
     if(hasAccess && (!accessExpires || now < (accessExpires - 60000))){
+      logDebug('ensureAccessToken cached', {
+        accessTokenExpiresInMs: accessExpires ? accessExpires - now : null
+      });
       return bungieTokens.accessToken;
     }
 
     if(!hasRefresh){
+      logDebug('ensureAccessToken missingRefresh', {});
       throw new Error('No Bungie session available. Sign in first.');
     }
 
     if(refreshExpires && now >= (refreshExpires - 60000)){
+      logDebug('ensureAccessToken refreshExpired', {
+        refreshExpiresInMs: refreshExpires - now
+      });
       clearBungieTokens(false);
       throw new Error('Bungie session expired. Please sign in again.');
     }
 
+    logDebug('ensureAccessToken refreshing', {
+      refreshExpiresInMs: refreshExpires ? refreshExpires - now : null
+    });
     await refreshAccessToken();
     return bungieTokens.accessToken;
   }
@@ -797,6 +1138,9 @@
       'Content-Type':'application/x-www-form-urlencoded',
       'Accept':'application/json'
     });
+    logDebug('refreshAccessToken fetch', {
+      hasRefreshToken: Boolean(bungieTokens?.refreshToken)
+    });
     let resp;
     try{
       resp = await fetch(BUNGIE_TOKEN_URL, {
@@ -805,6 +1149,7 @@
         body
       });
     }catch(err){
+      logDebug('refreshAccessToken networkError', { error: err?.message || err });
       throw new Error(formatBungieNetworkError(err));
     }
     const data = await resp.json().catch(()=>null);
@@ -814,6 +1159,7 @@
         ? 'OriginHeaderDoesNotMatchKey: Add https://erebusares.github.io to the Origin Header whitelist for your Bungie application and redeploy.'
         : rawMsg;
       clearBungieTokens(false);
+      logDebug('refreshAccessToken failed', { status: resp.status, message: msg });
       throw new Error(msg);
     }
     bungieTokens.accessToken = data.access_token;
@@ -834,6 +1180,10 @@
       bungieTokens.membershipType = data.membership_type;
     }
     saveBungieTokens();
+    logDebug('refreshAccessToken success', {
+      accessExpiresIn: Number(data.expires_in || 0),
+      refreshExpiresIn: Number(data.refresh_expires_in || 0)
+    });
   }
 
   function formatBungieNetworkError(err){
@@ -896,6 +1246,12 @@
     headers.set('X-API-Key', cfg.apiKey);
     headers.set('Authorization', `${bungieTokens?.tokenType || 'Bearer'} ${bungieTokens?.accessToken || ''}`);
     headers.set('Accept', 'application/json');
+    const startedAt = Date.now();
+    logDebug('bungieApiRequest', {
+      path,
+      method: options.method || 'GET',
+      retry
+    });
     let resp;
     try{
       resp = await fetch(`${BUNGIE_API_ROOT}${path}`, {
@@ -904,19 +1260,39 @@
         headers
       });
     }catch(err){
+      logDebug('bungieApiRequest networkError', { path, error: err?.message || err });
       throw new Error(formatBungieNetworkError(err));
     }
     if(resp.status === 401 && retry){
+      logDebug('bungieApiRequest unauthorized', { path });
       await refreshAccessToken();
       return bungieApiRequest(path, options, false);
     }
     const data = await resp.json().catch(()=>null);
     if(!resp.ok){
-      throw new Error(formatBungieError(data, resp.status));
+      const message = formatBungieError(data, resp.status);
+      logDebug('bungieApiRequest failed', {
+        path,
+        status: resp.status,
+        message
+      });
+      throw new Error(message);
     }
     if(data?.ErrorCode && data.ErrorCode !== 1){
-      throw new Error(formatBungieError(data, resp.status));
+      const message = formatBungieError(data, resp.status);
+      logDebug('bungieApiRequest errorCode', {
+        path,
+        status: resp.status,
+        errorCode: data.ErrorCode,
+        message
+      });
+      throw new Error(message);
     }
+    logDebug('bungieApiRequest success', {
+      path,
+      status: resp.status,
+      elapsedMs: Date.now() - startedAt
+    });
     return data?.Response;
   }
 
@@ -950,6 +1326,10 @@
     if(!Array.isArray(hashes) || hashes.length === 0){
       return;
     }
+    logDebug('prefetchInventoryItemDefinitions start', {
+      requested: hashes.length,
+      concurrency
+    });
     const queue = [];
     const seen = new Set();
     for(const rawHash of hashes){
@@ -963,6 +1343,7 @@
       }
       queue.push(key);
     }
+    const totalQueued = queue.length;
     while(queue.length){
       const batch = queue.splice(0, Math.max(1, concurrency));
       await Promise.all(batch.map(async hash => {
@@ -970,14 +1351,24 @@
           await getInventoryItemDefinition(hash);
         }catch(err){
           console.error('Failed to preload manifest definition', hash, err);
+          logDebug('prefetchInventoryItemDefinitions error', { hash, error: err?.message || err });
           throw err;
         }
       }));
     }
+    logDebug('prefetchInventoryItemDefinitions complete', {
+      requested: hashes.length,
+      queued: totalQueued
+    });
   }
 
   async function transformProfileToRows(profile){
     const itemsMap = new Map();
+    logDebug('transformProfileToRows start', {
+      hasProfileInventory: Array.isArray(profile?.profileInventory?.data?.items),
+      hasCharacterInventories: Boolean(profile?.characterInventories?.data),
+      hasCharacterEquipment: Boolean(profile?.characterEquipment?.data)
+    });
     const addItems = (items)=>{
       if(!Array.isArray(items)) return;
       for(const item of items){
@@ -995,6 +1386,7 @@
     for(const equip of Object.values(charEquipment)){
       addItems(equip?.items);
     }
+    logDebug('transformProfileToRows itemsCollected', { totalItems: itemsMap.size });
     if(itemsMap.size === 0) return [];
     const instances = profile?.itemComponents?.instances?.data || {};
     const statsByItem = profile?.itemComponents?.stats?.data || {};
@@ -1024,6 +1416,7 @@
         relevantItems.push(item);
       }
     }
+    logDebug('transformProfileToRows relevantItems', { count: relevantItems.length });
     if(relevantItems.length === 0) return [];
     const uniqueItemKeys = new Set();
     const uniqueItemHashes = [];
@@ -1046,6 +1439,10 @@
         plugHashList.push(plugHash);
       }
     }
+    logDebug('transformProfileToRows manifestPrefetch', {
+      itemDefinitions: uniqueItemHashes.length,
+      plugDefinitions: plugHashList.length
+    });
     await prefetchInventoryItemDefinitions(uniqueItemHashes.concat(plugHashList));
     const rows = [];
     for(const item of relevantItems){
@@ -1060,6 +1457,7 @@
       );
       if(row) rows.push(row);
     }
+    logDebug('transformProfileToRows complete', { rows: rows.length });
     return rows;
   }
 
@@ -1379,6 +1777,7 @@
 
   async function fetchMemberships(){
     try{
+      logDebug('fetchMemberships start', {});
       const resp = await bungieApiRequest('/User/GetMembershipsForCurrentUser/');
       const memberships = Array.isArray(resp?.destinyMemberships) ? resp.destinyMemberships : [];
       bungieMemberships = memberships.map(m => ({
@@ -1404,23 +1803,33 @@
         }
       }
       renderMembershipOptions();
+      logDebug('fetchMemberships success', {
+        membershipCount: bungieMemberships.length,
+        selected: selected?.label || null
+      });
       return selected;
     }catch(err){
       console.error(err);
+      logDebug('fetchMemberships error', { error: err?.message || err });
       setBungieStatus('Failed to load memberships: ' + (err?.message || err), 'error');
     }
   }
 
   async function loadArmorFromBungie(options={}){
-    if(bungieIsFetching) return false;
     const reason = options?.reason || 'manual';
+    if(bungieIsFetching){
+      logDebug('loadArmorFromBungie skipped', { reason, bungieIsFetching: true });
+      return false;
+    }
     let success = false;
     try{
       bungieIsFetching = true;
       updateBungieUI();
+      logDebug('loadArmorFromBungie start', { reason });
       const membership = getSelectedMembership();
       if(!membership){
         setBungieStatus('Select a Destiny profile before loading armor.', 'error');
+        logDebug('loadArmorFromBungie missingMembership', {});
         return false;
       }
       const startMessage = reason === 'manual' ? 'Refreshing armor from Bungie…' : 'Loading armor from Bungie…';
@@ -1429,6 +1838,7 @@
       const rows = await transformProfileToRows(profile);
       if(!rows.length){
         setBungieStatus('No armor items were found for this profile.', 'error');
+        logDebug('loadArmorFromBungie empty', { reason });
         return false;
       }
       STATE.rows = rows;
@@ -1442,18 +1852,24 @@
       if(reason === 'auto'){
         bungieAutoLoadedOnce = true;
       }
+      logDebug('loadArmorFromBungie success', { reason, itemCount: rows.length });
       success = true;
     }catch(err){
       console.error(err);
+      logDebug('loadArmorFromBungie error', { reason, error: err?.message || err });
       setBungieStatus('Failed to load armor: ' + (err?.message || err), 'error');
     }finally{
       bungieIsFetching = false;
       updateBungieUI();
+      logDebug('loadArmorFromBungie finished', { reason, success });
     }
     return success;
   }
 
   async function initBungieIntegration(){
+    logDebug('initBungieIntegration start', {
+      hasRefreshToken: Boolean(bungieTokens?.refreshToken)
+    });
     updateBungieUI();
     await handleOAuthRedirect();
     if(bungieTokens?.refreshToken){
@@ -1461,6 +1877,7 @@
       if(!refreshValid){
         clearBungieTokens(false);
         setBungieStatus('Your Bungie session expired. Please sign in again.', 'error');
+        logDebug('initBungieIntegration expiredRefresh', {});
         return;
       }
       try{
@@ -1476,6 +1893,7 @@
           if(!loaded && !bungieStatusEl?.textContent){
             setBungieStatus(`Signed in as ${membership.label}. Use Refresh armor to try again.`, 'info');
           }
+          logDebug('initBungieIntegration autoLoadAttempt', { loaded: Boolean(loaded) });
         }else if(membership && !bungieStatusEl?.textContent){
           setBungieStatus(`Signed in as ${membership.label}.`, 'ok');
         }
@@ -1483,9 +1901,11 @@
         console.error(err);
         clearBungieTokens(false);
         setBungieStatus('Your Bungie session expired. Please sign in again.', 'error');
+        logDebug('initBungieIntegration refreshError', { error: err?.message || err });
       }
     }else if(!bungieStatusEl?.textContent){
       setBungieStatus('Sign in with Bungie to sync your armor automatically.', 'info');
+      logDebug('initBungieIntegration awaitingSignIn', {});
     }
   }
   // ====== Grouping & Sorting ======
@@ -1602,11 +2022,16 @@ out.sort((a, b) => {
 
   // ====== Render ======
   function render(){
-  updateShadowColor(); 
+    updateShadowColor();
     const tolEl=document.getElementById('tol'); if(tolEl) tolEl.value = STATE.tol;
     initFilters();
 
     const grouped = getFiltered();
+    if(debugState.lastRenderCount !== grouped.length){
+      debugState.lastRenderCount = grouped.length;
+      logDebug('render rows', { visibleRows: grouped.length });
+    }
+    updateDebugSnapshot();
 
     // Build group->ids for copy-all
     const groupToIds = new Map();
@@ -1714,6 +2139,8 @@ out.sort((a, b) => {
   }
 
   // ====== Events ======
+  initDebugPanel();
+
   bungieStatusEl = document.getElementById('bungieStatus');
   bungieMembershipSelect = document.getElementById('membershipSelect');
   bungieMembershipWrap = document.getElementById('membershipSelectWrap');
