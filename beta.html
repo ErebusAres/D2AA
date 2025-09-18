@@ -199,8 +199,34 @@
     1744546145, // PlugCategoryHashes.Intrinsics
     748854354   // PlugCategoryHashes.ArmorStats
   ]);
-  const ARMOR_MOD_SOCKET_CATEGORY_HASHES = new Set([
-    590099826 // DestinySocketCategoryDefinition "ARMOR MODS"
+  const ARMOR_MOD_PLUG_CATEGORY_HASHES = new Set([
+    1202876185, // PlugCategoryHashes.EnhancementsActivity
+    640682011,  // PlugCategoryHashes.EnhancementsArms
+    383756333,  // PlugCategoryHashes.EnhancementsChest
+    1955304674, // PlugCategoryHashes.EnhancementsClass
+    744326128,  // PlugCategoryHashes.EnhancementsHead
+    1175552225, // PlugCategoryHashes.EnhancementsLegs
+    3773173029, // PlugCategoryHashes.EnhancementsArtifice
+    1934732343, // PlugCategoryHashes.EnhancementsArtificeExotic
+    3422420680, // PlugCategoryHashes.EnhancementsV2Arms
+    1526202480, // PlugCategoryHashes.EnhancementsV2Chest
+    912441879,  // PlugCategoryHashes.EnhancementsV2ClassItem
+    2487827355, // PlugCategoryHashes.EnhancementsV2General
+    2912171003, // PlugCategoryHashes.EnhancementsV2Head
+    2111701510, // PlugCategoryHashes.EnhancementsV2Legs
+    3347429529  // PlugCategoryHashes.EnhancementsUniversal
+  ]);
+  const ARMOR_MOD_ITEM_CATEGORY_HASHES = new Set([
+    4104513227, // ItemCategoryHashes.ArmorMods
+    3723676689, // ItemCategoryHashes.ArmorModsChest
+    3196106184, // ItemCategoryHashes.ArmorModsClass
+    1037516129, // ItemCategoryHashes.ArmorModsClassHunter
+    1650311619, // ItemCategoryHashes.ArmorModsClassTitan
+    2955376534, // ItemCategoryHashes.ArmorModsClassWarlock
+    3872696960, // ItemCategoryHashes.ArmorModsGauntlets
+    1362265421, // ItemCategoryHashes.ArmorModsHelmet
+    3607371986, // ItemCategoryHashes.ArmorModsLegs
+    4062965806  // ItemCategoryHashes.ArmorModsGameplay
   ]);
   const MEMBERSHIP_TYPE_NAMES = {
     1: "Xbox",
@@ -1033,25 +1059,39 @@
     if(!plugStats || plugStats.size === 0) return false;
     if(!def) return true;
     const plugCategoryHash = Number(def?.plug?.plugCategoryHash);
-    if(Number.isFinite(plugCategoryHash) && ARMOR_INTRINSIC_PLUG_CATEGORY_HASHES.has(plugCategoryHash)){
-      return false;
+    if(Number.isFinite(plugCategoryHash)){
+      if(ARMOR_INTRINSIC_PLUG_CATEGORY_HASHES.has(plugCategoryHash)){
+        return false;
+      }
+      if(ARMOR_MOD_PLUG_CATEGORY_HASHES.has(plugCategoryHash)){
+        return true;
+      }
     }
     const plugCat = String(def?.plug?.plugCategoryIdentifier || '').toLowerCase();
     if(plugCat){
       if(plugCat === 'intrinsics' || plugCat.startsWith('intrinsics.')) return false;
       if(plugCat.startsWith('frames')) return false;
-      if(plugCat.includes('armorstat')) return false;
-      if(plugCat.includes('armor_stats')) return false;
+      if(plugCat.includes('ornament') || plugCat.includes('cosmetic') || plugCat.includes('spawnfx')) return false;
       if(plugCat.includes('tracker')) return false;
-      if(plugCat.includes('ornament')) return false;
-      if(plugCat.includes('cosmetic')) return false;
-      if(plugCat.includes('spawnfx')) return false;
+      if(plugCat.includes('armor_mod')) return true;
+      if(plugCat.includes('enhancements')) return true;
+    }
+    if(isMasterworkStatPlug(def)){
+      return true;
+    }
+    const itemCategories = Array.isArray(def?.itemCategoryHashes) ? def.itemCategoryHashes : [];
+    for(const catHash of itemCategories){
+      if(ARMOR_MOD_ITEM_CATEGORY_HASHES.has(Number(catHash))){
+        return true;
+      }
     }
     const typeName = String(def?.itemTypeDisplayName || '').toLowerCase();
     if(typeName.includes('ornament') || typeName.includes('shader') || typeName.includes('projection')) return false;
+    if(typeName.includes('mod')) return true;
     const displayName = String(def?.displayProperties?.name || '').toLowerCase();
     if(displayName.includes('ornament') || displayName.includes('shader')) return false;
-    return true;
+    if(displayName.includes('mod')) return true;
+    return false;
   }
 
   function isMasterworkStatPlug(def){
@@ -1092,37 +1132,12 @@
     return values;
   }
 
-  function getArmorModSocketIndexes(def){
-    const indexes = new Set();
-    const categories = def?.sockets?.socketCategories;
-    if(!Array.isArray(categories)){
-      return indexes;
-    }
-    for(const cat of categories){
-      if(!cat) continue;
-      const hash = Number(cat.socketCategoryHash);
-      if(!Number.isFinite(hash) || !ARMOR_MOD_SOCKET_CATEGORY_HASHES.has(hash)){
-        continue;
-      }
-      const socketIndexes = Array.isArray(cat.socketIndexes) ? cat.socketIndexes : [];
-      for(const idx of socketIndexes){
-        if(Number.isInteger(idx)){
-          indexes.add(idx);
-        }
-      }
-    }
-    return indexes;
-  }
-
-  function getStatAdjustmentsFromSockets(sockets, subtractSocketIndexes){
+  function getStatAdjustmentsFromSockets(sockets){
     const adjustments = {};
     const masterworkAdjustments = {};
     if(!Array.isArray(sockets)) return { adjustments, masterworkAdjustments };
-    const useIndexFilter = subtractSocketIndexes instanceof Set && subtractSocketIndexes.size > 0;
-    for(let idx = 0; idx < sockets.length; idx++){
-      const socket = sockets[idx];
+    for(const socket of sockets){
       if(!socket || socket.isEnabled === false || socket?.plugged?.enabled === false) continue;
-      if(useIndexFilter && !subtractSocketIndexes.has(idx)) continue;
       const plugHash = getSocketPlugHash(socket);
       if(plugHash == null) continue;
       const plugDef = manifestCache.inventoryItem.get(hashKey(plugHash));
@@ -1150,7 +1165,16 @@
     const typeName = isClassItem
       ? (classItemByClass[className] || def.itemTypeDisplayName || 'Class Item')
       : (def.itemTypeDisplayName || ARMOR_BUCKET_HASH_TO_TYPE[bucketKey] || 'Armor');
-    const tierValue = instance?.energy?.energyLevel ?? instance?.energy?.energyCapacity ?? 0;
+    let tierValue = 0;
+    const energy = instance?.energy;
+    if(energy){
+      const capacity = Number(energy?.energyCapacity);
+      const level = Number(energy?.energyLevel);
+      const source = Number.isFinite(capacity) ? capacity : level;
+      if(Number.isFinite(source)){
+        tierValue = Math.ceil(Math.max(0, source) / 2);
+      }
+    }
     const row = {
       Id: normId(item.itemInstanceId || item.itemHash),
       Name: def?.displayProperties?.name || 'Unknown Item',
@@ -1162,8 +1186,7 @@
       Tier: Number.isFinite(tierValue) ? tierValue : 0,
       'Total (Base)': 0
     };
-    const subtractSocketIndexes = getArmorModSocketIndexes(def);
-    const socketDetails = getStatAdjustmentsFromSockets(sockets, subtractSocketIndexes);
+    const socketDetails = getStatAdjustmentsFromSockets(sockets);
     const isMasterworked = Number(instance?.energy?.energyLevel) === 10;
     for(const [hash,label] of Object.entries(STAT_HASH_TO_LABEL)){
       const stat = stats?.[hash];
