@@ -195,6 +195,10 @@
     1943323491: "Class (Base)",
     2996146975: "Weapons (Base)"
   };
+  const ARMOR_INTRINSIC_PLUG_CATEGORY_HASHES = new Set([
+    1744546145, // PlugCategoryHashes.Intrinsics
+    748854354   // PlugCategoryHashes.ArmorStats
+  ]);
   const MEMBERSHIP_TYPE_NAMES = {
     1: "Xbox",
     2: "PlayStation",
@@ -1024,10 +1028,16 @@
   function shouldSubtractPlugFromBaseStats(def, plugStats){
     if(!plugStats || plugStats.size === 0) return false;
     if(!def) return true;
+    const plugCategoryHash = Number(def?.plug?.plugCategoryHash);
+    if(Number.isFinite(plugCategoryHash) && ARMOR_INTRINSIC_PLUG_CATEGORY_HASHES.has(plugCategoryHash)){
+      return false;
+    }
     const plugCat = String(def?.plug?.plugCategoryIdentifier || '').toLowerCase();
     if(plugCat){
       if(plugCat === 'intrinsics' || plugCat.startsWith('intrinsics.')) return false;
       if(plugCat.startsWith('frames')) return false;
+      if(plugCat.includes('armorstat')) return false;
+      if(plugCat.includes('armor_stats')) return false;
       if(plugCat.includes('tracker')) return false;
       if(plugCat.includes('ornament')) return false;
       if(plugCat.includes('cosmetic')) return false;
