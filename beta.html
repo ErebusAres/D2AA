@@ -1036,25 +1036,56 @@
     return false;
   }
 
-  function getStatAdjustmentsFromSockets(sockets){
-    const adjustments = {};
-    if(!Array.isArray(sockets)) return adjustments;
-    for(const socket of sockets){
-      if(!socket || socket.isEnabled === false || socket?.plugged?.enabled === false) continue;
-      const plugHash = getSocketPlugHash(socket);
-      if(plugHash == null) continue;
-      const plugDef = manifestCache.inventoryItem.get(hashKey(plugHash));
-      if(!plugDef || !isStatModPlug(plugDef)) continue;
+  function getPlugStatValues(socket, plugDef){
+    const values = new Map();
+    const plugStats = socket?.plugged?.stats;
+    if(plugStats && typeof plugStats === 'object'){
+      for(const [hash, entry] of Object.entries(plugStats)){
+        const statKey = hashKey(hash);
+        const label = STAT_HASH_TO_LABEL[statKey];
+        if(!label) continue;
+        const raw = typeof entry === 'object' && entry !== null ? entry.value : entry;
+        const numeric = Number(raw ?? 0);
+        if(!Number.isFinite(numeric) || numeric === 0) continue;
+        values.set(label, (values.get(label) || 0) + numeric);
+      }
+    }
+    if(values.size === 0 && plugDef){
       const invStats = Array.isArray(plugDef?.investmentStats) ? plugDef.investmentStats : [];
       for(const stat of invStats){
         const statKey = hashKey(stat?.statTypeHash);
         const label = STAT_HASH_TO_LABEL[statKey];
         const value = Number(stat?.value ?? 0);
         if(!label || !Number.isFinite(value) || value === 0) continue;
-        adjustments[label] = (adjustments[label] || 0) + value;
+        values.set(label, (values.get(label) || 0) + value);
       }
     }
-    return adjustments;
+    return values;
+  }
+
+  function getStatAdjustmentsFromSockets(sockets){
+    const adjustments = {};
+    const masterworkAdjustments = {};
+    if(!Array.isArray(sockets)) return { adjustments, masterworkAdjustments };
+    for(const socket of sockets){
+      if(!socket || socket.isEnabled === false || socket?.plugged?.enabled === false) continue;
+      const plugHash = getSocketPlugHash(socket);
+      if(plugHash == null) continue;
+      const plugDef = manifestCache.inventoryItem.get(hashKey(plugHash));
+      const plugStats = getPlugStatValues(socket, plugDef);
+      if(plugStats.size === 0) continue;
+      const qualifies = plugDef ? isStatModPlug(plugDef) : plugStats.size > 0;
+      if(!qualifies) continue;
+      const plugCat = String(plugDef?.plug?.plugCategoryIdentifier || '').toLowerCase();
+      const isMasterwork = plugCat.includes('masterworks.stat');
+      for(const [label, value] of plugStats.entries()){
+        adjustments[label] = (adjustments[label] || 0) + value;
+        if(isMasterwork){
+          masterworkAdjustments[label] = (masterworkAdjustments[label] || 0) + value;
+        }
+      }
+    }
+    return { adjustments, masterworkAdjustments };
   }
 
   function buildRowFromDefinition(item, def, instance, stats, sockets){
@@ -1080,15 +1111,16 @@
       Tier: Number.isFinite(tierValue) ? tierValue : 0,
       'Total (Base)': 0
     };
-    let socketAdjustments = null;
+    let socketDetails = null;
+    const isMasterworked = Number(instance?.energy?.energyCapacity) === 10;
     for(const [hash,label] of Object.entries(STAT_HASH_TO_LABEL)){
       const stat = stats?.[hash];
       const value = Number(stat?.value ?? 0);
       const numericValue = Number.isFinite(value) ? value : 0;
-      if(socketAdjustments === null){
-        socketAdjustments = getStatAdjustmentsFromSockets(sockets);
+      if(socketDetails === null){
+        socketDetails = getStatAdjustmentsFromSockets(sockets);
       }
-      const adjustment = Number(socketAdjustments?.[label] ?? 0);
+      const adjustment = Number(socketDetails?.adjustments?.[label] ?? 0);
       const baseFromSockets = Number.isFinite(adjustment)
         ? Math.max(0, numericValue - adjustment)
         : numericValue;
@@ -1100,6 +1132,10 @@
           : baseFromStat;
       }else{
         baseValue = baseFromSockets;
+      }
+      const masterworkContribution = Number(socketDetails?.masterworkAdjustments?.[label] ?? 0);
+      if(isMasterworked && masterworkContribution < 2){
+        baseValue = Math.max(0, baseValue - 2);
       }
       row[label] = baseValue;
       row['Total (Base)'] += baseValue;
