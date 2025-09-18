@@ -984,8 +984,8 @@
       const sockets = socketsByItem?.[item.itemInstanceId]?.sockets;
       if(!Array.isArray(sockets)) continue;
       for(const socket of sockets){
-        if(!socket || socket.isEnabled === false) continue;
-        const plugHash = socket.plugHash ?? socket.plugItemHash;
+        if(!socket || socket.isEnabled === false || socket?.plugged?.enabled === false) continue;
+        const plugHash = getSocketPlugHash(socket);
         const plugKey = plugHash != null ? hashKey(plugHash) : null;
         if(!plugKey || plugKeys.has(plugKey)) continue;
         plugKeys.add(plugKey);
@@ -1007,6 +1007,15 @@
       if(row) rows.push(row);
     }
     return rows;
+  }
+
+  function getSocketPlugHash(socket){
+    if(!socket) return null;
+    const plugHash = socket?.plugged?.plugItemHash
+      ?? socket?.plugged?.plugHash
+      ?? socket?.plugHash
+      ?? socket?.plugItemHash;
+    return plugHash != null ? plugHash : null;
   }
 
   function isStatModPlug(def){
@@ -1031,8 +1040,8 @@
     const adjustments = {};
     if(!Array.isArray(sockets)) return adjustments;
     for(const socket of sockets){
-      if(!socket || socket.isEnabled === false) continue;
-      const plugHash = socket.plugHash ?? socket.plugItemHash;
+      if(!socket || socket.isEnabled === false || socket?.plugged?.enabled === false) continue;
+      const plugHash = getSocketPlugHash(socket);
       if(plugHash == null) continue;
       const plugDef = manifestCache.inventoryItem.get(hashKey(plugHash));
       if(!plugDef || !isStatModPlug(plugDef)) continue;
@@ -1074,23 +1083,26 @@
     let socketAdjustments = null;
     for(const [hash,label] of Object.entries(STAT_HASH_TO_LABEL)){
       const stat = stats?.[hash];
-      const baseValue = Number(stat?.base);
-      if(Number.isFinite(baseValue)){
-        row[label] = baseValue;
-        row['Total (Base)'] += baseValue;
-        continue;
-      }
       const value = Number(stat?.value ?? 0);
       const numericValue = Number.isFinite(value) ? value : 0;
       if(socketAdjustments === null){
         socketAdjustments = getStatAdjustmentsFromSockets(sockets);
       }
       const adjustment = Number(socketAdjustments?.[label] ?? 0);
-      const adjustedValue = Number.isFinite(adjustment)
+      const baseFromSockets = Number.isFinite(adjustment)
         ? Math.max(0, numericValue - adjustment)
         : numericValue;
-      row[label] = adjustedValue;
-      row['Total (Base)'] += adjustedValue;
+      const baseFromStat = Number(stat?.base);
+      let baseValue;
+      if(Number.isFinite(baseFromStat)){
+        baseValue = Number.isFinite(adjustment) && adjustment !== 0
+          ? Math.min(baseFromStat, baseFromSockets)
+          : baseFromStat;
+      }else{
+        baseValue = baseFromSockets;
+      }
+      row[label] = baseValue;
+      row['Total (Base)'] += baseValue;
     }
     row['Total (Base)'] = Number.isFinite(row['Total (Base)']) ? row['Total (Base)'] : 0;
     return row;
