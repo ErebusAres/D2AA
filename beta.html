@@ -214,7 +214,8 @@
     2487827355, // PlugCategoryHashes.EnhancementsV2General
     2912171003, // PlugCategoryHashes.EnhancementsV2Head
     2111701510, // PlugCategoryHashes.EnhancementsV2Legs
-    3347429529  // PlugCategoryHashes.EnhancementsUniversal
+    3347429529, // PlugCategoryHashes.EnhancementsUniversal
+    3481777685  // core.gear_systems.armor_tiering.plugs.tuning.mods (+Stat / -Stat mods)
   ]);
   const ARMOR_MOD_ITEM_CATEGORY_HASHES = new Set([
     4104513227, // ItemCategoryHashes.ArmorMods
@@ -1075,6 +1076,8 @@
       if(plugCat.includes('tracker')) return false;
       if(plugCat.includes('armor_mod')) return true;
       if(plugCat.includes('enhancements')) return true;
+      if(plugCat.includes('armor_tiering')) return true;
+      if(plugCat.includes('tuning')) return true;
     }
     if(isMasterworkStatPlug(def)){
       return true;
