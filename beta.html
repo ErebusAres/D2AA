@@ -1094,7 +1094,10 @@
     const displayName = String(def?.displayProperties?.name || '').toLowerCase();
     if(displayName.includes('ornament') || displayName.includes('shader')) return false;
     if(displayName.includes('mod')) return true;
-    return false;
+    // Default to subtracting when a plug adjusts stats so new armor mod categories
+    // automatically roll into the subtraction path unless they are explicitly
+    // identified as intrinsic/cosmetic sockets above.
+    return true;
   }
 
   function isMasterworkStatPlug(def){
@@ -1122,14 +1125,18 @@
         values.set(label, (values.get(label) || 0) + numeric);
       }
     }
-    if(values.size === 0 && plugDef){
+    if(plugDef){
       const invStats = Array.isArray(plugDef?.investmentStats) ? plugDef.investmentStats : [];
       for(const stat of invStats){
         const statKey = hashKey(stat?.statTypeHash);
         const label = STAT_HASH_TO_LABEL[statKey];
         const value = Number(stat?.value ?? 0);
         if(!label || !Number.isFinite(value) || value === 0) continue;
-        values.set(label, (values.get(label) || 0) + value);
+        if(values.has(label)){
+          values.set(label, values.get(label) + value);
+        }else{
+          values.set(label, value);
+        }
       }
     }
     return values;
