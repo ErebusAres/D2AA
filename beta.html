@@ -679,13 +679,8 @@
     if(redirectUri){
       body.set('redirect_uri', redirectUri);
     }
-    const headers = new Headers({
-      'Content-Type':'application/x-www-form-urlencoded',
-      'Accept':'application/json'
-    });
     const resp = await fetch(BUNGIE_TOKEN_URL, {
       method:'POST',
-      headers,
       body
     });
     const data = await resp.json().catch(()=>null);
@@ -736,13 +731,8 @@
     body.set('client_id', bungieConfig?.clientId || '');
     body.set('grant_type', 'refresh_token');
     body.set('refresh_token', bungieTokens?.refreshToken || '');
-    const headers = new Headers({
-      'Content-Type':'application/x-www-form-urlencoded',
-      'Accept':'application/json'
-    });
     const resp = await fetch(BUNGIE_TOKEN_URL, {
       method:'POST',
-      headers,
       body
     });
     const data = await resp.json().catch(()=>null);
