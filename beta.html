@@ -686,7 +686,10 @@
     });
     const data = await resp.json().catch(()=>null);
     if(!resp.ok){
-      const msg = data?.error_description || data?.Message || `HTTP ${resp.status}`;
+      const rawMsg = data?.error_description || data?.Message || `HTTP ${resp.status}`;
+      const msg = rawMsg === 'OriginHeaderDoesNotMatchKey'
+        ? 'OriginHeaderDoesNotMatchKey: Add https://erebusares.github.io to the Origin Header whitelist for your Bungie application and redeploy.'
+        : rawMsg;
       throw new Error(msg);
     }
     if(!data?.access_token){
@@ -743,7 +746,10 @@
     });
     const data = await resp.json().catch(()=>null);
     if(!resp.ok || !data?.access_token){
-      const msg = data?.error_description || data?.Message || `HTTP ${resp.status}`;
+      const rawMsg = data?.error_description || data?.Message || `HTTP ${resp.status}`;
+      const msg = rawMsg === 'OriginHeaderDoesNotMatchKey'
+        ? 'OriginHeaderDoesNotMatchKey: Add https://erebusares.github.io to the Origin Header whitelist for your Bungie application and redeploy.'
+        : rawMsg;
       clearBungieTokens(false);
       throw new Error(msg);
     }
