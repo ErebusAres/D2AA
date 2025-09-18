@@ -1022,9 +1022,10 @@
     return plugHash != null ? plugHash : null;
   }
 
-  // Destiny Item Manager derives armor base stats by removing every socket-provided
-  // stat bonus except for intrinsic/frame plugs. We mirror that approach here so the
-  // Bungie sourced rows line up with the CSV export that players are used to comparing.
+  // Destiny Item Manager removes every socket-provided stat bonus except for intrinsic
+  // or frame plugs when it has to derive base stats manually. We mostly rely on Bungie's
+  // provided `stat.base` values, but we still need this filter for the few cases where
+  // the API omits those base numbers and we have to fall back to subtraction.
   function shouldSubtractPlugFromBaseStats(def, plugStats){
     if(!plugStats || plugStats.size === 0) return false;
     if(!def) return true;
@@ -1139,29 +1140,33 @@
       const stat = stats?.[hash];
       const value = Number(stat?.value ?? 0);
       const numericValue = Number.isFinite(value) ? value : 0;
-      if(socketDetails === null){
-        socketDetails = getStatAdjustmentsFromSockets(sockets);
-      }
-      const adjustment = Number(socketDetails?.adjustments?.[label] ?? 0);
-      const baseFromSockets = Number.isFinite(adjustment)
-        ? Math.max(0, numericValue - adjustment)
-        : numericValue;
       const baseFromStat = Number(stat?.base);
-      const hasUsefulBaseStat = Number.isFinite(baseFromStat) && baseFromStat > 0;
+      const hasApiBase = Number.isFinite(baseFromStat);
       let baseValue;
-      if(hasUsefulBaseStat){
-        baseValue = Number.isFinite(adjustment) && adjustment !== 0
-          ? Math.min(baseFromStat, baseFromSockets)
-          : baseFromStat;
+      let usedApiBase = false;
+      if(hasApiBase){
+        baseValue = baseFromStat;
+        usedApiBase = true;
       }else{
-        baseValue = baseFromSockets;
+        if(socketDetails === null){
+          socketDetails = getStatAdjustmentsFromSockets(sockets);
+        }
+        const adjustment = Number(socketDetails?.adjustments?.[label] ?? 0);
+        baseValue = Number.isFinite(adjustment)
+          ? Math.max(0, numericValue - adjustment)
+          : numericValue;
       }
       if(!Number.isFinite(baseValue)){
         baseValue = 0;
       }
-      const masterworkContribution = Number(socketDetails?.masterworkAdjustments?.[label] ?? 0);
-      if(isMasterworked && masterworkContribution < 2){
-        baseValue = Math.max(0, baseValue - 2);
+      if(!usedApiBase){
+        if(socketDetails === null){
+          socketDetails = getStatAdjustmentsFromSockets(sockets);
+        }
+        const masterworkContribution = Number(socketDetails?.masterworkAdjustments?.[label] ?? 0);
+        if(isMasterworked && masterworkContribution < 2){
+          baseValue = Math.max(0, baseValue - 2);
+        }
       }
       row[label] = baseValue;
       row['Total (Base)'] += baseValue;
