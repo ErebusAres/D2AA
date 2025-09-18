@@ -1017,7 +1017,7 @@
       const sockets = socketsByItem?.[item.itemInstanceId]?.sockets;
       if(!Array.isArray(sockets)) continue;
       for(const socket of sockets){
-        if(!socket || socket.isEnabled === false || socket?.plugged?.enabled === false) continue;
+        if(!socket || socket?.plugged?.enabled === false) continue;
         const plugHash = getSocketPlugHash(socket);
         const plugKey = plugHash != null ? hashKey(plugHash) : null;
         if(!plugKey || plugKeys.has(plugKey)) continue;
@@ -1137,7 +1137,7 @@
     const masterworkAdjustments = {};
     if(!Array.isArray(sockets)) return { adjustments, masterworkAdjustments };
     for(const socket of sockets){
-      if(!socket || socket.isEnabled === false || socket?.plugged?.enabled === false) continue;
+      if(!socket || socket?.plugged?.enabled === false) continue;
       const plugHash = getSocketPlugHash(socket);
       if(plugHash == null) continue;
       const plugDef = manifestCache.inventoryItem.get(hashKey(plugHash));
@@ -1196,19 +1196,28 @@
       let baseValue = Number.isFinite(adjustment)
         ? Math.max(0, numericValue - adjustment)
         : Math.max(0, numericValue);
-      if(baseValue === numericValue){
-        const candidates = [];
-        const investmentValue = Number(stat?.investmentValue);
-        if(Number.isFinite(investmentValue) && investmentValue >= 0){
-          candidates.push(investmentValue);
+      const candidates = [];
+      const investmentValue = Number(stat?.investmentValue);
+      if(Number.isFinite(investmentValue) && investmentValue >= 0){
+        candidates.push(investmentValue);
+      }
+      const apiBase = Number(stat?.base);
+      if(Number.isFinite(apiBase) && apiBase >= 0){
+        candidates.push(apiBase);
+      }
+      if(baseValue === numericValue && candidates.length){
+        const positiveCandidates = candidates.filter(v => v > 0);
+        const fallback = positiveCandidates.length
+          ? Math.min(...positiveCandidates)
+          : Math.min(...candidates);
+        if(Number.isFinite(fallback) && (fallback > 0 || baseValue <= 0)){
+          baseValue = fallback;
         }
-        const apiBase = Number(stat?.base);
-        if(Number.isFinite(apiBase) && apiBase >= 0){
-          candidates.push(apiBase);
-        }
-        if(candidates.length){
-          const bestCandidate = Math.min(...candidates);
-          if(bestCandidate > 0 || baseValue <= 0){
+      }else if(candidates.length){
+        const positiveCandidates = candidates.filter(v => v > 0);
+        if(positiveCandidates.length){
+          const bestCandidate = Math.min(...positiveCandidates);
+          if(baseValue <= 0 || baseValue > bestCandidate){
             baseValue = bestCandidate;
           }
         }
