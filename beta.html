@@ -1018,21 +1018,36 @@
     return plugHash != null ? plugHash : null;
   }
 
-  function isStatModPlug(def){
+  // Destiny Item Manager derives armor base stats by removing every socket-provided
+  // stat bonus except for intrinsic/frame plugs. We mirror that approach here so the
+  // Bungie sourced rows line up with the CSV export that players are used to comparing.
+  function shouldSubtractPlugFromBaseStats(def, plugStats){
+    if(!plugStats || plugStats.size === 0) return false;
+    if(!def) return true;
+    const plugCat = String(def?.plug?.plugCategoryIdentifier || '').toLowerCase();
+    if(plugCat){
+      if(plugCat === 'intrinsics' || plugCat.startsWith('intrinsics.')) return false;
+      if(plugCat.startsWith('frames')) return false;
+      if(plugCat.includes('tracker')) return false;
+      if(plugCat.includes('ornament')) return false;
+      if(plugCat.includes('cosmetic')) return false;
+      if(plugCat.includes('spawnfx')) return false;
+    }
+    const typeName = String(def?.itemTypeDisplayName || '').toLowerCase();
+    if(typeName.includes('ornament') || typeName.includes('shader') || typeName.includes('projection')) return false;
+    const displayName = String(def?.displayProperties?.name || '').toLowerCase();
+    if(displayName.includes('ornament') || displayName.includes('shader')) return false;
+    return true;
+  }
+
+  function isMasterworkStatPlug(def){
     if(!def) return false;
     const plugCat = String(def?.plug?.plugCategoryIdentifier || '').toLowerCase();
-    if(!plugCat) return false;
-    if(plugCat === 'intrinsics' || plugCat.startsWith('intrinsics.')) return false;
-    if(plugCat.startsWith('frames')) return false;
-    if(plugCat.includes('tracker')) return false;
-    if(plugCat.startsWith('enhancements.')) return true;
-    if(plugCat.includes('masterworks.stat')) return true;
-    if(plugCat.includes('artifice')) return true;
-    if(plugCat.includes('armor.stats')) return true;
+    if(plugCat && plugCat.includes('masterwork')) return true;
     const typeName = String(def?.itemTypeDisplayName || '').toLowerCase();
+    if(typeName.includes('masterwork')) return true;
     const displayName = String(def?.displayProperties?.name || '').toLowerCase();
-    if(typeName.includes('mod') || typeName.includes('masterwork')) return true;
-    if(displayName.includes('mod') || displayName.includes('masterwork')) return true;
+    if(displayName.includes('masterwork')) return true;
     return false;
   }
 
@@ -1073,11 +1088,8 @@
       if(plugHash == null) continue;
       const plugDef = manifestCache.inventoryItem.get(hashKey(plugHash));
       const plugStats = getPlugStatValues(socket, plugDef);
-      if(plugStats.size === 0) continue;
-      const qualifies = plugDef ? isStatModPlug(plugDef) : plugStats.size > 0;
-      if(!qualifies) continue;
-      const plugCat = String(plugDef?.plug?.plugCategoryIdentifier || '').toLowerCase();
-      const isMasterwork = plugCat.includes('masterworks.stat');
+      if(!shouldSubtractPlugFromBaseStats(plugDef, plugStats)) continue;
+      const isMasterwork = isMasterworkStatPlug(plugDef);
       for(const [label, value] of plugStats.entries()){
         adjustments[label] = (adjustments[label] || 0) + value;
         if(isMasterwork){
