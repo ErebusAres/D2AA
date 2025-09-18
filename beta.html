@@ -1137,13 +1137,17 @@
         ? Math.max(0, numericValue - adjustment)
         : numericValue;
       const baseFromStat = Number(stat?.base);
+      const hasUsefulBaseStat = Number.isFinite(baseFromStat) && baseFromStat > 0;
       let baseValue;
-      if(Number.isFinite(baseFromStat)){
+      if(hasUsefulBaseStat){
         baseValue = Number.isFinite(adjustment) && adjustment !== 0
           ? Math.min(baseFromStat, baseFromSockets)
           : baseFromStat;
       }else{
         baseValue = baseFromSockets;
+      }
+      if(!Number.isFinite(baseValue)){
+        baseValue = 0;
       }
       const masterworkContribution = Number(socketDetails?.masterworkAdjustments?.[label] ?? 0);
       if(isMasterworked && masterworkContribution < 2){
