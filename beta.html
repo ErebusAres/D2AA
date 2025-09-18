@@ -1173,7 +1173,11 @@
   async function getStatAdjustmentsFromSockets(sockets, socketDefs){
     const adjustments = {};
     const masterworkAdjustments = {};
-    if(!Array.isArray(sockets)) return { adjustments, masterworkAdjustments };
+    let hasRecognizedStatPlug = false;
+    let hasRecognizedMasterworkPlug = false;
+    if(!Array.isArray(sockets)){
+      return { adjustments, masterworkAdjustments, hasRecognizedStatPlug, hasRecognizedMasterworkPlug };
+    }
     for(let index = 0; index < sockets.length; index++){
       const socket = sockets[index];
       if(!socket) continue;
@@ -1212,7 +1216,11 @@
       }
       const plugStats = getPlugStatValues(socket, plugDef);
       if(!shouldSubtractPlugFromBaseStats(plugDef, plugStats, socketCategoryHash)) continue;
+      hasRecognizedStatPlug = true;
       const isMasterwork = isMasterworkStatPlug(plugDef);
+      if(isMasterwork){
+        hasRecognizedMasterworkPlug = true;
+      }
       for(const [label, value] of plugStats.entries()){
         adjustments[label] = (adjustments[label] || 0) + value;
         if(isMasterwork){
@@ -1220,7 +1228,7 @@
         }
       }
     }
-    return { adjustments, masterworkAdjustments };
+    return { adjustments, masterworkAdjustments, hasRecognizedStatPlug, hasRecognizedMasterworkPlug };
   }
 
   async function buildRowFromDefinition(item, def, instance, stats, sockets){
@@ -1242,20 +1250,14 @@
       const level = Number(energy?.energyLevel);
       const used = Number(energy?.energyUsed);
       const unused = Number(energy?.energyUnused);
-      if(Number.isFinite(capacity)){
+      if(Number.isFinite(level)){
+        currentEnergy = level;
+      }else if(Number.isFinite(used)){
+        currentEnergy = used;
+      }else if(Number.isFinite(capacity) && Number.isFinite(unused)){
+        currentEnergy = capacity - unused;
+      }else if(Number.isFinite(capacity)){
         currentEnergy = capacity;
-      }else{
-        const fallback = [
-          Number.isFinite(level) ? level : null,
-          (Number.isFinite(capacity) && Number.isFinite(unused)) ? capacity - unused : null,
-          Number.isFinite(used) ? used : null
-        ];
-        for(const candidate of fallback){
-          if(Number.isFinite(candidate)){
-            currentEnergy = candidate;
-            break;
-          }
-        }
       }
       if(Number.isFinite(currentEnergy)){
         tierValue = Math.max(0, Math.ceil(Math.max(0, currentEnergy) / 2));
@@ -1275,43 +1277,52 @@
     };
     const socketDefs = Array.isArray(def?.sockets?.socketEntries) ? def.sockets.socketEntries : [];
     const socketDetails = await getStatAdjustmentsFromSockets(sockets, socketDefs);
-    const masterworkEnergy = Number.isFinite(currentEnergy) ? currentEnergy : Number(instance?.energy?.energyLevel);
+    const hasRecognizedMasterworkPlug = Boolean(socketDetails?.hasRecognizedMasterworkPlug);
+    const energyLevelForMasterwork = Number(energy?.energyLevel);
+    const capacityForMasterwork = Number(energy?.energyCapacity);
+    const masterworkEnergy = Number.isFinite(energyLevelForMasterwork)
+      ? energyLevelForMasterwork
+      : (Number.isFinite(capacityForMasterwork) ? capacityForMasterwork : Number(instance?.energy?.energyLevel));
     const isMasterworked = Number.isFinite(masterworkEnergy) && masterworkEnergy >= 10;
     for(const [hash,label] of Object.entries(STAT_HASH_TO_LABEL)){
       const stat = stats?.[hash];
       const value = Number(stat?.value ?? 0);
       const numericValue = Number.isFinite(value) ? value : 0;
-      const adjustment = Number(socketDetails?.adjustments?.[label] ?? 0);
-      const masterworkContribution = Number(socketDetails?.masterworkAdjustments?.[label] ?? 0);
-      const recognizedMasterwork = Number.isFinite(masterworkContribution) ? masterworkContribution : 0;
-      const derivedBase = Number.isFinite(adjustment)
-        ? numericValue - adjustment
-        : numericValue;
+      const adjustment = Number(socketDetails?.adjustments?.[label]);
+      const masterworkContribution = Number(socketDetails?.masterworkAdjustments?.[label]);
+      const hasNonZeroAdjustment = Number.isFinite(adjustment) && Math.abs(adjustment) > 0.001;
       const investmentValue = Number(stat?.investmentValue);
       const apiBase = Number(stat?.base);
-      const candidates = [];
-      if(Number.isFinite(apiBase) && apiBase >= 0){
-        candidates.push(apiBase);
-      }
-      if(Number.isFinite(investmentValue) && investmentValue >= 0){
-        let adjustedInvestment = investmentValue;
-        if(Number.isFinite(recognizedMasterwork) && Math.abs(recognizedMasterwork) > 0.001){
-          adjustedInvestment -= recognizedMasterwork;
-        }else if(isMasterworked){
-          adjustedInvestment -= 2;
+      let baseValue = numericValue;
+      if(hasNonZeroAdjustment){
+        baseValue = numericValue - adjustment;
+        if(isMasterworked && (!Number.isFinite(masterworkContribution) || Math.abs(masterworkContribution) < 0.001) && !hasRecognizedMasterworkPlug){
+          baseValue -= 2;
         }
-        candidates.push(adjustedInvestment);
+      }else if(Number.isFinite(apiBase) && apiBase >= 0){
+        baseValue = apiBase;
+        if(Number.isFinite(masterworkContribution) && Math.abs(masterworkContribution) > 0.001){
+          baseValue -= masterworkContribution;
+        }else if(isMasterworked && !hasRecognizedMasterworkPlug){
+          baseValue -= 2;
+        }
+      }else if(Number.isFinite(investmentValue) && investmentValue >= 0){
+        baseValue = investmentValue;
+        if(Number.isFinite(masterworkContribution) && Math.abs(masterworkContribution) > 0.001){
+          baseValue -= masterworkContribution;
+        }else if(isMasterworked && !hasRecognizedMasterworkPlug){
+          baseValue -= 2;
+        }
+      }else if(isMasterworked && !hasRecognizedMasterworkPlug){
+        baseValue = numericValue - 2;
       }
-      if(Number.isFinite(derivedBase)){
-        candidates.push(derivedBase);
+      if(Number.isFinite(numericValue)){
+        if((!hasNonZeroAdjustment || adjustment >= 0) && baseValue > numericValue){
+          baseValue = numericValue;
+        }
       }
-      const finiteCandidates = candidates.filter(v => Number.isFinite(v));
-      const positiveCandidates = finiteCandidates.filter(v => v > 0);
-      let baseValue = positiveCandidates.length
-        ? Math.min(...positiveCandidates)
-        : (finiteCandidates.length ? Math.min(...finiteCandidates) : Math.max(0, numericValue));
-      if(Number.isFinite(numericValue) && baseValue > numericValue){
-        baseValue = numericValue;
+      if(!Number.isFinite(baseValue)){
+        baseValue = 0;
       }
       baseValue = Math.round(Math.max(0, baseValue));
       row[label] = baseValue;
