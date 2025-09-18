@@ -892,6 +892,36 @@
     return def;
   }
 
+  async function prefetchInventoryItemDefinitions(hashes, concurrency = 10){
+    if(!Array.isArray(hashes) || hashes.length === 0){
+      return;
+    }
+    const queue = [];
+    const seen = new Set();
+    for(const rawHash of hashes){
+      const key = hashKey(rawHash);
+      if(!key || seen.has(key)){
+        continue;
+      }
+      seen.add(key);
+      if(manifestCache.inventoryItem.has(key)){
+        continue;
+      }
+      queue.push(key);
+    }
+    while(queue.length){
+      const batch = queue.splice(0, Math.max(1, concurrency));
+      await Promise.all(batch.map(async hash => {
+        try{
+          await getInventoryItemDefinition(hash);
+        }catch(err){
+          console.error('Failed to preload manifest definition', hash, err);
+          throw err;
+        }
+      }));
+    }
+  }
+
   async function transformProfileToRows(profile){
     const itemsMap = new Map();
     const addItems = (items)=>{
@@ -915,23 +945,28 @@
     const instances = profile?.itemComponents?.instances?.data || {};
     const statsByItem = profile?.itemComponents?.stats?.data || {};
     const socketsByItem = profile?.itemComponents?.sockets?.data || {};
-    const uniqueHashes = new Set();
-    const plugHashes = new Set();
+    const uniqueItemKeys = new Set();
+    const uniqueItemHashes = [];
+    const plugKeys = new Set();
+    const plugHashList = [];
     for(const item of itemsMap.values()){
-      uniqueHashes.add(hashKey(item.itemHash));
+      const itemKey = hashKey(item.itemHash);
+      if(itemKey && !uniqueItemKeys.has(itemKey)){
+        uniqueItemKeys.add(itemKey);
+        uniqueItemHashes.push(item.itemHash);
+      }
       const sockets = socketsByItem?.[item.itemInstanceId]?.sockets;
       if(!Array.isArray(sockets)) continue;
       for(const socket of sockets){
-        if(!socket) continue;
+        if(!socket || socket.isEnabled === false) continue;
         const plugHash = socket.plugHash ?? socket.plugItemHash;
-        if(plugHash == null) continue;
-        plugHashes.add(hashKey(plugHash));
+        const plugKey = plugHash != null ? hashKey(plugHash) : null;
+        if(!plugKey || plugKeys.has(plugKey)) continue;
+        plugKeys.add(plugKey);
+        plugHashList.push(plugHash);
       }
     }
-    const allDefinitionHashes = Array.from(new Set([...uniqueHashes, ...plugHashes]));
-    for(const hash of allDefinitionHashes){
-      await getInventoryItemDefinition(hash);
-    }
+    await prefetchInventoryItemDefinitions(uniqueItemHashes.concat(plugHashList));
     const rows = [];
     for(const item of itemsMap.values()){
       const def = await getInventoryItemDefinition(item.itemHash);
