@@ -715,16 +715,26 @@
   }
 
   async function ensureAccessToken(){
-    if(!bungieTokens?.refreshToken){
-      throw new Error('No Bungie session available. Sign in first.');
-    }
+    const hasAccess = Boolean(bungieTokens?.accessToken);
+    const hasRefresh = Boolean(bungieTokens?.refreshToken);
     const now = Date.now();
-    if(bungieTokens.accessToken && now < ((bungieTokens.accessTokenExpires || 0) - 60000)){
+    const accessExpires = Number(bungieTokens?.accessTokenExpires || 0);
+    const refreshExpires = Number(bungieTokens?.refreshTokenExpires || 0);
+
+    // If we have a usable access token, return it even if no refresh token exists yet.
+    if(hasAccess && (!accessExpires || now < (accessExpires - 60000))){
       return bungieTokens.accessToken;
     }
-    if(now >= ((bungieTokens.refreshTokenExpires || 0) - 60000)){
+
+    if(!hasRefresh){
+      throw new Error('No Bungie session available. Sign in first.');
+    }
+
+    if(refreshExpires && now >= (refreshExpires - 60000)){
+      clearBungieTokens(false);
       throw new Error('Bungie session expired. Please sign in again.');
     }
+
     await refreshAccessToken();
     return bungieTokens.accessToken;
   }
