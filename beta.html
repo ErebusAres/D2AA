@@ -229,6 +229,7 @@
   })();
   const BUNGIE_DEFAULT_API_KEY = '96e154014bdd44c0a537e482709b7473';
   const BUNGIE_DEFAULT_CLIENT_ID = '50794';
+  const BUNGIE_ALLOWED_ORIGIN = 'https://erebusares.github.io';
   // ====== Helpers ======
   const normId = (s) => (s ? String(s).trim().replace(/^"|"$/g, "") : "");
   const normName = (s) => String(s || "").trim().toLowerCase();
@@ -388,10 +389,12 @@
       const raw = localStorage.getItem(BUNGIE_CONFIG_STORAGE);
       if(!raw) return { ...defaults };
       const parsed = JSON.parse(raw);
-      const merged = { ...defaults, ...parsed };
-      if(!merged.apiKey) merged.apiKey = BUNGIE_DEFAULT_API_KEY;
-      if(!merged.clientId) merged.clientId = BUNGIE_DEFAULT_CLIENT_ID;
-      return merged;
+      return {
+        apiKey: BUNGIE_DEFAULT_API_KEY,
+        clientId: BUNGIE_DEFAULT_CLIENT_ID,
+        membershipId: parsed?.membershipId ?? null,
+        membershipType: parsed?.membershipType ?? null
+      };
     }catch(err){
       console.warn('Failed to parse Bungie config', err);
       return { ...defaults };
@@ -400,7 +403,11 @@
 
   function saveBungieConfig(){
     try{
-      localStorage.setItem(BUNGIE_CONFIG_STORAGE, JSON.stringify(bungieConfig));
+      const payload = {
+        membershipId: bungieConfig?.membershipId ?? null,
+        membershipType: bungieConfig?.membershipType ?? null
+      };
+      localStorage.setItem(BUNGIE_CONFIG_STORAGE, JSON.stringify(payload));
     }catch(err){
       console.warn('Failed to persist Bungie config', err);
     }
@@ -408,18 +415,10 @@
 
   function ensureBungieConfigDefaults(){
     if(!bungieConfig) bungieConfig = loadBungieConfig();
-    const trimmedKey = (bungieConfig.apiKey || '').trim();
-    const trimmedClient = (bungieConfig.clientId || '').toString().trim();
-    if(!trimmedKey){
-      bungieConfig.apiKey = BUNGIE_DEFAULT_API_KEY;
-    }else{
-      bungieConfig.apiKey = trimmedKey;
-    }
-    if(!trimmedClient){
-      bungieConfig.clientId = BUNGIE_DEFAULT_CLIENT_ID;
-    }else{
-      bungieConfig.clientId = trimmedClient;
-    }
+    bungieConfig.apiKey = BUNGIE_DEFAULT_API_KEY;
+    bungieConfig.clientId = BUNGIE_DEFAULT_CLIENT_ID;
+    if(bungieConfig.membershipId == null) bungieConfig.membershipId = null;
+    if(bungieConfig.membershipType == null) bungieConfig.membershipType = null;
   }
 
   function loadBungieTokens(){
@@ -783,6 +782,32 @@
     saveBungieTokens();
   }
 
+  function formatBungieError(data, status){
+    const rawMessage = data?.Message || data?.message || data?.error_description || data?.error || `HTTP ${status}`;
+    const errorStatus = data?.ErrorStatus || data?.Error || data?.error;
+    const normalized = (rawMessage || '').trim();
+    const originMismatch = normalized === 'Origin header does not match the provided API key.'
+      || normalized === 'OriginHeaderDoesNotMatchKey'
+      || errorStatus === 'OriginHeaderDoesNotMatchKey';
+    if(originMismatch){
+      let currentOrigin = '';
+      try{
+        currentOrigin = window.location?.origin || '';
+      }catch(_){
+        currentOrigin = '';
+      }
+      const isOpaqueOrigin = !currentOrigin || currentOrigin === 'null';
+      if(isOpaqueOrigin){
+        return `OriginHeaderDoesNotMatchKey: Bungie rejected the request because local files do not set an Origin header. Serve this page from ${BUNGIE_ALLOWED_ORIGIN} or run it through a local web server (for example, http://localhost:4173) and add that origin to the Bungie application's Origin Header whitelist before retrying.`;
+      }
+      if(currentOrigin !== BUNGIE_ALLOWED_ORIGIN){
+        return `OriginHeaderDoesNotMatchKey: Bungie rejected the request because ${currentOrigin} is not on the API key's Origin Header whitelist. Add both ${currentOrigin} and ${BUNGIE_ALLOWED_ORIGIN} (no trailing slashes) in the Bungie developer portal, publish the change, and reload.`;
+      }
+      return `OriginHeaderDoesNotMatchKey: Bungie rejected the request even though the page is hosted on ${BUNGIE_ALLOWED_ORIGIN}. Double-check the application's Origin Header whitelist in the Bungie developer portal, publish the update, wait a few minutes for it to propagate, and reload before trying again.`;
+    }
+    return normalized || `HTTP ${status}`;
+  }
+
   async function bungieApiRequest(path, options={}, retry=true){
     ensureBungieConfigDefaults();
     const cfg = bungieConfig || {};
@@ -805,11 +830,10 @@
     }
     const data = await resp.json().catch(()=>null);
     if(!resp.ok){
-      const msg = data?.Message || data?.message || `HTTP ${resp.status}`;
-      throw new Error(msg);
+      throw new Error(formatBungieError(data, resp.status));
     }
     if(data?.ErrorCode && data.ErrorCode !== 1){
-      throw new Error(data.Message || `Bungie API error ${data.ErrorCode}`);
+      throw new Error(formatBungieError(data, resp.status));
     }
     return data?.Response;
   }
