@@ -1415,12 +1415,7 @@
         throw new Error(`Manifest component path missing for ${componentName}`);
       }
       const url = `https://www.bungie.net${path}`;
-      const headers = new Headers();
-      const apiKey = bungieConfig?.apiKey || BUNGIE_DEFAULT_API_KEY;
-      if(apiKey){
-        headers.set('X-API-Key', apiKey);
-      }
-      const response = await fetch(url, { headers });
+      const response = await fetch(url);
       if(!response.ok){
         throw new Error(`Failed to load manifest component ${componentName}: ${response.status}`);
       }
