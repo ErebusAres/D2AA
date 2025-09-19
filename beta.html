@@ -641,6 +641,11 @@
     bucket: new Map(),
     socketType: new Map()
   };
+  const MANIFEST_COMPONENT_INVENTORY_ITEM = 'DestinyInventoryItemDefinition';
+  const MANIFEST_COMPONENT_SOCKET_TYPE = 'DestinySocketTypeDefinition';
+  let manifestIndexPromise = null;
+  const manifestComponentCache = new Map();
+  const manifestComponentPromises = new Map();
   let bungieStatusEl = null;
   let bungieMembershipSelect = null;
   let bungieMembershipWrap = null;
@@ -1346,13 +1351,111 @@
     return String(num >>> 0);
   }
 
+  async function getManifestIndex(){
+    if(!manifestIndexPromise){
+      manifestIndexPromise = bungieApiRequest('/Destiny2/Manifest/').catch(err => {
+        manifestIndexPromise = null;
+        throw err;
+      });
+    }
+    const manifest = await manifestIndexPromise;
+    if(!manifest){
+      throw new Error('Failed to load Destiny manifest index.');
+    }
+    return manifest;
+  }
+
+  function resolveManifestComponentPath(manifest, componentName){
+    const localePaths = manifest?.jsonWorldComponentContentPaths || {};
+    const preferredLocales = [];
+    const configuredLocale = String(bungieConfig?.manifestLocale || '').trim().toLowerCase();
+    if(configuredLocale && localePaths[configuredLocale]){
+      preferredLocales.push(configuredLocale);
+    }
+    const browserLocale = (typeof navigator !== 'undefined' && navigator?.language)
+      ? navigator.language.toLowerCase()
+      : '';
+    if(browserLocale){
+      if(localePaths[browserLocale] && !preferredLocales.includes(browserLocale)){
+        preferredLocales.push(browserLocale);
+      }
+      const shortLocale = browserLocale.split('-')[0];
+      if(localePaths[shortLocale] && !preferredLocales.includes(shortLocale)){
+        preferredLocales.push(shortLocale);
+      }
+    }
+    if(localePaths.en && !preferredLocales.includes('en')){
+      preferredLocales.push('en');
+    }
+    for(const locale of Object.keys(localePaths)){
+      if(!preferredLocales.includes(locale)){
+        preferredLocales.push(locale);
+      }
+    }
+    for(const locale of preferredLocales){
+      const locPaths = localePaths[locale];
+      if(locPaths && locPaths[componentName]){
+        return { path: locPaths[componentName], locale };
+      }
+    }
+    return { path: null, locale: null };
+  }
+
+  async function loadManifestComponent(componentName){
+    if(manifestComponentCache.has(componentName)){
+      return manifestComponentCache.get(componentName);
+    }
+    if(manifestComponentPromises.has(componentName)){
+      return manifestComponentPromises.get(componentName);
+    }
+    const promise = (async () => {
+      const manifest = await getManifestIndex();
+      const { path, locale } = resolveManifestComponentPath(manifest, componentName);
+      if(!path){
+        throw new Error(`Manifest component path missing for ${componentName}`);
+      }
+      const url = `https://www.bungie.net${path}`;
+      const headers = new Headers();
+      const apiKey = bungieConfig?.apiKey || BUNGIE_DEFAULT_API_KEY;
+      if(apiKey){
+        headers.set('X-API-Key', apiKey);
+      }
+      const response = await fetch(url, { headers });
+      if(!response.ok){
+        throw new Error(`Failed to load manifest component ${componentName}: ${response.status}`);
+      }
+      const json = await response.json();
+      manifestComponentCache.set(componentName, json);
+      logDebug('manifest component loaded', {
+        component: componentName,
+        locale,
+        entryCount: json && typeof json === 'object' ? Object.keys(json).length : null
+      });
+      return json;
+    })();
+    manifestComponentPromises.set(componentName, promise);
+    try{
+      const data = await promise;
+      manifestComponentPromises.delete(componentName);
+      return data;
+    }catch(err){
+      manifestComponentPromises.delete(componentName);
+      throw err;
+    }
+  }
+
   async function getInventoryItemDefinition(hash){
     const key = hashKey(hash);
     if(manifestCache.inventoryItem.has(key)){
       return manifestCache.inventoryItem.get(key);
     }
-    const def = await bungieApiRequest(`/Destiny2/Manifest/DestinyInventoryItemDefinition/${key}/`);
-    manifestCache.inventoryItem.set(key, def);
+    const component = await loadManifestComponent(MANIFEST_COMPONENT_INVENTORY_ITEM);
+    const def = component?.[key] || null;
+    if(def){
+      manifestCache.inventoryItem.set(key, def);
+    }else{
+      logDebug('inventory definition missing', { hash: key });
+    }
     return def;
   }
 
@@ -1361,8 +1464,13 @@
     if(manifestCache.socketType.has(key)){
       return manifestCache.socketType.get(key);
     }
-    const def = await bungieApiRequest(`/Destiny2/Manifest/DestinySocketTypeDefinition/${key}/`);
-    manifestCache.socketType.set(key, def);
+    const component = await loadManifestComponent(MANIFEST_COMPONENT_SOCKET_TYPE);
+    const def = component?.[key] || null;
+    if(def){
+      manifestCache.socketType.set(key, def);
+    }else{
+      logDebug('socket type definition missing', { hash: key });
+    }
     return def;
   }
 
@@ -1537,26 +1645,29 @@
     const unused = toFiniteNumber(energy?.energyUnused);
 
     const used = Number.isFinite(usedRaw) ? Math.max(0, Math.min(usedRaw, 10)) : null;
+    const usedFromCapacity = (Number.isFinite(capacity) && Number.isFinite(unused))
+      ? Math.max(0, Math.min(capacity - unused, 10))
+      : null;
+
+    const usedPlusUnused = (used !== null && Number.isFinite(unused))
+      ? Math.max(0, used + Math.max(0, Math.min(unused, 10)))
+      : null;
 
     let upgradeLevel = null;
     let source = null;
 
-    if(level !== null && level >= 0){
-      upgradeLevel = level;
-      source = 'energyLevel';
-    }else if(used !== null && unused !== null){
-      const candidate = used + unused;
-      if(Number.isFinite(candidate) && candidate >= 0){
-        upgradeLevel = candidate;
-        source = 'energyUsedPlusUnused';
-      }
-    }else if(used !== null){
-      upgradeLevel = used;
-      source = 'energyUsed';
-    }else if(capacity !== null && capacity >= 0){
-      upgradeLevel = capacity;
-      source = 'energyCapacity';
-    }
+    const assignIfUnset = (value, valueSource) => {
+      if(upgradeLevel !== null) return;
+      if(!Number.isFinite(value)) return;
+      upgradeLevel = value;
+      source = valueSource;
+    };
+
+    assignIfUnset(used, 'energyUsed');
+    assignIfUnset(usedFromCapacity, 'energyCapacityMinusUnused');
+    assignIfUnset(usedPlusUnused, 'energyUsedPlusUnused');
+    assignIfUnset(level, 'energyLevel');
+    assignIfUnset(capacity, 'energyCapacity');
 
     if(upgradeLevel !== null){
       upgradeLevel = Math.max(0, Math.min(upgradeLevel, 10));
@@ -1669,16 +1780,26 @@
 
   function getPlugStatValues(socket, plugDef){
     const values = new Map();
+    const addStat = (label, amount, overwriteExisting = false) => {
+      if(!label) return;
+      const numeric = Number(amount ?? 0);
+      if(!Number.isFinite(numeric) || numeric === 0) return;
+      if(!values.has(label) || overwriteExisting){
+        values.set(label, numeric);
+      }else{
+        values.set(label, values.get(label) + numeric);
+      }
+    };
+
     if(plugDef){
       const invStats = Array.isArray(plugDef?.investmentStats) ? plugDef.investmentStats : [];
       for(const stat of invStats){
         const statKey = hashKey(stat?.statTypeHash);
         const label = STAT_HASH_TO_LABEL[statKey];
-        const value = Number(stat?.value ?? 0);
-        if(!label || !Number.isFinite(value) || value === 0) continue;
-        values.set(label, value);
+        addStat(label, stat?.value, false);
       }
     }
+
     const plugStats = socket?.plugged?.stats;
     if(plugStats && typeof plugStats === 'object'){
       for(const [hash, entry] of Object.entries(plugStats)){
@@ -1686,9 +1807,14 @@
         const label = STAT_HASH_TO_LABEL[statKey];
         if(!label) continue;
         const raw = typeof entry === 'object' && entry !== null ? entry.value : entry;
-        const numeric = Number(raw ?? 0);
-        if(!Number.isFinite(numeric) || numeric === 0) continue;
-        values.set(label, numeric);
+        if(values.has(label)){ // avoid double counting identical manifest values
+          const numeric = Number(raw ?? 0);
+          if(Number.isFinite(numeric) && Math.abs(values.get(label) - numeric) > 0.0001){
+            values.set(label, numeric);
+          }
+          continue;
+        }
+        addStat(label, raw, true);
       }
     }
     return values;
@@ -1750,8 +1876,16 @@
       }
       const plugStats = getPlugStatValues(socket, plugDef);
       if(plugStats.size === 0) continue;
-      const subtract = shouldSubtractPlugFromBaseStats(plugDef, plugStats, socketCategoryHash);
-      const treatAsIntrinsic = !subtract && isIntrinsicPlugForBaseStats(plugDef, socketCategoryHash);
+      const treatAsIntrinsic = isIntrinsicPlugForBaseStats(plugDef, socketCategoryHash);
+      let subtract = !treatAsIntrinsic;
+      if(subtract){
+        const heuristic = shouldSubtractPlugFromBaseStats(plugDef, plugStats, socketCategoryHash);
+        if(heuristic === false && plugStats.size > 0){
+          subtract = true;
+        }else{
+          subtract = heuristic;
+        }
+      }
       const isMasterwork = isMasterworkStatPlug(plugDef);
       if(subtract){
         hasRecognizedStatPlug = true;
@@ -1857,7 +1991,7 @@
       if(Number.isFinite(numericValue) && Number.isFinite(adjustmentToSubtract)){
         const candidate = numericValue - adjustmentToSubtract;
         if(Number.isFinite(candidate)){
-          manualBase = Math.max(0, Math.min(candidate, numericValue));
+          manualBase = Math.max(0, candidate);
         }
       }
 
@@ -1901,7 +2035,11 @@
       }
 
       if(Number.isFinite(numericValue)){
-        baseValue = Math.min(baseValue, numericValue);
+        if(Number.isFinite(totalAdjustment) && totalAdjustment < 0){
+          // Allow base stats to exceed the current stat when penalties are equipped.
+        }else{
+          baseValue = Math.min(baseValue, numericValue);
+        }
       }
 
       const roundedBase = Math.max(0, Math.round(baseValue));
