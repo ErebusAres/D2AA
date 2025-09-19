@@ -1740,29 +1740,27 @@
     const typeName = isClassItem
       ? (classItemByClass[className] || def.itemTypeDisplayName || 'Class Item')
       : (def.itemTypeDisplayName || ARMOR_BUCKET_HASH_TO_TYPE[bucketKey] || 'Armor');
-    let tierValue = 0;
+    let derivedTierValue = 0;
     let currentEnergy = null;
+    let tierEnergySource = null;
     const energy = instance?.energy;
     if(energy){
       const capacity = Number(energy?.energyCapacity);
       const level = Number(energy?.energyLevel);
-      const used = Number(energy?.energyUsed);
-      const unused = Number(energy?.energyUnused);
-      const sources = [
-        Number.isFinite(level) ? level : null,
-        Number.isFinite(used) ? used : null,
-        (Number.isFinite(capacity) && Number.isFinite(unused)) ? (capacity - unused) : null,
-        Number.isFinite(capacity) ? capacity : null
-      ];
-      for(const source of sources){
-        if(Number.isFinite(source)){
-          currentEnergy = source;
-          break;
-        }
+      if(Number.isFinite(level) && level >= 0){
+        currentEnergy = level;
+        tierEnergySource = 'energyLevel';
+      }else if(Number.isFinite(capacity) && capacity >= 0){
+        currentEnergy = capacity;
+        tierEnergySource = 'energyCapacity';
       }
       if(Number.isFinite(currentEnergy)){
-        tierValue = Math.max(0, Math.ceil(Math.max(0, currentEnergy) / 2));
-        tierValue = Math.min(5, tierValue);
+        derivedTierValue = Math.ceil(Math.max(0, currentEnergy) / 2);
+        if(derivedTierValue < 0) derivedTierValue = 0;
+        if(derivedTierValue > 4) derivedTierValue = 4;
+        if(currentEnergy > 0 && derivedTierValue === 0){
+          derivedTierValue = 1;
+        }
       }
     }
     const row = {
@@ -1773,7 +1771,7 @@
       Rarity: def?.inventory?.tierTypeName || '',
       Tag: '',
       Power: instance?.primaryStat?.value ?? '',
-      Tier: Number.isFinite(tierValue) ? tierValue : 0,
+      Tier: Number.isFinite(derivedTierValue) ? derivedTierValue : 0,
       'Total (Base)': 0
     };
     const socketDefs = Array.isArray(def?.sockets?.socketEntries) ? def.sockets.socketEntries : [];
@@ -1787,6 +1785,8 @@
       ? energyLevelForMasterwork
       : (Number.isFinite(capacityForMasterwork) ? capacityForMasterwork : Number(instance?.energy?.energyLevel));
     const isMasterworked = Number.isFinite(masterworkEnergy) && masterworkEnergy >= 10;
+    let finalTierValue = isMasterworked ? 5 : derivedTierValue;
+    row.Tier = Number.isFinite(finalTierValue) ? finalTierValue : 0;
     for(const [hash,label] of Object.entries(STAT_HASH_TO_LABEL)){
       const stat = stats?.[hash];
       const value = Number(stat?.value);
@@ -1866,7 +1866,10 @@
           used: Number.isFinite(usedNum) ? usedNum : null,
           unused: Number.isFinite(unusedNum) ? unusedNum : null,
           level: Number.isFinite(levelNum) ? levelNum : null,
-          current: Number.isFinite(currentEnergy) ? currentEnergy : null
+          current: Number.isFinite(currentEnergy) ? currentEnergy : null,
+          source: tierEnergySource,
+          derivedTier: Number.isFinite(derivedTierValue) ? derivedTierValue : null,
+          finalTier: Number.isFinite(finalTierValue) ? finalTierValue : null
         },
         stats: statDebug,
         adjustments: socketDetails?.adjustments || {},
