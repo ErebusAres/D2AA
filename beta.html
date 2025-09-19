@@ -102,6 +102,11 @@
           <div id="debugLog" class="debug-log" role="log" aria-live="polite"></div>
         </div>
         <div class="debug-section">
+          <div class="debug-section__title">Armor stat breakdown</div>
+          <div class="debug-note">First 8 armor rows captured per load. Share this with any bug reports.</div>
+          <pre id="debugArmorSamples" class="debug-pre">No armor samples yet — load armor from Bungie to capture data.</pre>
+        </div>
+        <div class="debug-section">
           <label class="debug-section__title" for="debugNotes">Your observations (saved locally)</label>
           <textarea id="debugNotes" class="debug-notes" placeholder="Add steps, timestamps, or anything else that might help troubleshoot issues."></textarea>
           <div class="debug-note muted">Notes never leave this browser — copy them with the snapshot when you need to share details.</div>
@@ -339,6 +344,7 @@
   // ====== Debug Panel ======
   const DEBUG_LOG_LIMIT = 200;
   const DEBUG_NOTES_STORAGE = 'd2aa_debug_notes_v1';
+  const ARMOR_DEBUG_SAMPLE_LIMIT = 8;
   const debugState = {
     entries: [],
     snapshotText: '',
@@ -347,7 +353,8 @@
     lastStatus: { message: '', type: 'info' },
     lastUiStateSignature: '',
     copyResetTimer: null,
-    lastRenderCount: null
+    lastRenderCount: null,
+    armorSamples: []
   };
   const debugEls = {
     panel: null,
@@ -356,7 +363,8 @@
     content: null,
     log: null,
     snapshot: null,
-    notes: null
+    notes: null,
+    armor: null
   };
 
   function safeSerialize(value){
@@ -422,6 +430,39 @@
     debugEls.log.innerHTML = items;
   }
 
+  function renderDebugArmorSamples(){
+    if(!debugEls.armor){
+      return;
+    }
+    if(!debugState.armorSamples.length){
+      debugEls.armor.textContent = 'No armor samples yet — load armor from Bungie to capture data.';
+      return;
+    }
+    const sections = debugState.armorSamples.map((sample, index) => {
+      const header = `#${index + 1} ${sample.name} • ${sample.type} (Tier ${sample.tier ?? 0})`;
+      const payload = {
+        instanceId: sample.instanceId,
+        itemHash: sample.itemHash,
+        energy: sample.energy,
+        stats: sample.stats,
+        sockets: sample.sockets
+      };
+      return `${header}\n${safeSerialize(payload)}`;
+    }).join('\n\n');
+    debugEls.armor.textContent = sections;
+  }
+
+  function recordArmorDebugSample(sample){
+    if(!sample){
+      return;
+    }
+    debugState.armorSamples.push(sample);
+    if(debugState.armorSamples.length > ARMOR_DEBUG_SAMPLE_LIMIT){
+      debugState.armorSamples.splice(0, debugState.armorSamples.length - ARMOR_DEBUG_SAMPLE_LIMIT);
+    }
+    renderDebugArmorSamples();
+  }
+
   function buildDebugSnapshotData(){
     const now = Date.now();
     const selected = bungieMemberships.find((mem) => String(mem.membershipType) === String(bungieConfig?.membershipType) && String(mem.membershipId) === String(bungieConfig?.membershipId)) || null;
@@ -457,7 +498,8 @@
         inventoryItem: inventorySize,
         bucket: bucketSize,
         socketType: socketSize
-      }
+      },
+      armorSamplesCaptured: debugState.armorSamples.length
     };
   }
 
@@ -541,6 +583,7 @@
     debugEls.log = document.getElementById('debugLog');
     debugEls.snapshot = document.getElementById('debugSnapshot');
     debugEls.notes = document.getElementById('debugNotes');
+    debugEls.armor = document.getElementById('debugArmorSamples');
     if(debugEls.toggle){
       debugEls.toggle.addEventListener('click', () => {
         setDebugContentOpen();
@@ -572,6 +615,7 @@
       });
     }
     renderDebugLog();
+    renderDebugArmorSamples();
     updateDebugSnapshot();
     setDebugContentOpen(false);
     logDebug('Debug panel initialized');
@@ -1526,6 +1570,24 @@
     return true;
   }
 
+  function isIntrinsicPlugForBaseStats(def, socketCategoryHash){
+    if(Number.isFinite(socketCategoryHash) && ARMOR_BASE_SOCKET_CATEGORY_HASHES.has(socketCategoryHash)){
+      return true;
+    }
+    if(!def) return false;
+    const plugCategoryHash = Number(def?.plug?.plugCategoryHash);
+    if(Number.isFinite(plugCategoryHash) && ARMOR_INTRINSIC_PLUG_CATEGORY_HASHES.has(plugCategoryHash)){
+      return true;
+    }
+    const plugCat = String(def?.plug?.plugCategoryIdentifier || '').toLowerCase();
+    if(plugCat){
+      if(plugCat === 'intrinsics' || plugCat.startsWith('intrinsics.')) return true;
+      if(plugCat.startsWith('frames')) return true;
+      if(plugCat.includes('armorstats')) return true;
+    }
+    return false;
+  }
+
   function isMasterworkStatPlug(def){
     if(!def) return false;
     const plugCat = String(def?.plug?.plugCategoryIdentifier || '').toLowerCase();
@@ -1564,13 +1626,23 @@
     return values;
   }
 
-  async function getStatAdjustmentsFromSockets(sockets, socketDefs){
+  async function getStatAdjustmentsFromSockets(sockets, socketDefs, options={}){
     const adjustments = {};
     const masterworkAdjustments = {};
+    const baseContributions = {};
     let hasRecognizedStatPlug = false;
     let hasRecognizedMasterworkPlug = false;
+    const collectDetails = Boolean(options?.collectDetails);
+    const debugDetails = collectDetails ? [] : null;
     if(!Array.isArray(sockets)){
-      return { adjustments, masterworkAdjustments, hasRecognizedStatPlug, hasRecognizedMasterworkPlug };
+      return {
+        adjustments,
+        masterworkAdjustments,
+        baseContributions,
+        hasRecognizedStatPlug,
+        hasRecognizedMasterworkPlug,
+        details: debugDetails || undefined
+      };
     }
     for(let index = 0; index < sockets.length; index++){
       const socket = sockets[index];
@@ -1609,20 +1681,52 @@
         }
       }
       const plugStats = getPlugStatValues(socket, plugDef);
-      if(!shouldSubtractPlugFromBaseStats(plugDef, plugStats, socketCategoryHash)) continue;
-      hasRecognizedStatPlug = true;
+      if(plugStats.size === 0) continue;
+      const subtract = shouldSubtractPlugFromBaseStats(plugDef, plugStats, socketCategoryHash);
+      const treatAsIntrinsic = !subtract && isIntrinsicPlugForBaseStats(plugDef, socketCategoryHash);
       const isMasterwork = isMasterworkStatPlug(plugDef);
-      if(isMasterwork){
-        hasRecognizedMasterworkPlug = true;
-      }
-      for(const [label, value] of plugStats.entries()){
-        adjustments[label] = (adjustments[label] || 0) + value;
+      if(subtract){
+        hasRecognizedStatPlug = true;
         if(isMasterwork){
-          masterworkAdjustments[label] = (masterworkAdjustments[label] || 0) + value;
+          hasRecognizedMasterworkPlug = true;
+        }
+        for(const [label, value] of plugStats.entries()){
+          adjustments[label] = (adjustments[label] || 0) + value;
+          if(isMasterwork){
+            masterworkAdjustments[label] = (masterworkAdjustments[label] || 0) + value;
+          }
+        }
+      }else if(treatAsIntrinsic){
+        for(const [label, value] of plugStats.entries()){
+          baseContributions[label] = (baseContributions[label] || 0) + value;
         }
       }
+      if(debugDetails){
+        const statsObject = {};
+        for(const [label, value] of plugStats.entries()){
+          statsObject[label] = value;
+        }
+        debugDetails.push({
+          plugHash: plugHash != null ? hashKey(plugHash) : null,
+          plugName: plugDef?.displayProperties?.name || null,
+          socketCategoryHash: socketCategoryHash != null ? Number(socketCategoryHash) : null,
+          plugCategoryIdentifier: plugDef?.plug?.plugCategoryIdentifier || null,
+          subtract,
+          intrinsic: treatAsIntrinsic,
+          isMasterwork,
+          stats: statsObject,
+          enabledFlags: explicitFlags
+        });
+      }
     }
-    return { adjustments, masterworkAdjustments, hasRecognizedStatPlug, hasRecognizedMasterworkPlug };
+    return {
+      adjustments,
+      masterworkAdjustments,
+      baseContributions,
+      hasRecognizedStatPlug,
+      hasRecognizedMasterworkPlug,
+      details: debugDetails || undefined
+    };
   }
 
   async function buildRowFromDefinition(item, def, instance, stats, sockets){
@@ -1673,8 +1777,10 @@
       'Total (Base)': 0
     };
     const socketDefs = Array.isArray(def?.sockets?.socketEntries) ? def.sockets.socketEntries : [];
-    const socketDetails = await getStatAdjustmentsFromSockets(sockets, socketDefs);
+    const collectDebug = debugState.armorSamples.length < ARMOR_DEBUG_SAMPLE_LIMIT;
+    const socketDetails = await getStatAdjustmentsFromSockets(sockets, socketDefs, { collectDetails: collectDebug });
     const hasRecognizedMasterworkPlug = Boolean(socketDetails?.hasRecognizedMasterworkPlug);
+    const statDebug = collectDebug ? {} : null;
     const energyLevelForMasterwork = Number(energy?.energyLevel);
     const capacityForMasterwork = Number(energy?.energyCapacity);
     const masterworkEnergy = Number.isFinite(energyLevelForMasterwork)
@@ -1690,19 +1796,30 @@
       const masterworkContributionRaw = Number(socketDetails?.masterworkAdjustments?.[label]);
       const recognizedMasterworkBonus = Number.isFinite(masterworkContributionRaw) && Math.abs(masterworkContributionRaw) > 0.001 ? masterworkContributionRaw : 0;
       const fallbackMasterworkBonus = (!recognizedMasterworkBonus && isMasterworked && !hasRecognizedMasterworkPlug) ? 2 : 0;
+      const socketBaseRaw = Number(socketDetails?.baseContributions?.[label]);
+      const socketBase = Number.isFinite(socketBaseRaw) ? socketBaseRaw : null;
 
-      const manualBase = Number.isFinite(numericValue)
-        ? numericValue - totalAdjustment - (fallbackMasterworkBonus && !recognizedMasterworkBonus ? fallbackMasterworkBonus : 0)
-        : null;
+      let manualBase = null;
+      if(Number.isFinite(numericValue)){
+        const subtraction = totalAdjustment + (!recognizedMasterworkBonus && fallbackMasterworkBonus ? fallbackMasterworkBonus : 0);
+        if(Number.isFinite(subtraction)){
+          const candidate = numericValue - subtraction;
+          manualBase = Number.isFinite(candidate) ? Math.max(0, candidate) : null;
+        }
+      }
       const apiBase = Number(stat?.base);
-      let baseValue = Number.isFinite(apiBase) ? apiBase : null;
+      let baseValue = Number.isFinite(socketBase) ? socketBase : null;
+
+      if(Number.isFinite(apiBase)){
+        baseValue = baseValue == null ? apiBase : Math.min(baseValue, apiBase);
+      }
 
       if(Number.isFinite(manualBase)){
         baseValue = baseValue == null ? manualBase : Math.min(baseValue, manualBase);
       }
 
       if(Number.isFinite(numericValue)){
-        const theoreticalCap = numericValue - (recognizedMasterworkBonus || 0) - (fallbackMasterworkBonus && !recognizedMasterworkBonus ? fallbackMasterworkBonus : 0);
+        const theoreticalCap = numericValue - (recognizedMasterworkBonus || 0) - (!recognizedMasterworkBonus && fallbackMasterworkBonus ? fallbackMasterworkBonus : 0);
         if(Number.isFinite(theoreticalCap)){
           baseValue = baseValue == null ? theoreticalCap : Math.min(baseValue, theoreticalCap);
         }
@@ -1715,8 +1832,50 @@
       baseValue = Math.max(0, Math.round(baseValue));
       row[label] = baseValue;
       row['Total (Base)'] += baseValue;
+
+      if(statDebug){
+        statDebug[label] = {
+          current: numericValue,
+          socketBase,
+          manualBase,
+          apiBase: Number.isFinite(apiBase) ? apiBase : null,
+          totalAdjustment,
+          recognizedMasterworkBonus,
+          fallbackMasterworkBonus,
+          computedBase: baseValue
+        };
+      }
     }
     row['Total (Base)'] = Number.isFinite(row['Total (Base)']) ? row['Total (Base)'] : 0;
+    if(statDebug){
+      const capacityNum = Number(energy?.energyCapacity);
+      const usedNum = Number(energy?.energyUsed);
+      const unusedNum = Number(energy?.energyUnused);
+      const levelNum = Number(energy?.energyLevel);
+      const sample = {
+        name: row.Name,
+        type: row.Type,
+        tier: row.Tier,
+        instanceId: item?.itemInstanceId || null,
+        itemHash: item?.itemHash || null,
+        isMasterworked,
+        hasRecognizedMasterworkPlug,
+        energy: {
+          capacity: Number.isFinite(capacityNum) ? capacityNum : null,
+          used: Number.isFinite(usedNum) ? usedNum : null,
+          unused: Number.isFinite(unusedNum) ? unusedNum : null,
+          level: Number.isFinite(levelNum) ? levelNum : null,
+          current: Number.isFinite(currentEnergy) ? currentEnergy : null
+        },
+        stats: statDebug,
+        adjustments: socketDetails?.adjustments || {},
+        masterworkAdjustments: socketDetails?.masterworkAdjustments || {},
+        baseContributions: socketDetails?.baseContributions || {},
+        sockets: Array.isArray(socketDetails?.details) ? socketDetails.details : []
+      };
+      recordArmorDebugSample(sample);
+      logDebug('armor row sample', sample);
+    }
     return row;
   }
 
@@ -1771,6 +1930,8 @@
       bungieIsFetching = true;
       updateBungieUI();
       logDebug('loadArmorFromBungie start', { reason });
+      debugState.armorSamples = [];
+      renderDebugArmorSamples();
       const membership = getSelectedMembership();
       if(!membership){
         setBungieStatus('Select a Destiny profile before loading armor.', 'error');
