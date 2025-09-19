@@ -1649,10 +1649,10 @@
       const used = Number(energy?.energyUsed);
       const unused = Number(energy?.energyUnused);
       const sources = [
-        Number.isFinite(capacity) ? capacity : null,
         Number.isFinite(level) ? level : null,
         (Number.isFinite(capacity) && Number.isFinite(unused)) ? capacity - unused : null,
-        Number.isFinite(used) ? used : null
+        Number.isFinite(used) ? used : null,
+        Number.isFinite(capacity) ? capacity : null
       ];
       for(const source of sources){
         if(Number.isFinite(source)){
@@ -1689,85 +1689,57 @@
       const stat = stats?.[hash];
       const value = Number(stat?.value ?? 0);
       const numericValue = Number.isFinite(value) ? value : 0;
-      const totalAdjustment = Number(socketDetails?.adjustments?.[label]);
-      const masterworkContribution = Number(socketDetails?.masterworkAdjustments?.[label]);
-      const recognizedMasterworkBonus = Number.isFinite(masterworkContribution) && Math.abs(masterworkContribution) > 0.001 ? masterworkContribution : 0;
+      const totalAdjustmentRaw = Number(socketDetails?.adjustments?.[label]);
+      const totalAdjustment = Number.isFinite(totalAdjustmentRaw) ? totalAdjustmentRaw : 0;
+      const masterworkContributionRaw = Number(socketDetails?.masterworkAdjustments?.[label]);
+      const recognizedMasterworkBonus = Number.isFinite(masterworkContributionRaw) && Math.abs(masterworkContributionRaw) > 0.001 ? masterworkContributionRaw : 0;
       const fallbackMasterworkBonus = (!recognizedMasterworkBonus && isMasterworked && !hasRecognizedMasterworkPlug) ? 2 : 0;
-      let baseFromValue = Number.isFinite(numericValue) ? numericValue : NaN;
-      if(Number.isFinite(baseFromValue)){
-        if(Number.isFinite(totalAdjustment)){
-          baseFromValue -= totalAdjustment;
-        }
-        if(fallbackMasterworkBonus){
-          baseFromValue -= fallbackMasterworkBonus;
-        }
+
+      let derivedBase = numericValue;
+      derivedBase -= totalAdjustment;
+      if(fallbackMasterworkBonus){
+        derivedBase -= fallbackMasterworkBonus;
       }
+      if(!Number.isFinite(derivedBase)){
+        derivedBase = 0;
+      }
+
       const investmentValue = Number(stat?.investmentValue);
       const apiBase = Number(stat?.base);
-      const candidates = [];
-      if(Number.isFinite(baseFromValue)){
-        candidates.push(baseFromValue);
-      }
+      const apiCandidates = [];
       if(Number.isFinite(investmentValue)){
-        candidates.push(investmentValue);
-        const masterworkToSubtract = recognizedMasterworkBonus || fallbackMasterworkBonus;
-        if(masterworkToSubtract && (!Number.isFinite(baseFromValue) || investmentValue > (baseFromValue + 0.5))){
-          candidates.push(investmentValue - masterworkToSubtract);
-        }
+        apiCandidates.push(investmentValue);
       }
       if(Number.isFinite(apiBase)){
-        candidates.push(apiBase);
-        const masterworkToSubtract = recognizedMasterworkBonus || fallbackMasterworkBonus;
-        if(masterworkToSubtract && (!Number.isFinite(baseFromValue) || apiBase > (baseFromValue + 0.5))){
-          candidates.push(apiBase - masterworkToSubtract);
+        apiCandidates.push(apiBase);
+      }
+      const masterworkToSubtract = recognizedMasterworkBonus || fallbackMasterworkBonus;
+      if(masterworkToSubtract){
+        if(Number.isFinite(investmentValue)){
+          apiCandidates.push(investmentValue - masterworkToSubtract);
+        }
+        if(Number.isFinite(apiBase)){
+          apiCandidates.push(apiBase - masterworkToSubtract);
         }
       }
-      if(!candidates.length && Number.isFinite(numericValue)){
-        let fallback = numericValue;
-        if(Number.isFinite(totalAdjustment)){
-          fallback -= totalAdjustment;
-        }
-        fallback -= fallbackMasterworkBonus;
-        candidates.push(fallback);
-      }
-      let target = Number.POSITIVE_INFINITY;
-      for(const candidate of candidates){
-        if(Number.isFinite(candidate)){
-          target = Math.min(target, candidate);
+
+      let baseValue = Number.isFinite(derivedBase) ? derivedBase : 0;
+      const validApiCandidates = apiCandidates.filter(v => Number.isFinite(v));
+      if(validApiCandidates.length){
+        const minApi = Math.min(...validApiCandidates);
+        if(Number.isFinite(minApi)){
+          baseValue = Math.min(baseValue, minApi);
         }
       }
-      if(!Number.isFinite(target)){
-        target = Number.isFinite(baseFromValue) ? baseFromValue : (Number.isFinite(numericValue) ? numericValue : 0);
-      }
-      const maxAllowed = (() => {
-        if(!Number.isFinite(numericValue)) return null;
-        let cap = numericValue;
-        if(Number.isFinite(totalAdjustment)){
-          cap -= totalAdjustment;
-        }
-        if(fallbackMasterworkBonus && (!Number.isFinite(totalAdjustment) || Math.abs(recognizedMasterworkBonus) < 0.001)){
-          cap -= fallbackMasterworkBonus;
-        }
-        return cap;
-      })();
-      let baseValue = 0;
-      let bestDiff = Number.POSITIVE_INFINITY;
-      for(const rawCandidate of candidates){
-        if(!Number.isFinite(rawCandidate)) continue;
-        let candidate = rawCandidate;
-        if(Number.isFinite(maxAllowed)){
-          candidate = Math.min(candidate, maxAllowed);
-        }
-        if(Number.isFinite(numericValue)){
-          candidate = Math.min(candidate, numericValue);
-        }
-        candidate = Math.round(Math.max(0, candidate));
-        const diff = Math.abs(candidate - target);
-        if(diff < bestDiff || (diff === bestDiff && candidate > baseValue)){
-          bestDiff = diff;
-          baseValue = candidate;
+
+      if(Number.isFinite(numericValue)){
+        const cap = numericValue - totalAdjustment - (fallbackMasterworkBonus && !recognizedMasterworkBonus ? fallbackMasterworkBonus : 0);
+        if(Number.isFinite(cap)){
+          baseValue = Math.min(baseValue, cap);
         }
       }
+
+      baseValue = Math.max(0, Math.round(baseValue));
       row[label] = baseValue;
       row['Total (Base)'] += baseValue;
     }
