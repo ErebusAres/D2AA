@@ -1541,10 +1541,7 @@
     let upgradeLevel = null;
     let source = null;
 
-    if(capacity !== null && capacity >= 0){
-      upgradeLevel = capacity;
-      source = 'energyCapacity';
-    }else if(level !== null && level >= 0){
+    if(level !== null && level >= 0){
       upgradeLevel = level;
       source = 'energyLevel';
     }else if(used !== null && unused !== null){
@@ -1556,6 +1553,9 @@
     }else if(used !== null){
       upgradeLevel = used;
       source = 'energyUsed';
+    }else if(capacity !== null && capacity >= 0){
+      upgradeLevel = capacity;
+      source = 'energyCapacity';
     }
 
     if(upgradeLevel !== null){
@@ -1872,8 +1872,19 @@
 
       setIfUnset(apiBase, 'apiBase');
       setIfUnset(apiInvestment, 'apiInvestment');
-      setIfUnset(manualBase, 'derivedAdjustments');
-      setIfUnset(socketBase, 'socketIntrinsic');
+
+      const preferLower = (candidate, source) => {
+        if(!Number.isFinite(candidate)) return;
+        const epsilon = 0.0001;
+        if(baseValue === null || candidate < baseValue - epsilon){
+          baseValue = candidate;
+          baseSource = source;
+        }
+      };
+
+      preferLower(manualBase, 'derivedAdjustments');
+      preferLower(socketBase, 'socketIntrinsic');
+
       setIfUnset(numericValue, 'current');
 
       if(baseValue === null){
