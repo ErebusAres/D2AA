@@ -1992,41 +1992,31 @@
 
       let baseValue = null;
       let baseSource = 'fallback-zero';
-      const setIfUnset = (value, source) => {
-        if(baseValue !== null) return;
-        if(!Number.isFinite(value)) return;
-        baseValue = value;
-        baseSource = source;
-      };
 
-      setIfUnset(apiBase, 'apiBase');
-      setIfUnset(apiInvestment, 'apiInvestment');
-
-      const preferLower = (candidate, source) => {
-        if(!Number.isFinite(candidate)) return;
-        const epsilon = 0.0001;
-        if(baseValue === null || candidate < baseValue - epsilon){
-          baseValue = candidate;
-          baseSource = source;
-        }
-      };
-
-      preferLower(manualBase, 'derivedAdjustments');
-      preferLower(socketBase, 'socketIntrinsic');
-
-      setIfUnset(numericValue, 'current');
-
-      if(baseValue === null){
-        baseValue = 0;
-        baseSource = 'fallback-zero';
+      if(Number.isFinite(apiBase)){
+        baseValue = apiBase;
+        baseSource = 'apiBase';
+      }else if(Number.isFinite(apiInvestment)){
+        baseValue = apiInvestment;
+        baseSource = 'apiInvestment';
       }
 
-      if((baseSource === 'apiBase' || baseSource === 'apiInvestment')
-        && baseValue === 0
-        && Number.isFinite(manualBase)
-        && manualBase > 0){
+      if(Number.isFinite(manualBase)){
         baseValue = manualBase;
-        baseSource = 'derivedAdjustmentsFallback';
+        baseSource = 'derivedAdjustments';
+      }else if(baseValue === null && Number.isFinite(socketBase)){
+        baseValue = socketBase;
+        baseSource = 'socketIntrinsic';
+      }
+
+      if(baseValue === null){
+        if(Number.isFinite(numericValue)){
+          baseValue = numericValue;
+          baseSource = 'current';
+        }else{
+          baseValue = 0;
+          baseSource = 'fallback-zero';
+        }
       }
 
       if(Number.isFinite(numericValue)){
