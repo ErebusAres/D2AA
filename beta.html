@@ -1542,23 +1542,21 @@
     let upgradeLevel = null;
     let source = null;
 
-    if(used !== null){
-      upgradeLevel = used;
-      source = 'energyUsed';
+    if(capacity !== null && capacity >= 0){
+      upgradeLevel = capacity;
+      source = 'energyCapacity';
     }else if(level !== null && level >= 0){
       upgradeLevel = level;
       source = 'energyLevel';
-    }else if(capacity !== null && unused !== null){
-      const candidate = capacity - unused;
+    }else if(used !== null && unused !== null){
+      const candidate = used + unused;
       if(Number.isFinite(candidate) && candidate >= 0){
         upgradeLevel = candidate;
-        source = 'capacityMinusUnused';
+        source = 'energyUsedPlusUnused';
       }
-    }
-
-    if(upgradeLevel === null && capacity !== null && capacity >= 0){
-      upgradeLevel = capacity;
-      if(!source) source = 'energyCapacity';
+    }else if(used !== null){
+      upgradeLevel = used;
+      source = 'energyUsed';
     }
 
     if(upgradeLevel !== null){
@@ -1569,7 +1567,7 @@
     if(upgradeLevel !== null){
       tier = Math.ceil(Math.max(0, upgradeLevel) / 2);
       if(tier < 0) tier = 0;
-      if(tier > 4) tier = 4;
+      if(tier > 5) tier = 5;
       if(upgradeLevel > 0 && tier === 0){
         tier = 1;
       }
@@ -1816,7 +1814,9 @@
     const energyInfo = deriveEnergyTierInfo(energy);
     const derivedTierValue = Number.isFinite(energyInfo?.tier) ? energyInfo.tier : 0;
     const usedEnergy = Number.isFinite(energyInfo?.used) ? energyInfo.used : null;
-    const currentEnergy = usedEnergy ?? (Number.isFinite(energyInfo?.upgradeLevel) ? energyInfo.upgradeLevel : null);
+    const upgradeLevel = Number.isFinite(energyInfo?.upgradeLevel) ? energyInfo.upgradeLevel : null;
+    const capacityLevel = Number.isFinite(energyInfo?.capacity) ? energyInfo.capacity : null;
+    const currentEnergy = upgradeLevel ?? capacityLevel ?? usedEnergy ?? null;
     const tierEnergySource = energyInfo?.source || null;
     const row = {
       Id: normId(item.itemInstanceId || item.itemHash),
@@ -1837,9 +1837,12 @@
     const itemStateValue = Number(instance?.state);
     const isMasterworkedByState = Number.isFinite(itemStateValue) && (itemStateValue & DESTINY_ITEM_STATE_MASTERWORK) === DESTINY_ITEM_STATE_MASTERWORK;
     const isMasterworked = isMasterworkedByState
-      || (Number.isFinite(usedEnergy) && usedEnergy >= 10)
-      || (Number.isFinite(energyInfo?.level) && energyInfo.level >= 10);
-    let finalTierValue = isMasterworked ? 5 : derivedTierValue;
+      || (Number.isFinite(capacityLevel) && capacityLevel >= 10)
+      || (Number.isFinite(upgradeLevel) && upgradeLevel >= 10);
+    let finalTierValue = Number.isFinite(derivedTierValue) ? derivedTierValue : 0;
+    if(isMasterworked){
+      finalTierValue = Math.max(finalTierValue, 5);
+    }
     row.Tier = Number.isFinite(finalTierValue) ? finalTierValue : 0;
     for(const [hash,label] of Object.entries(STAT_HASH_TO_LABEL)){
       const stat = stats?.[hash];
@@ -1853,63 +1856,62 @@
       const socketBaseRaw = Number(socketDetails?.baseContributions?.[label]);
       const socketBase = Number.isFinite(socketBaseRaw) ? socketBaseRaw : null;
       const fallbackMasterworkToSubtract = (!recognizedMasterworkBonus && fallbackMasterworkBonus) ? fallbackMasterworkBonus : 0;
+      const adjustmentToSubtract = totalAdjustment + fallbackMasterworkToSubtract;
 
-      let manualBase = null;
-      if(Number.isFinite(numericValue)){
-        const subtraction = totalAdjustment + fallbackMasterworkToSubtract;
-        if(Number.isFinite(subtraction)){
-          const candidate = numericValue - subtraction;
-          manualBase = Number.isFinite(candidate) ? Math.max(0, candidate) : null;
+      let manualBaseRaw = null;
+      if(Number.isFinite(numericValue) && Number.isFinite(adjustmentToSubtract)){
+        const candidate = numericValue - adjustmentToSubtract;
+        if(Number.isFinite(candidate)){
+          manualBaseRaw = candidate;
         }
       }
+      const manualBase = Number.isFinite(manualBaseRaw)
+        ? Math.max(0, Math.min(manualBaseRaw, numericValue ?? manualBaseRaw))
+        : null;
       const apiBase = Number(stat?.base);
+      const apiInvestment = Number(stat?.investmentValue);
 
-      let baseValue = null;
-      let baseSource = 'default';
+      const candidates = [];
+      const pushCandidate = (value, source) => {
+        if(!Number.isFinite(value)) return;
+        const rounded = Math.max(0, Math.round(value));
+        candidates.push({ value: rounded, source });
+      };
 
-      if(Number.isFinite(apiBase)){
-        baseValue = apiBase;
-        baseSource = 'api';
-      }else if(Number.isFinite(socketBase)){
-        baseValue = socketBase;
-        baseSource = 'socket';
-      }else if(Number.isFinite(manualBase)){
-        baseValue = manualBase;
-        baseSource = 'manual';
-      }else if(Number.isFinite(numericValue)){
-        baseValue = Math.max(0, numericValue - totalAdjustment);
-        baseSource = 'current-minus-adjustments';
-      }else{
-        baseValue = 0;
-        baseSource = 'fallback-zero';
+      pushCandidate(manualBase, 'manual');
+      pushCandidate(apiBase, 'apiBase');
+      pushCandidate(apiInvestment, 'apiInvestment');
+      pushCandidate(socketBase, 'socket');
+      pushCandidate(numericValue, 'current');
+
+      let chosen = { value: 0, source: 'fallback-zero' };
+      if(candidates.length){
+        const maxCurrent = Number.isFinite(numericValue) ? Math.max(0, Math.round(numericValue)) : null;
+        const filtered = maxCurrent !== null
+          ? candidates.filter(candidate => candidate.value <= maxCurrent)
+          : candidates.slice();
+        const sorted = (filtered.length ? filtered : candidates).sort((a, b) => a.value - b.value);
+        chosen = sorted[0];
       }
 
-      const sanitizedRounded = Number.isFinite(manualBase) ? Math.max(0, Math.round(manualBase)) : null;
-      let sanitizedApplied = false;
-      if(Number.isFinite(sanitizedRounded) && Number.isFinite(baseValue) && baseValue > sanitizedRounded){
-        baseValue = sanitizedRounded;
-        sanitizedApplied = true;
-        baseSource = `${baseSource}+sanitized`;
-      }
-
-      baseValue = Math.max(0, Math.round(baseValue));
-      row[label] = baseValue;
-      row['Total (Base)'] += baseValue;
+      row[label] = chosen.value;
+      row['Total (Base)'] += chosen.value;
 
       if(statDebug){
         statDebug[label] = {
           current: Number.isFinite(numericValue) ? numericValue : null,
           socketBase,
-          manualBase,
+          manualBase: Number.isFinite(manualBaseRaw) ? manualBaseRaw : null,
           apiBase: Number.isFinite(apiBase) ? apiBase : null,
+          apiInvestment: Number.isFinite(apiInvestment) ? apiInvestment : null,
           totalAdjustment,
+          adjustmentToSubtract: Number.isFinite(adjustmentToSubtract) ? adjustmentToSubtract : null,
           recognizedMasterworkBonus,
           fallbackMasterworkBonus,
           fallbackMasterworkApplied: fallbackMasterworkToSubtract,
-          sanitizedBase: Number.isFinite(sanitizedRounded) ? sanitizedRounded : null,
-          sanitizedApplied,
-          baseSource,
-          computedBase: baseValue
+          baseSource: chosen.source,
+          computedBase: chosen.value,
+          baseCandidates: candidates
         };
       }
     }
