@@ -227,8 +227,7 @@
     2996146975: "Weapons (Base)"
   };
   const ARMOR_INTRINSIC_PLUG_CATEGORY_HASHES = new Set([
-    1744546145, // PlugCategoryHashes.Intrinsics
-    748854354   // PlugCategoryHashes.ArmorStats
+    1744546145  // PlugCategoryHashes.Intrinsics
   ]);
   const ARMOR_MOD_PLUG_CATEGORY_HASHES = new Set([
     1202876185, // PlugCategoryHashes.EnhancementsActivity
@@ -1653,7 +1652,6 @@
     if(plugCat){
       if(plugCat === 'intrinsics' || plugCat.startsWith('intrinsics.')) return true;
       if(plugCat.startsWith('frames')) return true;
-      if(plugCat.includes('armorstats')) return true;
     }
     return false;
   }
