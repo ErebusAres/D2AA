@@ -1749,9 +1749,9 @@
       const used = Number(energy?.energyUsed);
       const unused = Number(energy?.energyUnused);
       const sources = [
-        (Number.isFinite(capacity) && Number.isFinite(unused)) ? (capacity - unused) : null,
-        Number.isFinite(used) ? used : null,
         Number.isFinite(level) ? level : null,
+        Number.isFinite(used) ? used : null,
+        (Number.isFinite(capacity) && Number.isFinite(unused)) ? (capacity - unused) : null,
         Number.isFinite(capacity) ? capacity : null
       ];
       for(const source of sources){
@@ -1789,8 +1789,8 @@
     const isMasterworked = Number.isFinite(masterworkEnergy) && masterworkEnergy >= 10;
     for(const [hash,label] of Object.entries(STAT_HASH_TO_LABEL)){
       const stat = stats?.[hash];
-      const value = Number(stat?.value ?? 0);
-      const numericValue = Number.isFinite(value) ? value : 0;
+      const value = Number(stat?.value);
+      const numericValue = Number.isFinite(value) ? value : null;
       const totalAdjustmentRaw = Number(socketDetails?.adjustments?.[label]);
       const totalAdjustment = Number.isFinite(totalAdjustmentRaw) ? totalAdjustmentRaw : 0;
       const masterworkContributionRaw = Number(socketDetails?.masterworkAdjustments?.[label]);
@@ -1808,25 +1808,25 @@
         }
       }
       const apiBase = Number(stat?.base);
-      let baseValue = Number.isFinite(socketBase) ? socketBase : null;
+
+      let baseValue = null;
+      let baseSource = 'default';
 
       if(Number.isFinite(apiBase)){
-        baseValue = baseValue == null ? apiBase : Math.min(baseValue, apiBase);
-      }
-
-      if(Number.isFinite(manualBase)){
-        baseValue = baseValue == null ? manualBase : Math.min(baseValue, manualBase);
-      }
-
-      if(Number.isFinite(numericValue)){
-        const theoreticalCap = numericValue - (recognizedMasterworkBonus || 0) - (!recognizedMasterworkBonus && fallbackMasterworkBonus ? fallbackMasterworkBonus : 0);
-        if(Number.isFinite(theoreticalCap)){
-          baseValue = baseValue == null ? theoreticalCap : Math.min(baseValue, theoreticalCap);
-        }
-      }
-
-      if(!Number.isFinite(baseValue)){
-        baseValue = Number.isFinite(manualBase) ? manualBase : 0;
+        baseValue = apiBase;
+        baseSource = 'api';
+      }else if(Number.isFinite(socketBase)){
+        baseValue = socketBase;
+        baseSource = 'socket';
+      }else if(Number.isFinite(manualBase)){
+        baseValue = manualBase;
+        baseSource = 'manual';
+      }else if(Number.isFinite(numericValue)){
+        baseValue = Math.max(0, numericValue - totalAdjustment);
+        baseSource = 'current-minus-adjustments';
+      }else{
+        baseValue = 0;
+        baseSource = 'fallback-zero';
       }
 
       baseValue = Math.max(0, Math.round(baseValue));
@@ -1835,13 +1835,14 @@
 
       if(statDebug){
         statDebug[label] = {
-          current: numericValue,
+          current: Number.isFinite(numericValue) ? numericValue : null,
           socketBase,
           manualBase,
           apiBase: Number.isFinite(apiBase) ? apiBase : null,
           totalAdjustment,
           recognizedMasterworkBonus,
           fallbackMasterworkBonus,
+          baseSource,
           computedBase: baseValue
         };
       }
