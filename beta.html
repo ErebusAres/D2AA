@@ -1812,7 +1812,7 @@
       : (def.itemTypeDisplayName || ARMOR_BUCKET_HASH_TO_TYPE[bucketKey] || 'Armor');
     const energy = instance?.energy;
     const energyInfo = deriveEnergyTierInfo(energy);
-    const derivedTierValue = Number.isFinite(energyInfo?.tier) ? energyInfo.tier : 0;
+    const energyTierValue = Number.isFinite(energyInfo?.tier) ? energyInfo.tier : null;
     const usedEnergy = Number.isFinite(energyInfo?.used) ? energyInfo.used : null;
     const upgradeLevel = Number.isFinite(energyInfo?.upgradeLevel) ? energyInfo.upgradeLevel : null;
     const capacityLevel = Number.isFinite(energyInfo?.capacity) ? energyInfo.capacity : null;
@@ -1826,7 +1826,7 @@
       Rarity: def?.inventory?.tierTypeName || '',
       Tag: '',
       Power: instance?.primaryStat?.value ?? '',
-      Tier: Number.isFinite(derivedTierValue) ? derivedTierValue : 0,
+      Tier: 0,
       'Total (Base)': 0
     };
     const socketDefs = Array.isArray(def?.sockets?.socketEntries) ? def.sockets.socketEntries : [];
@@ -1839,11 +1839,6 @@
     const isMasterworked = isMasterworkedByState
       || (Number.isFinite(capacityLevel) && capacityLevel >= 10)
       || (Number.isFinite(upgradeLevel) && upgradeLevel >= 10);
-    let finalTierValue = Number.isFinite(derivedTierValue) ? derivedTierValue : 0;
-    if(isMasterworked){
-      finalTierValue = Math.max(finalTierValue, 5);
-    }
-    row.Tier = Number.isFinite(finalTierValue) ? finalTierValue : 0;
     for(const [hash,label] of Object.entries(STAT_HASH_TO_LABEL)){
       const stat = stats?.[hash];
       const value = Number(stat?.value);
@@ -1858,50 +1853,56 @@
       const fallbackMasterworkToSubtract = (!recognizedMasterworkBonus && fallbackMasterworkBonus) ? fallbackMasterworkBonus : 0;
       const adjustmentToSubtract = totalAdjustment + fallbackMasterworkToSubtract;
 
-      let manualBaseRaw = null;
+      const apiBase = Number(stat?.base);
+      const apiInvestment = Number(stat?.investmentValue);
+      let manualBase = null;
       if(Number.isFinite(numericValue) && Number.isFinite(adjustmentToSubtract)){
         const candidate = numericValue - adjustmentToSubtract;
         if(Number.isFinite(candidate)){
-          manualBaseRaw = candidate;
+          manualBase = Math.max(0, Math.min(candidate, numericValue));
         }
       }
-      const manualBase = Number.isFinite(manualBaseRaw)
-        ? Math.max(0, Math.min(manualBaseRaw, numericValue ?? manualBaseRaw))
-        : null;
-      const apiBase = Number(stat?.base);
-      const apiInvestment = Number(stat?.investmentValue);
 
-      const candidates = [];
-      const pushCandidate = (value, source) => {
+      let baseValue = null;
+      let baseSource = 'fallback-zero';
+      const setIfUnset = (value, source) => {
+        if(baseValue !== null) return;
         if(!Number.isFinite(value)) return;
-        const rounded = Math.max(0, Math.round(value));
-        candidates.push({ value: rounded, source });
+        baseValue = value;
+        baseSource = source;
       };
 
-      pushCandidate(manualBase, 'manual');
-      pushCandidate(apiBase, 'apiBase');
-      pushCandidate(apiInvestment, 'apiInvestment');
-      pushCandidate(socketBase, 'socket');
-      pushCandidate(numericValue, 'current');
+      setIfUnset(apiBase, 'apiBase');
+      setIfUnset(apiInvestment, 'apiInvestment');
+      setIfUnset(manualBase, 'derivedAdjustments');
+      setIfUnset(socketBase, 'socketIntrinsic');
+      setIfUnset(numericValue, 'current');
 
-      let chosen = { value: 0, source: 'fallback-zero' };
-      if(candidates.length){
-        const maxCurrent = Number.isFinite(numericValue) ? Math.max(0, Math.round(numericValue)) : null;
-        const filtered = maxCurrent !== null
-          ? candidates.filter(candidate => candidate.value <= maxCurrent)
-          : candidates.slice();
-        const sorted = (filtered.length ? filtered : candidates).sort((a, b) => a.value - b.value);
-        chosen = sorted[0];
+      if(baseValue === null){
+        baseValue = 0;
+        baseSource = 'fallback-zero';
       }
 
-      row[label] = chosen.value;
-      row['Total (Base)'] += chosen.value;
+      if((baseSource === 'apiBase' || baseSource === 'apiInvestment')
+        && baseValue === 0
+        && Number.isFinite(manualBase)
+        && manualBase > 0){
+        baseValue = manualBase;
+        baseSource = 'derivedAdjustmentsFallback';
+      }
+
+      if(Number.isFinite(numericValue)){
+        baseValue = Math.min(baseValue, numericValue);
+      }
+
+      const roundedBase = Math.max(0, Math.round(baseValue));
+      row[label] = roundedBase;
 
       if(statDebug){
         statDebug[label] = {
           current: Number.isFinite(numericValue) ? numericValue : null,
           socketBase,
-          manualBase: Number.isFinite(manualBaseRaw) ? manualBaseRaw : null,
+          manualBase: Number.isFinite(manualBase) ? manualBase : null,
           apiBase: Number.isFinite(apiBase) ? apiBase : null,
           apiInvestment: Number.isFinite(apiInvestment) ? apiInvestment : null,
           totalAdjustment,
@@ -1909,13 +1910,21 @@
           recognizedMasterworkBonus,
           fallbackMasterworkBonus,
           fallbackMasterworkApplied: fallbackMasterworkToSubtract,
-          baseSource: chosen.source,
-          computedBase: chosen.value,
-          baseCandidates: candidates
+          baseSource,
+          computedBase: roundedBase
         };
       }
     }
-    row['Total (Base)'] = Number.isFinite(row['Total (Base)']) ? row['Total (Base)'] : 0;
+    let totalBase = 0;
+    for(const label of Object.values(STAT_HASH_TO_LABEL)){
+      const value = Number(row[label]);
+      if(Number.isFinite(value)){
+        totalBase += value;
+      }
+    }
+    row['Total (Base)'] = totalBase;
+    const statTier = Math.max(0, Math.floor(totalBase / 10));
+    row.Tier = statTier;
     if(statDebug){
       const capacityNum = Number.isFinite(energyInfo?.capacity) ? energyInfo.capacity : Number(energy?.energyCapacity);
       const usedNum = Number.isFinite(energyInfo?.used) ? energyInfo.used : Number(energy?.energyUsed);
@@ -1924,7 +1933,8 @@
       const sample = {
         name: row.Name,
         type: row.Type,
-        tier: row.Tier,
+        tier: statTier,
+        totalBase,
         instanceId: item?.itemInstanceId || null,
         itemHash: item?.itemHash || null,
         isMasterworked,
@@ -1937,8 +1947,12 @@
           level: Number.isFinite(levelNum) ? levelNum : null,
           current: Number.isFinite(currentEnergy) ? currentEnergy : null,
           source: tierEnergySource,
-          derivedTier: Number.isFinite(derivedTierValue) ? derivedTierValue : null,
-          finalTier: Number.isFinite(finalTierValue) ? finalTierValue : null
+          derivedTier: Number.isFinite(energyTierValue) ? energyTierValue : null
+        },
+        tierSources: {
+          stats: statTier,
+          energy: Number.isFinite(energyTierValue) ? energyTierValue : null,
+          energySource: tierEnergySource
         },
         stats: statDebug,
         adjustments: socketDetails?.adjustments || {},
