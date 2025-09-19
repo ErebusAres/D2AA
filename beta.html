@@ -175,6 +175,7 @@
   const SLOT_OPTIONS = ["All", "Helmet", "Gauntlets", "Chest Armor", "Leg Armor", "Class Item"];
   const RARITY_OPTIONS = ["All", "Legendary", "Exotic"];  const DUPES_OPTIONS = ["All", "Only Dupes", "Only Same-Name"];
   const classItemByClass = { Warlock: "Warlock Bond", Hunter: "Hunter Cloak", Titan: "Titan Mark" };
+  const DESTINY_ITEM_STATE_MASTERWORK = 1 << 2; // DestinyItemState.Masterwork bit flag
   const TAG_EMOJIS = {
     favorite: "❤️",
     keep: "🏷️",
@@ -1513,6 +1514,71 @@
       ?? socket?.plugItemHash;
     return plugHash != null ? plugHash : null;
   }
+  function toFiniteNumber(value){
+    const numeric = Number(value);
+    return Number.isFinite(numeric) ? numeric : null;
+  }
+
+  function deriveEnergyTierInfo(energy){
+    if(!energy){
+      return {
+        tier: 0,
+        source: null,
+        upgradeLevel: null,
+        level: null,
+        capacity: null,
+        used: null,
+        unused: null
+      };
+    }
+    const level = toFiniteNumber(energy?.energyLevel);
+    const capacity = toFiniteNumber(energy?.energyCapacity);
+    const used = toFiniteNumber(energy?.energyUsed);
+    const unused = toFiniteNumber(energy?.energyUnused);
+
+    let upgradeLevel = null;
+    let source = null;
+
+    if(level !== null && level >= 0){
+      upgradeLevel = level;
+      source = 'energyLevel';
+    }else if(capacity !== null && unused !== null){
+      const candidate = capacity - unused;
+      if(Number.isFinite(candidate) && candidate >= 0){
+        upgradeLevel = candidate;
+        source = 'capacityMinusUnused';
+      }
+    }
+
+    if(upgradeLevel === null && capacity !== null && capacity >= 0){
+      upgradeLevel = capacity;
+      if(!source) source = 'energyCapacity';
+    }
+
+    if(upgradeLevel !== null){
+      upgradeLevel = Math.max(0, Math.min(upgradeLevel, 10));
+    }
+
+    let tier = 0;
+    if(upgradeLevel !== null){
+      tier = Math.ceil(Math.max(0, upgradeLevel) / 2);
+      if(tier < 0) tier = 0;
+      if(tier > 4) tier = 4;
+      if(upgradeLevel > 0 && tier === 0){
+        tier = 1;
+      }
+    }
+
+    return {
+      tier,
+      source,
+      upgradeLevel,
+      level,
+      capacity,
+      used,
+      unused
+    };
+  }
 
   // Destiny Item Manager removes every socket-provided stat bonus except for intrinsic
   // or frame plugs when it has to derive base stats manually. We mostly rely on Bungie's
@@ -1740,29 +1806,11 @@
     const typeName = isClassItem
       ? (classItemByClass[className] || def.itemTypeDisplayName || 'Class Item')
       : (def.itemTypeDisplayName || ARMOR_BUCKET_HASH_TO_TYPE[bucketKey] || 'Armor');
-    let derivedTierValue = 0;
-    let currentEnergy = null;
-    let tierEnergySource = null;
     const energy = instance?.energy;
-    if(energy){
-      const capacity = Number(energy?.energyCapacity);
-      const level = Number(energy?.energyLevel);
-      if(Number.isFinite(level) && level >= 0){
-        currentEnergy = level;
-        tierEnergySource = 'energyLevel';
-      }else if(Number.isFinite(capacity) && capacity >= 0){
-        currentEnergy = capacity;
-        tierEnergySource = 'energyCapacity';
-      }
-      if(Number.isFinite(currentEnergy)){
-        derivedTierValue = Math.ceil(Math.max(0, currentEnergy) / 2);
-        if(derivedTierValue < 0) derivedTierValue = 0;
-        if(derivedTierValue > 4) derivedTierValue = 4;
-        if(currentEnergy > 0 && derivedTierValue === 0){
-          derivedTierValue = 1;
-        }
-      }
-    }
+    const energyInfo = deriveEnergyTierInfo(energy);
+    const derivedTierValue = Number.isFinite(energyInfo?.tier) ? energyInfo.tier : 0;
+    const currentEnergy = Number.isFinite(energyInfo?.upgradeLevel) ? energyInfo.upgradeLevel : null;
+    const tierEnergySource = energyInfo?.source || null;
     const row = {
       Id: normId(item.itemInstanceId || item.itemHash),
       Name: def?.displayProperties?.name || 'Unknown Item',
@@ -1779,12 +1827,9 @@
     const socketDetails = await getStatAdjustmentsFromSockets(sockets, socketDefs, { collectDetails: collectDebug });
     const hasRecognizedMasterworkPlug = Boolean(socketDetails?.hasRecognizedMasterworkPlug);
     const statDebug = collectDebug ? {} : null;
-    const energyLevelForMasterwork = Number(energy?.energyLevel);
-    const capacityForMasterwork = Number(energy?.energyCapacity);
-    const masterworkEnergy = Number.isFinite(energyLevelForMasterwork)
-      ? energyLevelForMasterwork
-      : (Number.isFinite(capacityForMasterwork) ? capacityForMasterwork : Number(instance?.energy?.energyLevel));
-    const isMasterworked = Number.isFinite(masterworkEnergy) && masterworkEnergy >= 10;
+    const itemStateValue = Number(instance?.state);
+    const isMasterworkedByState = Number.isFinite(itemStateValue) && (itemStateValue & DESTINY_ITEM_STATE_MASTERWORK) === DESTINY_ITEM_STATE_MASTERWORK;
+    const isMasterworked = isMasterworkedByState || (Number.isFinite(currentEnergy) && currentEnergy >= 10);
     let finalTierValue = isMasterworked ? 5 : derivedTierValue;
     row.Tier = Number.isFinite(finalTierValue) ? finalTierValue : 0;
     for(const [hash,label] of Object.entries(STAT_HASH_TO_LABEL)){
@@ -1849,10 +1894,10 @@
     }
     row['Total (Base)'] = Number.isFinite(row['Total (Base)']) ? row['Total (Base)'] : 0;
     if(statDebug){
-      const capacityNum = Number(energy?.energyCapacity);
-      const usedNum = Number(energy?.energyUsed);
-      const unusedNum = Number(energy?.energyUnused);
-      const levelNum = Number(energy?.energyLevel);
+      const capacityNum = Number.isFinite(energyInfo?.capacity) ? energyInfo.capacity : Number(energy?.energyCapacity);
+      const usedNum = Number.isFinite(energyInfo?.used) ? energyInfo.used : Number(energy?.energyUsed);
+      const unusedNum = Number.isFinite(energyInfo?.unused) ? energyInfo.unused : Number(energy?.energyUnused);
+      const levelNum = Number.isFinite(energyInfo?.level) ? energyInfo.level : Number(energy?.energyLevel);
       const sample = {
         name: row.Name,
         type: row.Type,
@@ -1860,6 +1905,7 @@
         instanceId: item?.itemInstanceId || null,
         itemHash: item?.itemHash || null,
         isMasterworked,
+        masterworkFromState: isMasterworkedByState,
         hasRecognizedMasterworkPlug,
         energy: {
           capacity: Number.isFinite(capacityNum) ? capacityNum : null,
