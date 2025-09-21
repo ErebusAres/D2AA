@@ -1875,10 +1875,10 @@
       let subtract = !treatAsIntrinsic;
       if(subtract){
         const heuristic = shouldSubtractPlugFromBaseStats(plugDef, plugStats, socketCategoryHash);
-        if(heuristic === false && plugStats.size > 0){
+        if(heuristic === false){
+          subtract = false;
+        }else if(heuristic === true){
           subtract = true;
-        }else{
-          subtract = heuristic;
         }
       }
       const isMasterwork = isMasterworkStatPlug(plugDef);
