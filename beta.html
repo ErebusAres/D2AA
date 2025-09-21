@@ -1658,11 +1658,11 @@
       source = valueSource;
     };
 
-    assignIfUnset(used, 'energyUsed');
-    assignIfUnset(usedFromCapacity, 'energyCapacityMinusUnused');
-    assignIfUnset(usedPlusUnused, 'energyUsedPlusUnused');
     assignIfUnset(level, 'energyLevel');
     assignIfUnset(capacity, 'energyCapacity');
+    assignIfUnset(usedFromCapacity, 'energyCapacityMinusUnused');
+    assignIfUnset(usedPlusUnused, 'energyUsedPlusUnused');
+    assignIfUnset(used, 'energyUsed');
 
     if(upgradeLevel !== null){
       upgradeLevel = Math.max(0, Math.min(upgradeLevel, 10));
