@@ -196,31 +196,32 @@ function isMasterworked(instanceData) {
  * Identify whether a plug represents an artifice +3 armor mod.
  */
 function isArtificeStatPlug(plugDef) {
-  if (!plugDef) return false;
-  const plug = plugDef.plug ?? {};
-  if (typeof plug.plugCategoryIdentifier === 'string' && plug.plugCategoryIdentifier.includes('artifice')) {
-    return true;
-  }
-  const name = plugDef.displayProperties?.name?.toLowerCase?.() ?? '';
-  return name.includes('artifice');
+  const id = plugDef?.plug?.plugCategoryIdentifier || '';
+  return id === 'enhancements.artifice' || id === 'enhancements.artifice.stat';
 }
 
 /**
  * Identify whether a plug represents a masterwork stat bonus.
  */
 function isMasterworkStatPlug(plugDef) {
-  if (!plugDef) return false;
-  const plug = plugDef.plug ?? {};
-  const plugCategoryIdentifier = plug.plugCategoryIdentifier;
-  if (typeof plugCategoryIdentifier === 'string' && plugCategoryIdentifier.toLowerCase().includes('masterwork')) {
-    return true;
+  const id = (plugDef?.plug?.plugCategoryIdentifier || '').toLowerCase();
+  return id.includes('masterwork');
+}
+
+let MODULE_URL = '';
+try {
+  MODULE_URL = import.meta.url || '';
+} catch (_err) {
+  MODULE_URL = '';
+}
+
+function isDebugEnabled() {
+  if (typeof window === 'undefined') return false;
+  try {
+    return window.location?.search?.includes('debug=1');
+  } catch (_err) {
+    return false;
   }
-  const itemTypeName = plugDef.itemTypeDisplayName?.toLowerCase?.() ?? '';
-  if (itemTypeName.includes('masterwork')) {
-    return true;
-  }
-  const displayName = plugDef.displayProperties?.name?.toLowerCase?.() ?? '';
-  return displayName.includes('masterwork');
 }
 
 /**
@@ -279,10 +280,15 @@ async function aggregateSocketAdjustments({ sockets, plugStates, manifest }) {
   const plugStateLookup = buildPlugStateLookup(plugStates);
   const definitionPromises = [];
   const socketInfos = [];
+  const seenPlugs = new Set();
 
   sockets.sockets.forEach((socket, index) => {
     const plugHash = getEquippedPlugHash(socket, index, plugStateLookup);
     if (!plugHash) return;
+
+    const key = `${index}:${plugHash}`;
+    if (seenPlugs.has(key)) return;
+    seenPlugs.add(key);
 
     socketInfos.push({ plugHash, index });
     definitionPromises.push(
@@ -292,7 +298,9 @@ async function aggregateSocketAdjustments({ sockets, plugStates, manifest }) {
 
   const definitions = await Promise.all(definitionPromises);
 
-  socketInfos.forEach(({ plugHash }, idx) => {
+  const debugTelemetry = isDebugEnabled();
+
+  socketInfos.forEach(({ plugHash, index }, idx) => {
     const plugDef = definitions[idx];
     if (!plugDef?.investmentStats?.length) return;
 
@@ -307,6 +315,15 @@ async function aggregateSocketAdjustments({ sockets, plugStates, manifest }) {
       const value = stat.value ?? 0;
       if (value === 0) continue;
       targetMap[stat.statTypeHash] += value;
+      if (debugTelemetry && value === 3) {
+        console.log('[D2AA][artifice] +3 stat adjustment', {
+          plugName: plugDef.displayProperties?.name ?? 'Unknown Plug',
+          plugCategoryIdentifier: plugDef?.plug?.plugCategoryIdentifier ?? null,
+          statHash: stat.statTypeHash,
+          socketIndex: index,
+          source: MODULE_URL,
+        });
+      }
       statBreakdown[HASH_TO_NAME[stat.statTypeHash]] =
         (statBreakdown[HASH_TO_NAME[stat.statTypeHash]] ?? 0) + value;
       hasCoreAdjustments = true;
@@ -318,6 +335,7 @@ async function aggregateSocketAdjustments({ sockets, plugStates, manifest }) {
         name: plugDef.displayProperties?.name ?? 'Unknown Plug',
         isArtifice,
         isMasterwork,
+        socketIndex: index,
         byStat: statBreakdown,
       });
     }
@@ -363,7 +381,7 @@ export async function computeBaseArmorStats({
     manifest: manifestClient,
   });
 
-  const masterworkBonus = isMasterworked(instance) ? 2 : 0;
+  const masterworkFallback = isMasterworked(instance) ? 2 : 0;
 
   const baseByHash = Object.fromEntries(
     CORE_HASHES.map((hash) => {
@@ -371,10 +389,10 @@ export async function computeBaseArmorStats({
       const currentValue = current[name] ?? 0;
       const totalMods = (modsByHash[hash] ?? 0) + (artificeByHash[hash] ?? 0);
       const masterworkAdjustment = masterworkByHash[hash] ?? 0;
-      const fallbackMasterwork = masterworkAdjustment === 0 ? masterworkBonus : 0;
+      const fallbackMasterwork = masterworkAdjustment === 0 ? masterworkFallback : 0;
       const baseValue = Math.max(
         0,
-        currentValue /* - totalMods - masterworkAdjustment - fallbackMasterwork */
+        currentValue - totalMods - masterworkAdjustment - fallbackMasterwork
       );
       return [hash, baseValue];
     })
@@ -398,9 +416,8 @@ export async function computeBaseArmorStats({
     breakdown: {
       modsByStat: modsBreakdown,
       artificeByStat: artificeBreakdown,
-      artifice: artificeBreakdown,
       masterworkByStat: masterworkBreakdown,
-      masterwork: masterworkBonus,
+      masterwork: masterworkFallback,
       subtractedPlugs: plugDetails,
     },
   };
