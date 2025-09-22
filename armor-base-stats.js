@@ -206,6 +206,24 @@ function isArtificeStatPlug(plugDef) {
 }
 
 /**
+ * Identify whether a plug represents a masterwork stat bonus.
+ */
+function isMasterworkStatPlug(plugDef) {
+  if (!plugDef) return false;
+  const plug = plugDef.plug ?? {};
+  const plugCategoryIdentifier = plug.plugCategoryIdentifier;
+  if (typeof plugCategoryIdentifier === 'string' && plugCategoryIdentifier.toLowerCase().includes('masterwork')) {
+    return true;
+  }
+  const itemTypeName = plugDef.itemTypeDisplayName?.toLowerCase?.() ?? '';
+  if (itemTypeName.includes('masterwork')) {
+    return true;
+  }
+  const displayName = plugDef.displayProperties?.name?.toLowerCase?.() ?? '';
+  return displayName.includes('masterwork');
+}
+
+/**
  * Convert an ItemPlugStates payload into a quick lookup map so we can verify
  * that the currently socketed plug is enabled.
  */
@@ -248,9 +266,10 @@ function getEquippedPlugHash(socket, index, plugStateLookup) {
 async function aggregateSocketAdjustments({ sockets, plugStates, manifest }) {
   const modsByHash = Object.fromEntries(CORE_HASHES.map((hash) => [hash, 0]));
   const artificeByHash = Object.fromEntries(CORE_HASHES.map((hash) => [hash, 0]));
+  const masterworkByHash = Object.fromEntries(CORE_HASHES.map((hash) => [hash, 0]));
   const plugDetails = [];
   if (!sockets?.sockets?.length) {
-    return { modsByHash, artificeByHash, plugDetails };
+    return { modsByHash, artificeByHash, masterworkByHash, plugDetails };
   }
 
   if (!manifest?.getDefinition) {
@@ -277,7 +296,9 @@ async function aggregateSocketAdjustments({ sockets, plugStates, manifest }) {
     const plugDef = definitions[idx];
     if (!plugDef?.investmentStats?.length) return;
 
-    const targetMap = isArtificeStatPlug(plugDef) ? artificeByHash : modsByHash;
+    const isMasterwork = isMasterworkStatPlug(plugDef);
+    const isArtifice = !isMasterwork && isArtificeStatPlug(plugDef);
+    const targetMap = isMasterwork ? masterworkByHash : isArtifice ? artificeByHash : modsByHash;
     const statBreakdown = {};
     let hasCoreAdjustments = false;
 
@@ -295,13 +316,14 @@ async function aggregateSocketAdjustments({ sockets, plugStates, manifest }) {
       plugDetails.push({
         plugHash,
         name: plugDef.displayProperties?.name ?? 'Unknown Plug',
-        isArtifice: isArtificeStatPlug(plugDef),
+        isArtifice,
+        isMasterwork,
         byStat: statBreakdown,
       });
     }
   });
 
-  return { modsByHash, artificeByHash, plugDetails };
+  return { modsByHash, artificeByHash, masterworkByHash, plugDetails };
 }
 
 /**
@@ -335,7 +357,7 @@ export async function computeBaseArmorStats({
 
   const current = extractCurrentStats(stats);
   const manifestClient = manifest ?? createManifestClient({ apiKey });
-  const { modsByHash, artificeByHash, plugDetails } = await aggregateSocketAdjustments({
+  const { modsByHash, artificeByHash, masterworkByHash, plugDetails } = await aggregateSocketAdjustments({
     sockets,
     plugStates,
     manifest: manifestClient,
@@ -348,7 +370,12 @@ export async function computeBaseArmorStats({
       const name = HASH_TO_NAME[hash];
       const currentValue = current[name] ?? 0;
       const totalMods = (modsByHash[hash] ?? 0) + (artificeByHash[hash] ?? 0);
-      const baseValue = Math.max(0, currentValue - totalMods - masterworkBonus);
+      const masterworkAdjustment = masterworkByHash[hash] ?? 0;
+      const fallbackMasterwork = masterworkAdjustment === 0 ? masterworkBonus : 0;
+      const baseValue = Math.max(
+        0,
+        currentValue - totalMods - masterworkAdjustment - fallbackMasterwork
+      );
       return [hash, baseValue];
     })
   );
@@ -363,6 +390,7 @@ export async function computeBaseArmorStats({
 
   const modsBreakdown = finalizeStatBlock(modsByHash);
   const artificeBreakdown = finalizeStatBlock(artificeByHash);
+  const masterworkBreakdown = finalizeStatBlock(masterworkByHash);
 
   return {
     base,
@@ -371,6 +399,7 @@ export async function computeBaseArmorStats({
       modsByStat: modsBreakdown,
       artificeByStat: artificeBreakdown,
       artifice: artificeBreakdown,
+      masterworkByStat: masterworkBreakdown,
       masterwork: masterworkBonus,
       subtractedPlugs: plugDetails,
     },
