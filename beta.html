@@ -89,20 +89,12 @@
         <h2>Connect with DIM Sync</h2>
         <p class="muted">Sign in with DIM to layer your item tags on top of Bungie or CSV armor loads.</p>
       </div>
-      <div class="auth-grid">
-        <label class="auth-field">
-          <span class="auth-label">DIM API key</span>
-          <input id="dimApiKey" type="text" autocomplete="off" spellcheck="false" placeholder="Paste your dimApiKey" />
-        </label>
-      </div>
       <div class="auth-buttons">
         <button id="dimLogin" type="button" class="btn btn-primary">Sign in with DIM</button>
         <button id="dimRefresh" type="button" class="btn">Sync DIM tags</button>
         <button id="dimLogout" type="button" class="btn">Disconnect</button>
       </div>
-      <div class="auth-note muted">
-        Need a key? See the <a href="https://github.com/DestinyItemManager/dim-api" target="_blank" rel="noreferrer noopener">DIM Sync docs</a>. Keys &amp; tokens stay local to this browser.
-      </div>
+      <div class="auth-note muted">DIM access is configured for this site. Tokens stay local to this browser.</div>
       <div id="dimStatus" class="auth-status muted" aria-live="polite"></div>
     </section>
 
@@ -315,6 +307,21 @@
   const DIM_PROFILE_STORAGE = 'd2aa_dim_profile_v1';
   const DIM_API_ROOT = 'https://api.destinyitemmanager.com';
   const DIM_APP_VERSION = 'd2aa-beta';
+  // Replace this placeholder with the DIM API key registered for https://erebusares.github.io
+  const DIM_API_KEY_PLACEHOLDER = 'REPLACE_WITH_DIM_API_KEY';
+  const DIM_API_KEY = (() => {
+    try {
+      if (typeof window !== 'undefined' && window && window.__D2AA_DIM_API_KEY__) {
+        const override = String(window.__D2AA_DIM_API_KEY__).trim();
+        if (override) {
+          return override;
+        }
+      }
+    } catch (err) {
+      console.warn('Failed to read DIM API key override', err);
+    }
+    return DIM_API_KEY_PLACEHOLDER;
+  })();
   const BUNGIE_REDIRECT_URI = (() => {
     try {
       const { origin, pathname } = window.location;
@@ -334,6 +341,13 @@
   const normId = (s) => (s ? String(s).trim().replace(/^"|"$/g, "") : "");
   const normName = (s) => String(s || "").trim().toLowerCase();
   const num = (v) => (v == null || v === "" ? 0 : Number(v));
+  function getDimApiKey(){
+    const key = (DIM_API_KEY || '').trim();
+    if(!key || key === DIM_API_KEY_PLACEHOLDER){
+      return '';
+    }
+    return key;
+  }
   function slotNumber(type){
     if(type === "Helmet") return 1;
     if(type === "Gauntlets") return 2;
@@ -520,8 +534,8 @@
       },
       dim: {
         status: debugState.dimLastStatus,
-        hasApiKey: Boolean((dimConfig?.apiKey || '').trim()),
-        apiKeyMasked: maskSecret(dimConfig?.apiKey),
+        hasApiKey: Boolean(getDimApiKey()),
+        apiKeyMasked: maskSecret(getDimApiKey()),
         lastMembershipId: dimConfig?.lastMembershipId || null,
         hasToken: Boolean(dimTokens?.accessToken),
         tokenExpiresInMs: dimTokens?.expiresAt ? dimTokens.expiresAt - now : null,
@@ -684,6 +698,7 @@
   let dimProfile = loadDimProfileCache();
   let dimSyncToken = dimProfile?.syncToken ?? null;
   let dimIsFetching = false;
+  let dimArmorIsFetching = false;
   const manifestCache = {
     inventoryItem: new Map(),
     bucket: new Map(),
@@ -704,7 +719,6 @@
   let dimLoginBtn = null;
   let dimRefreshBtn = null;
   let dimLogoutBtn = null;
-  let dimApiKeyInput = null;
   const rowBaseTags = new Map();
   function saveRows(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(STATE.rows)); }catch(_){} }
   function loadRows(){ try{ const s=localStorage.getItem(LS_KEY); if(!s) return null; return JSON.parse(s); }catch(_){ return null; } }
@@ -888,7 +902,6 @@
   // ====== DIM Sync storage ======
   function loadDimConfig(){
     const defaults = {
-      apiKey: '',
       lastMembershipId: null
     };
     try{
@@ -897,7 +910,6 @@
       const parsed = JSON.parse(raw);
       return {
         ...defaults,
-        apiKey: typeof parsed?.apiKey === 'string' ? parsed.apiKey : '',
         lastMembershipId: parsed?.lastMembershipId ?? null
       };
     }catch(err){
@@ -909,10 +921,9 @@
   function saveDimConfig(){
     try{
       const payload = {
-        apiKey: (dimConfig?.apiKey || '').trim(),
         lastMembershipId: dimConfig?.lastMembershipId ?? null
       };
-      if(!payload.apiKey && !payload.lastMembershipId){
+      if(!payload.lastMembershipId){
         localStorage.removeItem(DIM_CONFIG_STORAGE);
       }else{
         localStorage.setItem(DIM_CONFIG_STORAGE, JSON.stringify(payload));
@@ -921,7 +932,7 @@
       console.warn('Failed to persist DIM config', err);
     }
     logDebug('saveDimConfig', {
-      hasApiKey: Boolean((dimConfig?.apiKey || '').trim()),
+      dimApiKeyConfigured: Boolean(getDimApiKey()),
       lastMembershipId: dimConfig?.lastMembershipId ?? null
     });
     updateDebugSnapshot();
@@ -1030,12 +1041,9 @@
   }
 
   function updateDimUI(){
-    const hasKey = Boolean((dimConfig?.apiKey || '').trim());
+    const hasKey = Boolean(getDimApiKey());
     const bungieReady = Boolean(bungieTokens?.refreshToken);
     const tokenValid = hasValidDimToken();
-    if(dimApiKeyInput && document.activeElement !== dimApiKeyInput){
-      dimApiKeyInput.value = dimConfig?.apiKey || '';
-    }
     if(dimLoginBtn) dimLoginBtn.disabled = dimIsFetching || !hasKey || !bungieReady;
     if(dimRefreshBtn) dimRefreshBtn.disabled = dimIsFetching || !tokenValid;
     if(dimLogoutBtn) dimLogoutBtn.disabled = dimIsFetching || !dimTokens?.accessToken;
@@ -1068,8 +1076,9 @@
   }
 
   async function requestDimToken(){
-    if(!(dimConfig?.apiKey && dimConfig.apiKey.trim())){
-      throw new Error('Add a DIM API key first.');
+    const dimApiKey = getDimApiKey();
+    if(!dimApiKey){
+      throw new Error('DIM API key is not configured.');
     }
     const membership = getSelectedMembership();
     const membershipId = membership?.membershipId || bungieConfig?.membershipId || bungieTokens?.membershipId;
@@ -1086,7 +1095,7 @@
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-API-Key': dimConfig.apiKey.trim(),
+          'X-API-Key': dimApiKey,
           'X-DIM-Version': DIM_APP_VERSION
         },
         body: JSON.stringify({
@@ -1129,15 +1138,20 @@
 
   function buildDimRequestHeaders(accessToken){
     const headers = new Headers();
-    headers.set('X-API-Key', dimConfig?.apiKey?.trim() || '');
+    const dimApiKey = getDimApiKey();
+    if(!dimApiKey){
+      throw new Error('DIM API key is not configured.');
+    }
+    headers.set('X-API-Key', dimApiKey);
     headers.set('X-DIM-Version', DIM_APP_VERSION);
     headers.set('Authorization', `Bearer ${accessToken}`);
     return headers;
   }
 
   async function dimApiRequest(path, options={}){
-    if(!(dimConfig?.apiKey && dimConfig.apiKey.trim())){
-      throw new Error('Add a DIM API key first.');
+    const dimApiKey = getDimApiKey();
+    if(!dimApiKey){
+      throw new Error('DIM API key is not configured.');
     }
     const accessToken = await ensureDimAccessToken();
     const url = new URL(`${DIM_API_ROOT}${path}`);
@@ -1188,8 +1202,9 @@
       logDebug('syncDimProfile skipped', { reason, dimIsFetching: true });
       return false;
     }
-    if(!(dimConfig?.apiKey && dimConfig.apiKey.trim())){
-      setDimStatus('Add a DIM API key to enable DIM Sync.', 'error');
+    const dimApiKey = getDimApiKey();
+    if(!dimApiKey){
+      setDimStatus('DIM Sync is not configured for this build.', 'error');
       return false;
     }
     const membership = getSelectedMembership();
@@ -1321,19 +1336,6 @@
     dimLoginBtn = document.getElementById('dimLogin');
     dimRefreshBtn = document.getElementById('dimRefresh');
     dimLogoutBtn = document.getElementById('dimLogout');
-    dimApiKeyInput = document.getElementById('dimApiKey');
-
-    if(dimApiKeyInput){
-      dimApiKeyInput.value = dimConfig?.apiKey || '';
-      dimApiKeyInput.addEventListener('change', (event) => {
-        dimConfig.apiKey = (event.target.value || '').trim();
-        saveDimConfig();
-        updateDimUI();
-        if(!dimConfig.apiKey){
-          setDimStatus('Add a DIM API key to enable DIM Sync.', 'info');
-        }
-      });
-    }
 
     if(dimLoginBtn){
       dimLoginBtn.addEventListener('click', () => {
@@ -1358,11 +1360,15 @@
       const hashTagCount = Array.isArray(dimProfile.itemHashTags) ? dimProfile.itemHashTags.length : 0;
       if(tagCount || hashTagCount){
         setDimStatus(`Loaded ${tagCount} DIM tag${tagCount === 1 ? '' : 's'} from last sync.`, 'info');
-      }else if(!dimConfig?.apiKey){
-        setDimStatus('Add a DIM API key to enable DIM Sync.', 'info');
+      }else if(!getDimApiKey()){
+        setDimStatus('DIM Sync is not configured for this build.', 'info');
+      }else{
+        setDimStatus('Sign in with DIM to sync your tags.', 'info');
       }
-    }else if(!dimConfig?.apiKey){
-      setDimStatus('Add a DIM API key to enable DIM Sync.', 'info');
+    }else if(!getDimApiKey()){
+      setDimStatus('DIM Sync is not configured for this build.', 'info');
+    }else{
+      setDimStatus('Sign in with DIM to sync your tags.', 'info');
     }
 
     updateDimUI();
@@ -1677,7 +1683,7 @@
     });
     const membership = await fetchMemberships();
     if(membership){
-      const loaded = await loadArmorFromBungie({ reason: 'auto' });
+      const loaded = await loadArmor({ reason: 'auto' });
       return loaded;
     }
     return false;
@@ -2150,8 +2156,7 @@
         item,
         def,
         instances[item.itemInstanceId],
-        statsByItem[item.itemInstanceId]?.stats || {},
-        sockets
+        statsByItem[item.itemInstanceId]?.stats || {}
       );
       if(row) rows.push(row);
     }
@@ -2477,17 +2482,19 @@
     };
   }
 
-  async function buildRowFromDefinition(item, def, instance, stats, sockets){
+  async function buildRowFromDefinition(item, def, instance, stats){
     if(!def || !def.inventory) return null;
     if(def.itemType !== 2) return null;
     if(def.classType != null && def.classType > 2 && def.classType !== 3 && def.classType !== 4) return null;
     const bucketKey = hashKey(def.inventory.bucketTypeHash);
     if(!ARMOR_BUCKET_HASH_TO_TYPE[bucketKey]) return null;
+
     const className = CLASS_BY_TYPE[def.classType] || 'Any';
     const isClassItem = bucketKey === String(1585787867);
     const typeName = isClassItem
       ? (classItemByClass[className] || def.itemTypeDisplayName || 'Class Item')
       : (def.itemTypeDisplayName || ARMOR_BUCKET_HASH_TO_TYPE[bucketKey] || 'Armor');
+
     const energy = instance?.energy;
     const energyInfo = deriveEnergyTierInfo(energy);
     const energyTierValue = Number.isFinite(energyInfo?.tier) ? energyInfo.tier : null;
@@ -2496,6 +2503,7 @@
     const capacityLevel = Number.isFinite(energyInfo?.capacity) ? energyInfo.capacity : null;
     const currentEnergy = upgradeLevel ?? capacityLevel ?? usedEnergy ?? null;
     const tierEnergySource = energyInfo?.source || null;
+
     const row = {
       Id: normId(item.itemInstanceId || item.itemHash),
       Name: def?.displayProperties?.name || 'Unknown Item',
@@ -2508,46 +2516,16 @@
       'Total (Base)': 0,
       ItemHash: item?.itemHash ?? null
     };
-    const socketDefs = Array.isArray(def?.sockets?.socketEntries) ? def.sockets.socketEntries : [];
+
     const collectDebug = debugState.armorSamples.length < ARMOR_DEBUG_SAMPLE_LIMIT;
-    const socketDetails = await getStatAdjustmentsFromSockets(sockets, socketDefs, { collectDetails: collectDebug });
-    const hasRecognizedMasterworkPlug = Boolean(socketDetails?.hasRecognizedMasterworkPlug);
-    const hasRecognizedStatPlug = Boolean(socketDetails?.hasRecognizedStatPlug);
     const statDebug = collectDebug ? {} : null;
-    const itemStateValue = Number(instance?.state);
-    const isMasterworkedByState = Number.isFinite(itemStateValue) && (itemStateValue & DESTINY_ITEM_STATE_MASTERWORK) === DESTINY_ITEM_STATE_MASTERWORK;
-    const isMasterworked = isMasterworkedByState
-      || (Number.isFinite(capacityLevel) && capacityLevel >= 10)
-      || (Number.isFinite(upgradeLevel) && upgradeLevel >= 10);
+
+    let totalBase = 0;
     for(const [hash,label] of Object.entries(STAT_HASH_TO_LABEL)){
       const stat = stats?.[hash];
-      const value = Number(stat?.value);
-      const numericValue = Number.isFinite(value) ? value : null;
-      const totalAdjustmentRaw = Number(socketDetails?.adjustments?.[label]);
-      const rawTotalAdjustment = Number.isFinite(totalAdjustmentRaw) ? totalAdjustmentRaw : 0;
-      let totalAdjustment = rawTotalAdjustment;
-      const masterworkContributionRaw = Number(socketDetails?.masterworkAdjustments?.[label]);
-      let recognizedMasterworkBonus = 0;
-      if(Number.isFinite(masterworkContributionRaw)){
-        recognizedMasterworkBonus = Math.max(0, Math.min(masterworkContributionRaw, 2));
-        totalAdjustment = totalAdjustment - masterworkContributionRaw + recognizedMasterworkBonus;
-      }
-      const fallbackMasterworkBonus = (!recognizedMasterworkBonus && isMasterworked && !hasRecognizedMasterworkPlug) ? 2 : 0;
-      const socketBaseRaw = Number(socketDetails?.baseContributions?.[label]);
-      const socketBase = Number.isFinite(socketBaseRaw) ? socketBaseRaw : null;
-      const recognizedAdjustment = hasRecognizedStatPlug ? Math.max(0, totalAdjustment) : 0;
-      const fallbackMasterworkToSubtract = (!recognizedMasterworkBonus && fallbackMasterworkBonus) ? fallbackMasterworkBonus : 0;
-      const adjustmentToSubtract = recognizedAdjustment + fallbackMasterworkToSubtract;
-
       const apiBase = Number(stat?.base);
       const apiInvestment = Number(stat?.investmentValue);
-      let manualBase = null;
-      if(Number.isFinite(numericValue) && adjustmentToSubtract > 0){
-        const candidate = numericValue - adjustmentToSubtract;
-        if(Number.isFinite(candidate)){
-          manualBase = Math.max(0, candidate);
-        }
-      }
+      const current = Number(stat?.value);
 
       let baseValue = null;
       let baseSource = 'fallback-zero';
@@ -2558,67 +2536,40 @@
       }else if(Number.isFinite(apiInvestment)){
         baseValue = apiInvestment;
         baseSource = 'apiInvestment';
-      }
-
-      if(Number.isFinite(manualBase)){
-        baseValue = manualBase;
-        baseSource = 'derivedAdjustments';
-      }else if(baseValue === null && Number.isFinite(socketBase)){
-        baseValue = socketBase;
-        baseSource = 'socketIntrinsic';
-      }
-
-      if(baseValue === null){
-        if(Number.isFinite(numericValue)){
-          baseValue = numericValue;
-          baseSource = 'current';
-        }else{
-          baseValue = 0;
-          baseSource = 'fallback-zero';
-        }
-      }
-
-      if(Number.isFinite(numericValue)){
-        if(adjustmentToSubtract > 0){
-          baseValue = Math.min(baseValue, numericValue);
-        }
+      }else if(Number.isFinite(current)){
+        baseValue = current;
+        baseSource = 'current';
+      }else{
+        baseValue = 0;
+        baseSource = 'fallback-zero';
       }
 
       const roundedBase = Math.max(0, Math.round(baseValue));
       row[label] = roundedBase;
+      totalBase += roundedBase;
 
       if(statDebug){
         statDebug[label] = {
-          current: Number.isFinite(numericValue) ? numericValue : null,
-          socketBase,
-          manualBase: Number.isFinite(manualBase) ? manualBase : null,
+          current: Number.isFinite(current) ? current : null,
           apiBase: Number.isFinite(apiBase) ? apiBase : null,
           apiInvestment: Number.isFinite(apiInvestment) ? apiInvestment : null,
-          rawTotalAdjustment: Number.isFinite(rawTotalAdjustment) ? rawTotalAdjustment : null,
-          totalAdjustment: recognizedAdjustment,
-          adjustmentToSubtract: Number.isFinite(adjustmentToSubtract) ? adjustmentToSubtract : null,
-          recognizedMasterworkBonus,
-          fallbackMasterworkBonus,
-          fallbackMasterworkApplied: fallbackMasterworkToSubtract,
           baseSource,
           computedBase: roundedBase
         };
       }
     }
-    let totalBase = 0;
-    for(const label of Object.values(STAT_HASH_TO_LABEL)){
-      const value = Number(row[label]);
-      if(Number.isFinite(value)){
-        totalBase += value;
-      }
-    }
+
     row['Total (Base)'] = totalBase;
-    const statTier = Math.max(0, Math.floor(totalBase / 10));
-    if(Number.isFinite(energyTierValue)){
+
+    const gearTier = Number(instance?.gearTier);
+    if(Number.isFinite(gearTier)){
+      row.Tier = gearTier;
+    }else if(Number.isFinite(energyTierValue)){
       row.Tier = energyTierValue;
     }else{
-      row.Tier = statTier;
+      row.Tier = 0;
     }
+
     if(statDebug){
       const capacityNum = Number.isFinite(energyInfo?.capacity) ? energyInfo.capacity : Number(energy?.energyCapacity);
       const usedNum = Number.isFinite(energyInfo?.used) ? energyInfo.used : Number(energy?.energyUsed);
@@ -2627,13 +2578,10 @@
       const sample = {
         name: row.Name,
         type: row.Type,
-        tier: statTier,
+        tier: row.Tier,
         totalBase,
         instanceId: item?.itemInstanceId || null,
         itemHash: item?.itemHash || null,
-        isMasterworked,
-        masterworkFromState: isMasterworkedByState,
-        hasRecognizedMasterworkPlug,
         energy: {
           capacity: Number.isFinite(capacityNum) ? capacityNum : null,
           used: Number.isFinite(usedNum) ? usedNum : null,
@@ -2644,19 +2592,17 @@
           derivedTier: Number.isFinite(energyTierValue) ? energyTierValue : null
         },
         tierSources: {
-          stats: statTier,
+          gear: Number.isFinite(gearTier) ? gearTier : null,
           energy: Number.isFinite(energyTierValue) ? energyTierValue : null,
           energySource: tierEnergySource
         },
         stats: statDebug,
-        adjustments: socketDetails?.adjustments || {},
-        masterworkAdjustments: socketDetails?.masterworkAdjustments || {},
-        baseContributions: socketDetails?.baseContributions || {},
-        sockets: Array.isArray(socketDetails?.details) ? socketDetails.details : []
+        sockets: []
       };
       recordArmorDebugSample(sample);
       logDebug('armor row sample', sample);
     }
+
     return row;
   }
 
@@ -2758,6 +2704,77 @@
     return success;
   }
 
+  async function loadArmorFromDimApi(options={}){
+    const reason = options?.reason || 'manual';
+    if(dimArmorIsFetching){
+      logDebug('loadArmorFromDimApi skipped', { reason, dimArmorIsFetching: true });
+      return null;
+    }
+    if(!getDimApiKey()){
+      logDebug('loadArmorFromDimApi missingKey', { reason });
+      return null;
+    }
+    if(!dimTokens?.accessToken){
+      logDebug('loadArmorFromDimApi missingToken', { reason });
+      return null;
+    }
+    const membership = getSelectedMembership();
+    const membershipId = membership?.membershipId || bungieConfig?.membershipId || bungieTokens?.membershipId;
+    if(!membershipId){
+      logDebug('loadArmorFromDimApi missingMembership', { reason });
+      if(!options?.silent){
+        setDimStatus('Select a Bungie profile before loading armor from DIM.', 'error');
+      }
+      return null;
+    }
+    try{
+      dimArmorIsFetching = true;
+      if(!options?.silent){
+        setDimStatus('Loading armor from DIM…', 'loading');
+      }
+      const response = await dimApiRequest('/export', { method: 'GET' });
+      const armorEntries = Array.isArray(response?.armor) ? response.armor : null;
+      if(!armorEntries || !armorEntries.length){
+        throw new Error('Armor data is not available from the DIM API export.');
+      }
+      logDebug('loadArmorFromDimApi unsupportedPayload', {
+        reason,
+        keys: Array.isArray(armorEntries) ? Object.keys(armorEntries[0] || {}) : []
+      });
+      throw new Error('DIM armor export parsing is not implemented yet.');
+    }catch(err){
+      logDebug('loadArmorFromDimApi error', { reason, error: err?.message || err });
+      if(!options?.silent){
+        setDimStatus('DIM armor sync unavailable. Falling back to Bungie.', 'info');
+      }
+      return null;
+    }finally{
+      dimArmorIsFetching = false;
+    }
+  }
+
+  async function loadArmor(options={}){
+    const reason = options?.reason || 'manual';
+    try{
+      const dimRows = await loadArmorFromDimApi({ reason, silent: reason !== 'manual' });
+      if(Array.isArray(dimRows) && dimRows.length){
+        resetBaseTags(dimRows);
+        STATE.rows = dimRows;
+        applyDimProfileToRows({ render: false });
+        saveRows();
+        render();
+        setUploadHint('Loaded via DIM API');
+        setDimStatus(`Loaded ${dimRows.length} armor items from DIM.`, 'ok');
+        logDebug('loadArmor success', { reason, source: 'dim', itemCount: dimRows.length });
+        return true;
+      }
+    }catch(err){
+      logDebug('loadArmor dimError', { reason, error: err?.message || err });
+    }
+    const bungieLoaded = await loadArmorFromBungie(options);
+    return bungieLoaded;
+  }
+
   async function initBungieIntegration(){
     logDebug('initBungieIntegration start', {
       hasRefreshToken: Boolean(bungieTokens?.refreshToken)
@@ -2781,7 +2798,7 @@
           renderMembershipOptions();
         }
         if(membership && !bungieAutoLoadedOnce){
-          const loaded = await loadArmorFromBungie({ reason: 'auto' });
+          const loaded = await loadArmor({ reason: 'auto' });
           if(!loaded && !bungieStatusEl?.textContent){
             setBungieStatus(`Signed in as ${membership.label}. Use Refresh armor to try again.`, 'info');
           }
@@ -3041,7 +3058,7 @@ out.sort((a, b) => {
   bungieLogoutBtn = document.getElementById('bungieLogout');
 
   if(bungieLoginBtn) bungieLoginBtn.addEventListener('click', () => startBungieAuth());
-  if(bungieRefreshBtn) bungieRefreshBtn.addEventListener('click', () => loadArmorFromBungie({ reason: 'manual' }));
+  if(bungieRefreshBtn) bungieRefreshBtn.addEventListener('click', () => loadArmor({ reason: 'manual' }));
   if(bungieLogoutBtn) bungieLogoutBtn.addEventListener('click', () => { clearBungieTokens(true); });
   if(bungieMembershipSelect){
     bungieMembershipSelect.addEventListener('change', (event) => {
@@ -3059,7 +3076,7 @@ out.sort((a, b) => {
       resetBaseTags(STATE.rows);
       applyDimProfileToRows({ render: true });
       updateBungieUI();
-      loadArmorFromBungie({ reason: 'auto' });
+      loadArmor({ reason: 'auto' });
     });
   }
 
