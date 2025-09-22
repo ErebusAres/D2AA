@@ -84,20 +84,6 @@
       <div id="bungieStatus" class="auth-status muted" aria-live="polite"></div>
     </section>
 
-    <section class="panel panel-auth" id="dimPanel">
-      <div class="auth-header">
-        <h2>Connect with DIM Sync</h2>
-        <p class="muted">Sign in with DIM to layer your item tags on top of Bungie or CSV armor loads.</p>
-      </div>
-      <div class="auth-buttons">
-        <button id="dimLogin" type="button" class="btn btn-primary">Sign in with DIM</button>
-        <button id="dimRefresh" type="button" class="btn">Sync DIM tags</button>
-        <button id="dimLogout" type="button" class="btn">Disconnect</button>
-      </div>
-      <div class="auth-note muted">DIM access is configured for this site. Tokens stay local to this browser.</div>
-      <div id="dimStatus" class="auth-status muted" aria-live="polite"></div>
-    </section>
-
     <section class="panel panel-debug" id="debugPanel">
       <div class="debug-header">
         <h2>Debug Console</h2>
@@ -718,9 +704,6 @@
   let bungieRefreshBtn = null;
   let bungieLogoutBtn = null;
   let dimStatusEl = null;
-  let dimLoginBtn = null;
-  let dimRefreshBtn = null;
-  let dimLogoutBtn = null;
   const rowBaseTags = new Map();
   function saveRows(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(STATE.rows)); }catch(_){} }
   function loadRows(){ try{ const s=localStorage.getItem(LS_KEY); if(!s) return null; return JSON.parse(s); }catch(_){ return null; } }
@@ -980,7 +963,9 @@
     dimTokens = null;
     localStorage.removeItem(DIM_TOKEN_STORAGE);
     if(showMessage){
-      setDimStatus('DIM session cleared. You can reconnect any time.', 'info');
+      setDimStatus('DIM session cleared. Tags will sync after the next armor load.', 'info');
+    }else{
+      refreshDimStatusFromProfile();
     }
     updateDimUI();
     logDebug('clearDimTokens', { showMessage: Boolean(showMessage) });
@@ -1029,6 +1014,8 @@
     localStorage.removeItem(DIM_PROFILE_STORAGE);
     if(showMessage){
       setDimStatus('DIM profile cache cleared.', 'info');
+    }else{
+      refreshDimStatusFromProfile();
     }
     applyDimProfileToRows({ render: true });
     logDebug('clearDimProfile', { showMessage: Boolean(showMessage) });
@@ -1043,12 +1030,6 @@
   }
 
   function updateDimUI(){
-    const hasKey = Boolean(getDimApiKey());
-    const bungieReady = Boolean(bungieTokens?.refreshToken);
-    const tokenValid = hasValidDimToken();
-    if(dimLoginBtn) dimLoginBtn.disabled = dimIsFetching || !hasKey || !bungieReady;
-    if(dimRefreshBtn) dimRefreshBtn.disabled = dimIsFetching || !tokenValid;
-    if(dimLogoutBtn) dimLogoutBtn.disabled = dimIsFetching || !dimTokens?.accessToken;
     updateDebugSnapshot();
   }
 
@@ -1068,6 +1049,49 @@
     if(type === 'ok') dimStatusEl.classList.add('status-ok');
     else if(type === 'error') dimStatusEl.classList.add('status-error');
     else if(type === 'loading') dimStatusEl.classList.add('status-loading');
+  }
+
+  function formatDimSyncTimestamp(timestamp){
+    const ms = Number(timestamp);
+    if(!Number.isFinite(ms) || ms <= 0){
+      return null;
+    }
+    try{
+      return new Date(ms).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+    }catch(err){
+      return null;
+    }
+  }
+
+  function buildDimStatusSummary(){
+    if(!getDimApiKey()){
+      return { message: 'DIM Sync is not configured for this build.', type: 'info' };
+    }
+    const tagCount = Array.isArray(dimProfile?.tags) ? dimProfile.tags.length : 0;
+    const hashTagCount = Array.isArray(dimProfile?.itemHashTags) ? dimProfile.itemHashTags.length : 0;
+    const total = tagCount + hashTagCount;
+    const timeText = formatDimSyncTimestamp(dimProfile?.fetchedAt);
+    if(total > 0){
+      const parts = [];
+      if(tagCount){
+        parts.push(`${tagCount} tag${tagCount === 1 ? '' : 's'}`);
+      }
+      if(hashTagCount){
+        parts.push(`${hashTagCount} item hash tag${hashTagCount === 1 ? '' : 's'}`);
+      }
+      const counts = parts.join(' and ');
+      const when = timeText ? ` on ${timeText}` : '';
+      return { message: `Synced ${counts} from DIM${when}.`, type: 'ok' };
+    }
+    if(timeText){
+      return { message: `DIM sync completed on ${timeText}.`, type: 'info' };
+    }
+    return { message: 'DIM tags will sync automatically after armor loads.', type: 'info' };
+  }
+
+  function refreshDimStatusFromProfile(){
+    const summary = buildDimStatusSummary();
+    setDimStatus(summary.message, summary.type);
   }
 
   async function ensureDimAccessToken(){
@@ -1206,13 +1230,17 @@
     }
     const dimApiKey = getDimApiKey();
     if(!dimApiKey){
-      setDimStatus('DIM Sync is not configured for this build.', 'error');
+      if(!silent){
+        setDimStatus('DIM Sync is not configured for this build.', 'error');
+      }
       return false;
     }
     const membership = getSelectedMembership();
     const membershipId = membership?.membershipId || bungieConfig?.membershipId || bungieTokens?.membershipId;
     if(!membershipId){
-      setDimStatus('Select a Bungie profile before syncing DIM tags.', 'error');
+      if(!silent){
+        setDimStatus('Select a Bungie profile before syncing DIM tags.', 'error');
+      }
       return false;
     }
     if(dimTokens?.membershipId && String(dimTokens.membershipId) !== String(membershipId)){
@@ -1254,10 +1282,7 @@
       }else if(!silent){
         render();
       }
-      const summary = `Synced ${tags.length} DIM tag${tags.length === 1 ? '' : 's'}.`;
-      if(!silent){
-        setDimStatus(summary, 'ok');
-      }
+      refreshDimStatusFromProfile();
       logDebug('dimSync success', {
         reason,
         tagCount: tags.length,
@@ -1335,47 +1360,9 @@
 
   function initDimIntegration(){
     dimStatusEl = document.getElementById('dimStatus');
-    dimLoginBtn = document.getElementById('dimLogin');
-    dimRefreshBtn = document.getElementById('dimRefresh');
-    dimLogoutBtn = document.getElementById('dimLogout');
-
-    if(dimLoginBtn){
-      dimLoginBtn.addEventListener('click', () => {
-        syncDimProfile({ reason: 'manual' });
-      });
-    }
-
-    if(dimRefreshBtn){
-      dimRefreshBtn.addEventListener('click', () => {
-        syncDimProfile({ reason: 'manual' });
-      });
-    }
-
-    if(dimLogoutBtn){
-      dimLogoutBtn.addEventListener('click', () => {
-        clearDimTokens(true);
-      });
-    }
-
-    if(dimProfile && (Array.isArray(dimProfile.tags) || Array.isArray(dimProfile.itemHashTags))){
-      const tagCount = Array.isArray(dimProfile.tags) ? dimProfile.tags.length : 0;
-      const hashTagCount = Array.isArray(dimProfile.itemHashTags) ? dimProfile.itemHashTags.length : 0;
-      if(tagCount || hashTagCount){
-        setDimStatus(`Loaded ${tagCount} DIM tag${tagCount === 1 ? '' : 's'} from last sync.`, 'info');
-      }else if(!getDimApiKey()){
-        setDimStatus('DIM Sync is not configured for this build.', 'info');
-      }else{
-        setDimStatus('Sign in with DIM to sync your tags.', 'info');
-      }
-    }else if(!getDimApiKey()){
-      setDimStatus('DIM Sync is not configured for this build.', 'info');
-    }else{
-      setDimStatus('Sign in with DIM to sync your tags.', 'info');
-    }
-
+    refreshDimStatusFromProfile();
     updateDimUI();
-
-    if(dimTokens?.accessToken){
+    if(Array.isArray(STATE.rows) && STATE.rows.length){
       syncDimProfile({ reason: 'auto', silent: true });
     }
   }
@@ -2835,9 +2822,7 @@
       if(reason === 'auto'){
         bungieAutoLoadedOnce = true;
       }
-      if(dimTokens?.accessToken){
-        syncDimProfile({ reason, silent: reason !== 'manual' });
-      }
+      syncDimProfile({ reason, silent: reason !== 'manual' });
       logDebug('loadArmorFromBungie success', { reason, itemCount: rows.length });
       success = true;
     }catch(err){
@@ -2913,6 +2898,7 @@
         render();
         setUploadHint('Loaded via DIM API');
         setDimStatus(`Loaded ${dimRows.length} armor items from DIM.`, 'ok');
+        syncDimProfile({ reason, silent: reason !== 'manual' });
         logDebug('loadArmor success', { reason, source: 'dim', itemCount: dimRows.length });
         return true;
       }
@@ -3221,6 +3207,7 @@ out.sort((a, b) => {
       dimProfile = { tags: [], itemHashTags: [], fetchedAt: null, syncToken: null };
       dimSyncToken = null;
       saveDimProfileCache();
+      refreshDimStatusFromProfile();
       resetBaseTags(STATE.rows);
       applyDimProfileToRows({ render: true });
       updateBungieUI();
@@ -3285,6 +3272,7 @@ out.sort((a, b) => {
           render();
           fileInput.value = '';
           setUploadHint(`Loaded • ${fileName}`);
+          syncDimProfile({ reason: 'manual' });
         },
       });
     });
@@ -3299,6 +3287,7 @@ out.sort((a, b) => {
         applyDimProfileToRows({ render: false });
         render();
         resetUploadHint();
+        syncDimProfile({ reason: 'manual' });
       } else {
         alert('No saved CSV found in this browser. Upload a DIM CSV first.');
       }
