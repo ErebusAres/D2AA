@@ -89,20 +89,12 @@
         <h2>Connect with DIM Sync</h2>
         <p class="muted">Sign in with DIM to layer your item tags on top of Bungie or CSV armor loads.</p>
       </div>
-      <div class="auth-grid">
-        <label class="auth-field">
-          <span class="auth-label">DIM API key</span>
-          <input id="dimApiKey" type="text" autocomplete="off" spellcheck="false" placeholder="Paste your dimApiKey" />
-        </label>
-      </div>
       <div class="auth-buttons">
         <button id="dimLogin" type="button" class="btn btn-primary">Sign in with DIM</button>
         <button id="dimRefresh" type="button" class="btn">Sync DIM tags</button>
         <button id="dimLogout" type="button" class="btn">Disconnect</button>
       </div>
-      <div class="auth-note muted">
-        Need a key? See the <a href="https://github.com/DestinyItemManager/dim-api" target="_blank" rel="noreferrer noopener">DIM Sync docs</a>. Keys &amp; tokens stay local to this browser.
-      </div>
+      <div class="auth-note muted">DIM access is configured for this site. Tokens stay local to this browser.</div>
       <div id="dimStatus" class="auth-status muted" aria-live="polite"></div>
     </section>
 
@@ -315,6 +307,21 @@
   const DIM_PROFILE_STORAGE = 'd2aa_dim_profile_v1';
   const DIM_API_ROOT = 'https://api.destinyitemmanager.com';
   const DIM_APP_VERSION = 'd2aa-beta';
+  // Replace this placeholder with the DIM API key registered for https://erebusares.github.io
+  const DIM_API_KEY_PLACEHOLDER = 'REPLACE_WITH_DIM_API_KEY';
+  const DIM_API_KEY = (() => {
+    try {
+      if (typeof window !== 'undefined' && window && window.__D2AA_DIM_API_KEY__) {
+        const override = String(window.__D2AA_DIM_API_KEY__).trim();
+        if (override) {
+          return override;
+        }
+      }
+    } catch (err) {
+      console.warn('Failed to read DIM API key override', err);
+    }
+    return DIM_API_KEY_PLACEHOLDER;
+  })();
   const BUNGIE_REDIRECT_URI = (() => {
     try {
       const { origin, pathname } = window.location;
@@ -334,6 +341,13 @@
   const normId = (s) => (s ? String(s).trim().replace(/^"|"$/g, "") : "");
   const normName = (s) => String(s || "").trim().toLowerCase();
   const num = (v) => (v == null || v === "" ? 0 : Number(v));
+  function getDimApiKey(){
+    const key = (DIM_API_KEY || '').trim();
+    if(!key || key === DIM_API_KEY_PLACEHOLDER){
+      return '';
+    }
+    return key;
+  }
   function slotNumber(type){
     if(type === "Helmet") return 1;
     if(type === "Gauntlets") return 2;
@@ -520,8 +534,8 @@
       },
       dim: {
         status: debugState.dimLastStatus,
-        hasApiKey: Boolean((dimConfig?.apiKey || '').trim()),
-        apiKeyMasked: maskSecret(dimConfig?.apiKey),
+        hasApiKey: Boolean(getDimApiKey()),
+        apiKeyMasked: maskSecret(getDimApiKey()),
         lastMembershipId: dimConfig?.lastMembershipId || null,
         hasToken: Boolean(dimTokens?.accessToken),
         tokenExpiresInMs: dimTokens?.expiresAt ? dimTokens.expiresAt - now : null,
@@ -705,7 +719,6 @@
   let dimLoginBtn = null;
   let dimRefreshBtn = null;
   let dimLogoutBtn = null;
-  let dimApiKeyInput = null;
   const rowBaseTags = new Map();
   function saveRows(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(STATE.rows)); }catch(_){} }
   function loadRows(){ try{ const s=localStorage.getItem(LS_KEY); if(!s) return null; return JSON.parse(s); }catch(_){ return null; } }
@@ -889,7 +902,6 @@
   // ====== DIM Sync storage ======
   function loadDimConfig(){
     const defaults = {
-      apiKey: '',
       lastMembershipId: null
     };
     try{
@@ -898,7 +910,6 @@
       const parsed = JSON.parse(raw);
       return {
         ...defaults,
-        apiKey: typeof parsed?.apiKey === 'string' ? parsed.apiKey : '',
         lastMembershipId: parsed?.lastMembershipId ?? null
       };
     }catch(err){
@@ -910,10 +921,9 @@
   function saveDimConfig(){
     try{
       const payload = {
-        apiKey: (dimConfig?.apiKey || '').trim(),
         lastMembershipId: dimConfig?.lastMembershipId ?? null
       };
-      if(!payload.apiKey && !payload.lastMembershipId){
+      if(!payload.lastMembershipId){
         localStorage.removeItem(DIM_CONFIG_STORAGE);
       }else{
         localStorage.setItem(DIM_CONFIG_STORAGE, JSON.stringify(payload));
@@ -922,7 +932,7 @@
       console.warn('Failed to persist DIM config', err);
     }
     logDebug('saveDimConfig', {
-      hasApiKey: Boolean((dimConfig?.apiKey || '').trim()),
+      dimApiKeyConfigured: Boolean(getDimApiKey()),
       lastMembershipId: dimConfig?.lastMembershipId ?? null
     });
     updateDebugSnapshot();
@@ -1031,12 +1041,9 @@
   }
 
   function updateDimUI(){
-    const hasKey = Boolean((dimConfig?.apiKey || '').trim());
+    const hasKey = Boolean(getDimApiKey());
     const bungieReady = Boolean(bungieTokens?.refreshToken);
     const tokenValid = hasValidDimToken();
-    if(dimApiKeyInput && document.activeElement !== dimApiKeyInput){
-      dimApiKeyInput.value = dimConfig?.apiKey || '';
-    }
     if(dimLoginBtn) dimLoginBtn.disabled = dimIsFetching || !hasKey || !bungieReady;
     if(dimRefreshBtn) dimRefreshBtn.disabled = dimIsFetching || !tokenValid;
     if(dimLogoutBtn) dimLogoutBtn.disabled = dimIsFetching || !dimTokens?.accessToken;
@@ -1069,8 +1076,9 @@
   }
 
   async function requestDimToken(){
-    if(!(dimConfig?.apiKey && dimConfig.apiKey.trim())){
-      throw new Error('Add a DIM API key first.');
+    const dimApiKey = getDimApiKey();
+    if(!dimApiKey){
+      throw new Error('DIM API key is not configured.');
     }
     const membership = getSelectedMembership();
     const membershipId = membership?.membershipId || bungieConfig?.membershipId || bungieTokens?.membershipId;
@@ -1087,7 +1095,7 @@
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-API-Key': dimConfig.apiKey.trim(),
+          'X-API-Key': dimApiKey,
           'X-DIM-Version': DIM_APP_VERSION
         },
         body: JSON.stringify({
@@ -1130,15 +1138,20 @@
 
   function buildDimRequestHeaders(accessToken){
     const headers = new Headers();
-    headers.set('X-API-Key', dimConfig?.apiKey?.trim() || '');
+    const dimApiKey = getDimApiKey();
+    if(!dimApiKey){
+      throw new Error('DIM API key is not configured.');
+    }
+    headers.set('X-API-Key', dimApiKey);
     headers.set('X-DIM-Version', DIM_APP_VERSION);
     headers.set('Authorization', `Bearer ${accessToken}`);
     return headers;
   }
 
   async function dimApiRequest(path, options={}){
-    if(!(dimConfig?.apiKey && dimConfig.apiKey.trim())){
-      throw new Error('Add a DIM API key first.');
+    const dimApiKey = getDimApiKey();
+    if(!dimApiKey){
+      throw new Error('DIM API key is not configured.');
     }
     const accessToken = await ensureDimAccessToken();
     const url = new URL(`${DIM_API_ROOT}${path}`);
@@ -1189,8 +1202,9 @@
       logDebug('syncDimProfile skipped', { reason, dimIsFetching: true });
       return false;
     }
-    if(!(dimConfig?.apiKey && dimConfig.apiKey.trim())){
-      setDimStatus('Add a DIM API key to enable DIM Sync.', 'error');
+    const dimApiKey = getDimApiKey();
+    if(!dimApiKey){
+      setDimStatus('DIM Sync is not configured for this build.', 'error');
       return false;
     }
     const membership = getSelectedMembership();
@@ -1322,19 +1336,6 @@
     dimLoginBtn = document.getElementById('dimLogin');
     dimRefreshBtn = document.getElementById('dimRefresh');
     dimLogoutBtn = document.getElementById('dimLogout');
-    dimApiKeyInput = document.getElementById('dimApiKey');
-
-    if(dimApiKeyInput){
-      dimApiKeyInput.value = dimConfig?.apiKey || '';
-      dimApiKeyInput.addEventListener('change', (event) => {
-        dimConfig.apiKey = (event.target.value || '').trim();
-        saveDimConfig();
-        updateDimUI();
-        if(!dimConfig.apiKey){
-          setDimStatus('Add a DIM API key to enable DIM Sync.', 'info');
-        }
-      });
-    }
 
     if(dimLoginBtn){
       dimLoginBtn.addEventListener('click', () => {
@@ -1359,11 +1360,15 @@
       const hashTagCount = Array.isArray(dimProfile.itemHashTags) ? dimProfile.itemHashTags.length : 0;
       if(tagCount || hashTagCount){
         setDimStatus(`Loaded ${tagCount} DIM tag${tagCount === 1 ? '' : 's'} from last sync.`, 'info');
-      }else if(!dimConfig?.apiKey){
-        setDimStatus('Add a DIM API key to enable DIM Sync.', 'info');
+      }else if(!getDimApiKey()){
+        setDimStatus('DIM Sync is not configured for this build.', 'info');
+      }else{
+        setDimStatus('Sign in with DIM to sync your tags.', 'info');
       }
-    }else if(!dimConfig?.apiKey){
-      setDimStatus('Add a DIM API key to enable DIM Sync.', 'info');
+    }else if(!getDimApiKey()){
+      setDimStatus('DIM Sync is not configured for this build.', 'info');
+    }else{
+      setDimStatus('Sign in with DIM to sync your tags.', 'info');
     }
 
     updateDimUI();
@@ -2705,7 +2710,7 @@
       logDebug('loadArmorFromDimApi skipped', { reason, dimArmorIsFetching: true });
       return null;
     }
-    if(!(dimConfig?.apiKey && dimConfig.apiKey.trim())){
+    if(!getDimApiKey()){
       logDebug('loadArmorFromDimApi missingKey', { reason });
       return null;
     }
