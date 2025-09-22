@@ -84,6 +84,28 @@
       <div id="bungieStatus" class="auth-status muted" aria-live="polite"></div>
     </section>
 
+    <section class="panel panel-auth" id="dimPanel">
+      <div class="auth-header">
+        <h2>Connect with DIM Sync</h2>
+        <p class="muted">Sign in with DIM to layer your item tags on top of Bungie or CSV armor loads.</p>
+      </div>
+      <div class="auth-grid">
+        <label class="auth-field">
+          <span class="auth-label">DIM API key</span>
+          <input id="dimApiKey" type="text" autocomplete="off" spellcheck="false" placeholder="Paste your dimApiKey" />
+        </label>
+      </div>
+      <div class="auth-buttons">
+        <button id="dimLogin" type="button" class="btn btn-primary">Sign in with DIM</button>
+        <button id="dimRefresh" type="button" class="btn">Sync DIM tags</button>
+        <button id="dimLogout" type="button" class="btn">Disconnect</button>
+      </div>
+      <div class="auth-note muted">
+        Need a key? See the <a href="https://github.com/DestinyItemManager/dim-api" target="_blank" rel="noreferrer noopener">DIM Sync docs</a>. Keys &amp; tokens stay local to this browser.
+      </div>
+      <div id="dimStatus" class="auth-status muted" aria-live="polite"></div>
+    </section>
+
     <section class="panel panel-debug" id="debugPanel">
       <div class="debug-header">
         <h2>Debug Console</h2>
@@ -288,6 +310,11 @@
   const BUNGIE_OAUTH_URL = 'https://www.bungie.net/en/OAuth/Authorize';
   const BUNGIE_TOKEN_URL = 'https://www.bungie.net/Platform/App/OAuth/Token/';
   const BUNGIE_API_ROOT = 'https://www.bungie.net/Platform';
+  const DIM_CONFIG_STORAGE = 'd2aa_dim_cfg_v1';
+  const DIM_TOKEN_STORAGE = 'd2aa_dim_tokens_v1';
+  const DIM_PROFILE_STORAGE = 'd2aa_dim_profile_v1';
+  const DIM_API_ROOT = 'https://api.destinyitemmanager.com';
+  const DIM_APP_VERSION = 'd2aa-beta';
   const BUNGIE_REDIRECT_URI = (() => {
     try {
       const { origin, pathname } = window.location;
@@ -351,6 +378,7 @@
     snapshotData: null,
     isOpen: false,
     lastStatus: { message: '', type: 'info' },
+    dimLastStatus: { message: '', type: 'info' },
     lastUiStateSignature: '',
     copyResetTimer: null,
     lastRenderCount: null,
@@ -489,6 +517,21 @@
         accessTokenExpiresInMs: bungieTokens?.accessTokenExpires ? bungieTokens.accessTokenExpires - now : null,
         refreshTokenExpiresInMs: bungieTokens?.refreshTokenExpires ? bungieTokens.refreshTokenExpires - now : null,
         tokenType: bungieTokens?.tokenType || null
+      },
+      dim: {
+        status: debugState.dimLastStatus,
+        hasApiKey: Boolean((dimConfig?.apiKey || '').trim()),
+        apiKeyMasked: maskSecret(dimConfig?.apiKey),
+        lastMembershipId: dimConfig?.lastMembershipId || null,
+        hasToken: Boolean(dimTokens?.accessToken),
+        tokenExpiresInMs: dimTokens?.expiresAt ? dimTokens.expiresAt - now : null,
+        tokenMembershipId: dimTokens?.membershipId || null,
+        profile: {
+          tagCount: Array.isArray(dimProfile?.tags) ? dimProfile.tags.length : 0,
+          itemHashTagCount: Array.isArray(dimProfile?.itemHashTags) ? dimProfile.itemHashTags.length : 0,
+          fetchedAt: dimProfile?.fetchedAt || null,
+          syncToken: dimSyncToken || null
+        }
       },
       memberships: {
         total: bungieMemberships.length,
@@ -636,6 +679,11 @@
   let bungieMemberships = [];
   let bungieIsFetching = false;
   let bungieAutoLoadedOnce = false;
+  let dimConfig = loadDimConfig();
+  let dimTokens = loadDimTokens();
+  let dimProfile = loadDimProfileCache();
+  let dimSyncToken = dimProfile?.syncToken ?? null;
+  let dimIsFetching = false;
   const manifestCache = {
     inventoryItem: new Map(),
     bucket: new Map(),
@@ -652,6 +700,12 @@
   let bungieLoginBtn = null;
   let bungieRefreshBtn = null;
   let bungieLogoutBtn = null;
+  let dimStatusEl = null;
+  let dimLoginBtn = null;
+  let dimRefreshBtn = null;
+  let dimLogoutBtn = null;
+  let dimApiKeyInput = null;
+  const rowBaseTags = new Map();
   function saveRows(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(STATE.rows)); }catch(_){} }
   function loadRows(){ try{ const s=localStorage.getItem(LS_KEY); if(!s) return null; return JSON.parse(s); }catch(_){ return null; } }
 
@@ -829,6 +883,493 @@
     }
     logDebug('clearBungieTokens', { showMessage: Boolean(showMessage) });
     updateDebugSnapshot();
+  }
+
+  // ====== DIM Sync storage ======
+  function loadDimConfig(){
+    const defaults = {
+      apiKey: '',
+      lastMembershipId: null
+    };
+    try{
+      const raw = localStorage.getItem(DIM_CONFIG_STORAGE);
+      if(!raw) return { ...defaults };
+      const parsed = JSON.parse(raw);
+      return {
+        ...defaults,
+        apiKey: typeof parsed?.apiKey === 'string' ? parsed.apiKey : '',
+        lastMembershipId: parsed?.lastMembershipId ?? null
+      };
+    }catch(err){
+      console.warn('Failed to load DIM config', err);
+      return { ...defaults };
+    }
+  }
+
+  function saveDimConfig(){
+    try{
+      const payload = {
+        apiKey: (dimConfig?.apiKey || '').trim(),
+        lastMembershipId: dimConfig?.lastMembershipId ?? null
+      };
+      if(!payload.apiKey && !payload.lastMembershipId){
+        localStorage.removeItem(DIM_CONFIG_STORAGE);
+      }else{
+        localStorage.setItem(DIM_CONFIG_STORAGE, JSON.stringify(payload));
+      }
+    }catch(err){
+      console.warn('Failed to persist DIM config', err);
+    }
+    logDebug('saveDimConfig', {
+      hasApiKey: Boolean((dimConfig?.apiKey || '').trim()),
+      lastMembershipId: dimConfig?.lastMembershipId ?? null
+    });
+    updateDebugSnapshot();
+  }
+
+  function loadDimTokens(){
+    try{
+      const raw = localStorage.getItem(DIM_TOKEN_STORAGE);
+      if(!raw) return null;
+      const parsed = JSON.parse(raw);
+      if(!parsed?.accessToken) return null;
+      const expiresAt = Number(parsed.expiresAt || parsed.expires || 0);
+      return {
+        accessToken: String(parsed.accessToken),
+        expiresAt: Number.isFinite(expiresAt) ? expiresAt : 0,
+        membershipId: parsed?.membershipId ? String(parsed.membershipId) : null
+      };
+    }catch(err){
+      console.warn('Failed to load DIM tokens', err);
+      return null;
+    }
+  }
+
+  function saveDimTokens(){
+    try{
+      if(!dimTokens?.accessToken){
+        localStorage.removeItem(DIM_TOKEN_STORAGE);
+      }else{
+        localStorage.setItem(DIM_TOKEN_STORAGE, JSON.stringify(dimTokens));
+      }
+    }catch(err){
+      console.warn('Failed to persist DIM tokens', err);
+    }
+    logDebug('saveDimTokens', {
+      hasAccessToken: Boolean(dimTokens?.accessToken),
+      expiresAt: dimTokens?.expiresAt ?? null,
+      membershipId: dimTokens?.membershipId ?? null
+    });
+    updateDebugSnapshot();
+  }
+
+  function clearDimTokens(showMessage){
+    dimTokens = null;
+    localStorage.removeItem(DIM_TOKEN_STORAGE);
+    if(showMessage){
+      setDimStatus('DIM session cleared. You can reconnect any time.', 'info');
+    }
+    updateDimUI();
+    logDebug('clearDimTokens', { showMessage: Boolean(showMessage) });
+    updateDebugSnapshot();
+  }
+
+  function loadDimProfileCache(){
+    const defaults = {
+      tags: [],
+      itemHashTags: [],
+      fetchedAt: null,
+      syncToken: null
+    };
+    try{
+      const raw = localStorage.getItem(DIM_PROFILE_STORAGE);
+      if(!raw) return { ...defaults };
+      const parsed = JSON.parse(raw);
+      return {
+        tags: Array.isArray(parsed?.tags) ? parsed.tags : [],
+        itemHashTags: Array.isArray(parsed?.itemHashTags) ? parsed.itemHashTags : [],
+        fetchedAt: parsed?.fetchedAt ?? null,
+        syncToken: parsed?.syncToken ?? null
+      };
+    }catch(err){
+      console.warn('Failed to load cached DIM profile', err);
+      return { ...defaults };
+    }
+  }
+
+  function saveDimProfileCache(){
+    try{
+      if(dimProfile && (dimProfile.tags?.length || dimProfile.itemHashTags?.length || dimProfile.syncToken)){
+        localStorage.setItem(DIM_PROFILE_STORAGE, JSON.stringify(dimProfile));
+      }else{
+        localStorage.removeItem(DIM_PROFILE_STORAGE);
+      }
+    }catch(err){
+      console.warn('Failed to persist DIM profile cache', err);
+    }
+    updateDebugSnapshot();
+  }
+
+  function clearDimProfile(showMessage){
+    dimProfile = { tags: [], itemHashTags: [], fetchedAt: null, syncToken: null };
+    dimSyncToken = null;
+    localStorage.removeItem(DIM_PROFILE_STORAGE);
+    if(showMessage){
+      setDimStatus('DIM profile cache cleared.', 'info');
+    }
+    applyDimProfileToRows({ render: true });
+    logDebug('clearDimProfile', { showMessage: Boolean(showMessage) });
+    updateDebugSnapshot();
+  }
+
+  function hasValidDimToken(){
+    if(!dimTokens?.accessToken) return false;
+    const expiresAt = Number(dimTokens?.expiresAt || 0);
+    if(!expiresAt) return true;
+    return Date.now() < (expiresAt - 60000);
+  }
+
+  function updateDimUI(){
+    const hasKey = Boolean((dimConfig?.apiKey || '').trim());
+    const bungieReady = Boolean(bungieTokens?.refreshToken);
+    const tokenValid = hasValidDimToken();
+    if(dimApiKeyInput && document.activeElement !== dimApiKeyInput){
+      dimApiKeyInput.value = dimConfig?.apiKey || '';
+    }
+    if(dimLoginBtn) dimLoginBtn.disabled = dimIsFetching || !hasKey || !bungieReady;
+    if(dimRefreshBtn) dimRefreshBtn.disabled = dimIsFetching || !tokenValid;
+    if(dimLogoutBtn) dimLogoutBtn.disabled = dimIsFetching || !dimTokens?.accessToken;
+    updateDebugSnapshot();
+  }
+
+  function setDimStatus(message, type='info'){
+    const normalizedMessage = message || '';
+    const changed = debugState.dimLastStatus.message !== normalizedMessage || debugState.dimLastStatus.type !== type;
+    debugState.dimLastStatus = { message: normalizedMessage, type };
+    if(changed){
+      logDebug('dimStatus', { message: normalizedMessage, type });
+      updateDebugSnapshot();
+    }
+    if(!dimStatusEl) return;
+    dimStatusEl.textContent = normalizedMessage;
+    dimStatusEl.classList.remove('status-ok','status-error','status-loading');
+    const isInfo = !normalizedMessage || type === 'info';
+    dimStatusEl.classList.toggle('muted', isInfo);
+    if(type === 'ok') dimStatusEl.classList.add('status-ok');
+    else if(type === 'error') dimStatusEl.classList.add('status-error');
+    else if(type === 'loading') dimStatusEl.classList.add('status-loading');
+  }
+
+  async function ensureDimAccessToken(){
+    if(hasValidDimToken()){
+      return dimTokens.accessToken;
+    }
+    return requestDimToken();
+  }
+
+  async function requestDimToken(){
+    if(!(dimConfig?.apiKey && dimConfig.apiKey.trim())){
+      throw new Error('Add a DIM API key first.');
+    }
+    const membership = getSelectedMembership();
+    const membershipId = membership?.membershipId || bungieConfig?.membershipId || bungieTokens?.membershipId;
+    if(!membershipId){
+      throw new Error('Select a Bungie profile before connecting to DIM.');
+    }
+    if(dimTokens?.membershipId && String(dimTokens.membershipId) !== String(membershipId)){
+      clearDimTokens(false);
+    }
+    await ensureAccessToken();
+    let response;
+    try{
+      response = await fetch(`${DIM_API_ROOT}/auth/token`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-Key': dimConfig.apiKey.trim(),
+          'X-DIM-Version': DIM_APP_VERSION
+        },
+        body: JSON.stringify({
+          bungieAccessToken: bungieTokens?.accessToken || '',
+          membershipId: String(membershipId)
+        })
+      });
+    }catch(err){
+      logDebug('dimAuth networkError', { error: err?.message || err });
+      throw new Error(formatDimNetworkError(err));
+    }
+    const data = await response.json().catch(()=>null);
+    if(!response.ok){
+      if(response.status === 401){
+        clearDimTokens(false);
+      }
+      const message = data?.error && data?.message ? `${data.error}: ${data.message}` : `DIM auth failed (HTTP ${response.status})`;
+      throw new Error(message);
+    }
+    if(!data?.accessToken){
+      throw new Error('DIM auth response missing accessToken.');
+    }
+    const expiresInSeconds = Number(data?.expiresInSeconds || 0);
+    const expiresAt = Number.isFinite(expiresInSeconds) && expiresInSeconds > 0
+      ? Date.now() + expiresInSeconds * 1000
+      : 0;
+    dimTokens = {
+      accessToken: data.accessToken,
+      expiresAt,
+      membershipId: String(membershipId)
+    };
+    saveDimTokens();
+    updateDimUI();
+    logDebug('dimAuth success', {
+      membershipId: String(membershipId),
+      expiresInSeconds: Number.isFinite(expiresInSeconds) ? expiresInSeconds : null
+    });
+    return dimTokens.accessToken;
+  }
+
+  function buildDimRequestHeaders(accessToken){
+    const headers = new Headers();
+    headers.set('X-API-Key', dimConfig?.apiKey?.trim() || '');
+    headers.set('X-DIM-Version', DIM_APP_VERSION);
+    headers.set('Authorization', `Bearer ${accessToken}`);
+    return headers;
+  }
+
+  async function dimApiRequest(path, options={}){
+    if(!(dimConfig?.apiKey && dimConfig.apiKey.trim())){
+      throw new Error('Add a DIM API key first.');
+    }
+    const accessToken = await ensureDimAccessToken();
+    const url = new URL(`${DIM_API_ROOT}${path}`);
+    if(options?.params){
+      for(const [key,value] of Object.entries(options.params)){
+        if(value == null) continue;
+        url.searchParams.set(key, String(value));
+      }
+    }
+    const headers = buildDimRequestHeaders(accessToken);
+    if(options?.headers){
+      for(const [key,value] of Object.entries(options.headers)){
+        headers.set(key, value);
+      }
+    }
+    let body = options?.body;
+    if(body && typeof body !== 'string'){
+      headers.set('Content-Type', headers.get('Content-Type') || 'application/json');
+      body = JSON.stringify(body);
+    }
+    let response;
+    try{
+      response = await fetch(url.toString(), {
+        method: options?.method || 'GET',
+        headers,
+        body
+      });
+    }catch(err){
+      logDebug('dimApiRequest networkError', { path, error: err?.message || err });
+      throw new Error(formatDimNetworkError(err));
+    }
+    const hasBody = response.status !== 204;
+    const data = hasBody ? await response.json().catch(()=>null) : null;
+    if(!response.ok){
+      if(response.status === 401){
+        clearDimTokens(false);
+      }
+      const message = data?.error && data?.message ? `${data.error}: ${data.message}` : `DIM request failed (HTTP ${response.status})`;
+      throw new Error(message);
+    }
+    return data;
+  }
+
+  async function syncDimProfile(options={}){
+    const reason = options?.reason || 'manual';
+    const silent = Boolean(options?.silent);
+    if(dimIsFetching){
+      logDebug('syncDimProfile skipped', { reason, dimIsFetching: true });
+      return false;
+    }
+    if(!(dimConfig?.apiKey && dimConfig.apiKey.trim())){
+      setDimStatus('Add a DIM API key to enable DIM Sync.', 'error');
+      return false;
+    }
+    const membership = getSelectedMembership();
+    const membershipId = membership?.membershipId || bungieConfig?.membershipId || bungieTokens?.membershipId;
+    if(!membershipId){
+      setDimStatus('Select a Bungie profile before syncing DIM tags.', 'error');
+      return false;
+    }
+    if(dimTokens?.membershipId && String(dimTokens.membershipId) !== String(membershipId)){
+      clearDimTokens(false);
+    }
+    dimIsFetching = true;
+    updateDimUI();
+    const startMessage = reason === 'auto' ? 'Checking DIM Sync…' : 'Syncing DIM tags…';
+    if(!silent){
+      setDimStatus(startMessage, 'loading');
+    }
+    try{
+      await ensureAccessToken();
+      const params = {
+        components: 'tags,hashtags',
+        platformMembershipId: String(membershipId),
+        destinyVersion: '2'
+      };
+      if(dimSyncToken && !options?.forceFull){
+        params.sync = dimSyncToken;
+      }
+      const response = await dimApiRequest('/profile', { method: 'GET', params });
+      const tags = Array.isArray(response?.tags) ? response.tags : [];
+      const itemHashTags = Array.isArray(response?.itemHashTags) ? response.itemHashTags : [];
+      dimProfile = {
+        tags,
+        itemHashTags,
+        fetchedAt: Date.now(),
+        syncToken: response?.syncToken ?? null
+      };
+      dimSyncToken = dimProfile.syncToken ?? null;
+      dimConfig.lastMembershipId = String(membershipId);
+      saveDimConfig();
+      saveDimProfileCache();
+      const changed = applyDimProfileToRows({ render: false });
+      if(changed){
+        saveRows();
+        render();
+      }else if(!silent){
+        render();
+      }
+      const summary = `Synced ${tags.length} DIM tag${tags.length === 1 ? '' : 's'}.`;
+      if(!silent){
+        setDimStatus(summary, 'ok');
+      }
+      logDebug('dimSync success', {
+        reason,
+        tagCount: tags.length,
+        itemHashTagCount: itemHashTags.length,
+        usedSyncToken: Boolean(dimSyncToken && options?.forceFull !== true)
+      });
+      updateDebugSnapshot();
+      return true;
+    }catch(err){
+      logDebug('dimSync error', { reason, error: err?.message || err });
+      if(!silent){
+        setDimStatus('DIM sync failed: ' + (err?.message || err), 'error');
+      }
+      return false;
+    }finally{
+      dimIsFetching = false;
+      updateDimUI();
+    }
+  }
+
+  function resetBaseTags(rows){
+    rowBaseTags.clear();
+    if(!Array.isArray(rows)) return;
+    for(const row of rows){
+      const id = normId(row?.Id);
+      const base = typeof row?.Tag === 'string' ? row.Tag : (row?.Tag ?? '');
+      rowBaseTags.set(id, base || '');
+      row.Tag = base || '';
+    }
+  }
+
+  function applyDimProfileToRows(options={}){
+    if(!Array.isArray(STATE.rows)) return 0;
+    const renderNow = options?.render !== false;
+    const tagMap = new Map();
+    for(const tag of dimProfile?.tags || []){
+      if(tag?.id){
+        tagMap.set(normId(tag.id), tag);
+      }
+    }
+    const hashTagMap = new Map();
+    for(const entry of dimProfile?.itemHashTags || []){
+      if(entry && Number.isFinite(entry.hash)){
+        hashTagMap.set(Number(entry.hash), entry);
+      }
+    }
+    let changed = 0;
+    for(const row of STATE.rows){
+      const id = normId(row?.Id);
+      if(!rowBaseTags.has(id)){
+        const base = typeof row?.Tag === 'string' ? row.Tag : (row?.Tag ?? '');
+        rowBaseTags.set(id, base || '');
+      }
+      const baseTag = rowBaseTags.get(id) || '';
+      let nextTag = baseTag;
+      const dimTag = tagMap.get(id);
+      if(dimTag && typeof dimTag.tag === 'string' && dimTag.tag){
+        nextTag = dimTag.tag;
+      }else if((!nextTag || nextTag === '') && row?.ItemHash != null){
+        const hashEntry = hashTagMap.get(Number(row.ItemHash));
+        if(hashEntry && typeof hashEntry.tag === 'string' && hashEntry.tag){
+          nextTag = hashEntry.tag;
+        }
+      }
+      if(row.Tag !== nextTag){
+        row.Tag = nextTag || '';
+        changed++;
+      }
+    }
+    if(changed && renderNow){
+      render();
+    }
+    return changed;
+  }
+
+  function initDimIntegration(){
+    dimStatusEl = document.getElementById('dimStatus');
+    dimLoginBtn = document.getElementById('dimLogin');
+    dimRefreshBtn = document.getElementById('dimRefresh');
+    dimLogoutBtn = document.getElementById('dimLogout');
+    dimApiKeyInput = document.getElementById('dimApiKey');
+
+    if(dimApiKeyInput){
+      dimApiKeyInput.value = dimConfig?.apiKey || '';
+      dimApiKeyInput.addEventListener('change', (event) => {
+        dimConfig.apiKey = (event.target.value || '').trim();
+        saveDimConfig();
+        updateDimUI();
+        if(!dimConfig.apiKey){
+          setDimStatus('Add a DIM API key to enable DIM Sync.', 'info');
+        }
+      });
+    }
+
+    if(dimLoginBtn){
+      dimLoginBtn.addEventListener('click', () => {
+        syncDimProfile({ reason: 'manual' });
+      });
+    }
+
+    if(dimRefreshBtn){
+      dimRefreshBtn.addEventListener('click', () => {
+        syncDimProfile({ reason: 'manual' });
+      });
+    }
+
+    if(dimLogoutBtn){
+      dimLogoutBtn.addEventListener('click', () => {
+        clearDimTokens(true);
+      });
+    }
+
+    if(dimProfile && (Array.isArray(dimProfile.tags) || Array.isArray(dimProfile.itemHashTags))){
+      const tagCount = Array.isArray(dimProfile.tags) ? dimProfile.tags.length : 0;
+      const hashTagCount = Array.isArray(dimProfile.itemHashTags) ? dimProfile.itemHashTags.length : 0;
+      if(tagCount || hashTagCount){
+        setDimStatus(`Loaded ${tagCount} DIM tag${tagCount === 1 ? '' : 's'} from last sync.`, 'info');
+      }else if(!dimConfig?.apiKey){
+        setDimStatus('Add a DIM API key to enable DIM Sync.', 'info');
+      }
+    }else if(!dimConfig?.apiKey){
+      setDimStatus('Add a DIM API key to enable DIM Sync.', 'info');
+    }
+
+    updateDimUI();
+
+    if(dimTokens?.accessToken){
+      syncDimProfile({ reason: 'auto', silent: true });
+    }
   }
 
   function updateBungieUI(){
@@ -1254,6 +1795,16 @@
         return `Network error contacting Bungie from ${currentOrigin}. Add this origin (without a trailing slash) to the Bungie application's Origin Header whitelist alongside ${BUNGIE_ALLOWED_ORIGIN}, publish the change, and reload before trying again.`;
       }
       return `Network error contacting Bungie from ${currentOrigin}. Confirm this origin appears in the Bungie application's Origin Header whitelist and try again in a few moments.`;
+    }
+    return normalized;
+  }
+
+  function formatDimNetworkError(err){
+    const rawMessage = (err?.message || '').trim();
+    const normalized = rawMessage || 'Network request failed.';
+    const lowered = normalized.toLowerCase();
+    if(lowered.includes('failed to fetch') || lowered.includes('networkerror') || lowered.includes('load failed')){
+      return 'Network error contacting the DIM Sync API. Confirm your connection and that api.destinyitemmanager.com is reachable, then try again.';
     }
     return normalized;
   }
@@ -1954,7 +2505,8 @@
       Tag: '',
       Power: instance?.primaryStat?.value ?? '',
       Tier: 0,
-      'Total (Base)': 0
+      'Total (Base)': 0,
+      ItemHash: item?.itemHash ?? null
     };
     const socketDefs = Array.isArray(def?.sockets?.socketEntries) ? def.sockets.socketEntries : [];
     const collectDebug = debugState.armorSamples.length < ARMOR_DEBUG_SAMPLE_LIMIT;
@@ -2176,7 +2728,9 @@
         logDebug('loadArmorFromBungie empty', { reason });
         return false;
       }
+      resetBaseTags(rows);
       STATE.rows = rows;
+      applyDimProfileToRows({ render: false });
       saveRows();
       render();
       setUploadHint('Loaded via Bungie API');
@@ -2186,6 +2740,9 @@
       setBungieStatus(successMessage, 'ok');
       if(reason === 'auto'){
         bungieAutoLoadedOnce = true;
+      }
+      if(dimTokens?.accessToken){
+        syncDimProfile({ reason, silent: reason !== 'manual' });
       }
       logDebug('loadArmorFromBungie success', { reason, itemCount: rows.length });
       success = true;
@@ -2494,6 +3051,13 @@ out.sort((a, b) => {
       bungieConfig.membershipType = Number(type);
       bungieConfig.membershipId = id;
       saveBungieConfig();
+      dimConfig.lastMembershipId = id;
+      saveDimConfig();
+      dimProfile = { tags: [], itemHashTags: [], fetchedAt: null, syncToken: null };
+      dimSyncToken = null;
+      saveDimProfileCache();
+      resetBaseTags(STATE.rows);
+      applyDimProfileToRows({ render: true });
       updateBungieUI();
       loadArmorFromBungie({ reason: 'auto' });
     });
@@ -2532,7 +3096,7 @@ out.sort((a, b) => {
         skipEmptyLines: true,
         complete: (res) => {
           const data = res.data || [];
-          STATE.rows = data.map((r) => {
+          const rows = data.map((r) => {
             const x = { ...r };
             for (const k of [...STAT_COLS, 'Total (Base)', 'Tier']) {
               if (x[k] !== undefined) {
@@ -2541,8 +3105,17 @@ out.sort((a, b) => {
               }
             }
             x.Id = normId(x.Id);
+            const possibleHash = r.Hash ?? r.ItemHash ?? r['Item Hash'] ?? r['ItemHash'] ?? r['Hash (Base)'];
+            const hashNumber = Number(possibleHash);
+            x.ItemHash = Number.isFinite(hashNumber) ? hashNumber : null;
+            if(typeof x.Tag !== 'string'){
+              x.Tag = x.Tag != null ? String(x.Tag) : '';
+            }
             return x;
           });
+          resetBaseTags(rows);
+          STATE.rows = rows;
+          applyDimProfileToRows({ render: false });
           saveRows();
           render();
           fileInput.value = '';
@@ -2556,7 +3129,9 @@ out.sort((a, b) => {
     restoreBtn.addEventListener('click', () => {
       const rows = loadRows();
       if (rows && Array.isArray(rows)) {
+        resetBaseTags(rows);
         STATE.rows = rows;
+        applyDimProfileToRows({ render: false });
         render();
         resetUploadHint();
       } else {
@@ -2568,6 +3143,7 @@ out.sort((a, b) => {
   if (clearBtn) {
     clearBtn.addEventListener('click', () => {
       STATE.rows = [];
+      rowBaseTags.clear();
       localStorage.removeItem(LS_KEY);
       if (fileInput) fileInput.value = '';
       render();
@@ -2594,8 +3170,14 @@ out.sort((a, b) => {
 
   // Initial
   initBungieIntegration().catch((err)=>{ console.error('Bungie init error', err); });
-  const cached = loadRows(); if(cached){ STATE.rows=cached; }
+  const cached = loadRows();
+  if(cached && Array.isArray(cached)){
+    resetBaseTags(cached);
+    STATE.rows = cached;
+    applyDimProfileToRows({ render: false });
+  }
   render();
+  initDimIntegration();
   updateShadowColor();
 </script>
 </body>
