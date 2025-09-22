@@ -181,6 +181,8 @@
     "Class (Base)":"https://www.bungie.net/common/destiny2_content/icons/7eb845acb5b3a4a9b7e0b2f05f5c43f1.png",
     "Weapons (Base)":"https://www.bungie.net/common/destiny2_content/icons/bc69675acdae9e6b9a68a02fb4d62e07.png"
   };
+  const BUNGIE_BASE_STAT_MIN = 0;
+  const BUNGIE_BASE_STAT_MAX = 100;
   const RARITY_ICONS = {
     "Legendary": "https://www.bungie.net/common/destiny2_content/icons/f846f489c2a97afb289b357e431ecf8d.png",
     "Exotic": "https://www.bungie.net/common/destiny2_content/icons/3e6a698e1a8a5fb446fdcbf1e63c5269.png"
@@ -2156,7 +2158,8 @@
         item,
         def,
         instances[item.itemInstanceId],
-        statsByItem[item.itemInstanceId]?.stats || {}
+        statsByItem[item.itemInstanceId]?.stats || {},
+        sockets
       );
       if(row) rows.push(row);
     }
@@ -2482,7 +2485,69 @@
     };
   }
 
-  async function buildRowFromDefinition(item, def, instance, stats){
+  function normalizeBaseStatValue(value){
+    const numeric = Number(value);
+    if(!Number.isFinite(numeric)){
+      return {
+        value: 0,
+        rounded: 0,
+        clamped: false,
+        valid: false,
+        raw: numeric
+      };
+    }
+    const rounded = Math.round(numeric);
+    const clampedValue = Math.max(BUNGIE_BASE_STAT_MIN, Math.min(BUNGIE_BASE_STAT_MAX, rounded));
+    return {
+      value: clampedValue,
+      rounded,
+      clamped: clampedValue !== rounded,
+      clampedToMin: clampedValue === BUNGIE_BASE_STAT_MIN && rounded < clampedValue,
+      clampedToMax: clampedValue === BUNGIE_BASE_STAT_MAX && rounded > clampedValue,
+      valid: true,
+      raw: numeric
+    };
+  }
+
+  async function deriveSocketAdjustedBaseStats(stats, sockets, socketDefs, options={}){
+    const collectDetails = Boolean(options?.collectDetails);
+    const socketList = Array.isArray(sockets) ? sockets : [];
+    const socketDefList = Array.isArray(socketDefs) ? socketDefs : [];
+    const adjustmentInfo = await getStatAdjustmentsFromSockets(socketList, socketDefList, {
+      collectDetails
+    });
+    const byLabel = {};
+    for(const [hash, label] of Object.entries(STAT_HASH_TO_LABEL)){
+      const stat = stats?.[hash];
+      const current = Number(stat?.value);
+      if(!Number.isFinite(current)) continue;
+      const subtract = adjustmentInfo.adjustments[label] || 0;
+      const masterworkSubtract = adjustmentInfo.masterworkAdjustments[label] || 0;
+      const baseContribution = adjustmentInfo.baseContributions[label] || 0;
+      const rawBase = current - subtract;
+      const normalized = normalizeBaseStatValue(rawBase);
+      byLabel[label] = {
+        current,
+        subtract,
+        masterworkSubtract,
+        baseContribution,
+        rawBase,
+        normalized,
+        hasAdjustment: Math.abs(subtract) > 0.0001
+      };
+    }
+    return {
+      adjustments: adjustmentInfo.adjustments,
+      masterworkAdjustments: adjustmentInfo.masterworkAdjustments,
+      baseContributions: adjustmentInfo.baseContributions,
+      hasRecognizedStatPlug: adjustmentInfo.hasRecognizedStatPlug,
+      hasRecognizedMasterworkPlug: adjustmentInfo.hasRecognizedMasterworkPlug,
+      details: adjustmentInfo.details,
+      byLabel
+    };
+  }
+
+  async function buildRowFromDefinition(item, def, instance, stats, sockets){
     if(!def || !def.inventory) return null;
     if(def.itemType !== 2) return null;
     if(def.classType != null && def.classType > 2 && def.classType !== 3 && def.classType !== 4) return null;
@@ -2520,42 +2585,111 @@
     const collectDebug = debugState.armorSamples.length < ARMOR_DEBUG_SAMPLE_LIMIT;
     const statDebug = collectDebug ? {} : null;
 
+    const socketList = Array.isArray(sockets) ? sockets : [];
+    const socketDefsList = Array.isArray(def?.sockets?.socketEntries) ? def.sockets.socketEntries : [];
+    let socketBaseRecovery = null;
+    let socketBaseByLabel = {};
+    let socketBaseRecoveryTriggered = false;
+
+    if(socketList.length > 0){
+      let needsSocketBaseFallback = false;
+      for(const [hash] of Object.entries(STAT_HASH_TO_LABEL)){
+        const statEntry = stats?.[hash];
+        const baseNum = Number(statEntry?.base);
+        const investmentNum = Number(statEntry?.investmentValue);
+        const currentNum = Number(statEntry?.value);
+        if(!Number.isFinite(baseNum) && !Number.isFinite(investmentNum) && Number.isFinite(currentNum)){
+          needsSocketBaseFallback = true;
+          break;
+        }
+      }
+      if(needsSocketBaseFallback){
+        socketBaseRecovery = await deriveSocketAdjustedBaseStats(stats, socketList, socketDefsList, {
+          collectDetails: Boolean(statDebug)
+        });
+        if(!socketBaseRecovery || typeof socketBaseRecovery !== 'object'){
+          socketBaseRecovery = {
+            adjustments: {},
+            masterworkAdjustments: {},
+            baseContributions: {},
+            hasRecognizedStatPlug: false,
+            hasRecognizedMasterworkPlug: false,
+            details: null,
+            byLabel: {}
+          };
+        }
+        socketBaseByLabel = socketBaseRecovery.byLabel || {};
+        socketBaseRecoveryTriggered = true;
+      }
+    }
+
     let totalBase = 0;
     for(const [hash,label] of Object.entries(STAT_HASH_TO_LABEL)){
       const stat = stats?.[hash];
       const apiBase = Number(stat?.base);
       const apiInvestment = Number(stat?.investmentValue);
       const current = Number(stat?.value);
+      const socketDebugInfo = socketBaseByLabel?.[label] || null;
 
-      let baseValue = null;
       let baseSource = 'fallback-zero';
+      let baseRaw = 0;
+      let socketInfoForStat = null;
 
       if(Number.isFinite(apiBase)){
-        baseValue = apiBase;
+        baseRaw = apiBase;
         baseSource = 'apiBase';
       }else if(Number.isFinite(apiInvestment)){
-        baseValue = apiInvestment;
+        baseRaw = apiInvestment;
         baseSource = 'apiInvestment';
       }else if(Number.isFinite(current)){
-        baseValue = current;
-        baseSource = 'current';
+        if(socketBaseRecoveryTriggered && socketDebugInfo && socketDebugInfo.hasAdjustment && socketDebugInfo.normalized?.valid){
+          baseRaw = socketDebugInfo.rawBase;
+          baseSource = 'socketAdjusted';
+          socketInfoForStat = socketDebugInfo;
+        }else{
+          baseRaw = current;
+          baseSource = 'current';
+        }
       }else{
-        baseValue = 0;
+        baseRaw = 0;
         baseSource = 'fallback-zero';
       }
 
-      const roundedBase = Math.max(0, Math.round(baseValue));
-      row[label] = roundedBase;
-      totalBase += roundedBase;
+      const normalization = socketInfoForStat?.normalized || normalizeBaseStatValue(baseRaw);
+      const finalBase = normalization.value;
+
+      row[label] = finalBase;
+      totalBase += finalBase;
 
       if(statDebug){
-        statDebug[label] = {
+        const debugEntry = {
           current: Number.isFinite(current) ? current : null,
           apiBase: Number.isFinite(apiBase) ? apiBase : null,
           apiInvestment: Number.isFinite(apiInvestment) ? apiInvestment : null,
           baseSource,
-          computedBase: roundedBase
+          computedBase: finalBase,
+          baseRaw: Number.isFinite(baseRaw) ? baseRaw : null,
+          baseRounded: normalization.valid ? normalization.rounded : null,
+          baseClamped: normalization.valid ? normalization.clamped : false,
+          baseClampedToMin: normalization.valid ? normalization.clampedToMin : false,
+          baseClampedToMax: normalization.valid ? normalization.clampedToMax : false
         };
+        if(socketBaseRecoveryTriggered){
+          const socketDetails = socketDebugInfo || null;
+          debugEntry.socket = {
+            hasData: Boolean(socketDetails),
+            hasAdjustment: socketDetails ? socketDetails.hasAdjustment : false,
+            subtract: socketDetails && Number.isFinite(socketDetails.subtract) ? socketDetails.subtract : null,
+            masterworkSubtract: socketDetails && Number.isFinite(socketDetails.masterworkSubtract) ? socketDetails.masterworkSubtract : null,
+            baseContribution: socketDetails && Number.isFinite(socketDetails.baseContribution) ? socketDetails.baseContribution : null,
+            rawBase: socketDetails && Number.isFinite(socketDetails.rawBase) ? socketDetails.rawBase : null,
+            normalizedBase: socketDetails && socketDetails.normalized?.valid ? socketDetails.normalized.value : null,
+            normalizedRounded: socketDetails && socketDetails.normalized?.valid ? socketDetails.normalized.rounded : null,
+            normalizedClamped: socketDetails ? Boolean(socketDetails.normalized?.clamped) : false,
+            usedForBase: socketInfoForStat === socketDetails
+          };
+        }
+        statDebug[label] = debugEntry;
       }
     }
 
@@ -2597,7 +2731,21 @@
           energySource: tierEnergySource
         },
         stats: statDebug,
-        sockets: []
+        sockets: socketBaseRecoveryTriggered ? {
+          attempted: true,
+          hasRecognizedStatPlug: Boolean(socketBaseRecovery?.hasRecognizedStatPlug),
+          hasRecognizedMasterworkPlug: Boolean(socketBaseRecovery?.hasRecognizedMasterworkPlug),
+          adjustments: socketBaseRecovery?.adjustments || {},
+          masterworkAdjustments: socketBaseRecovery?.masterworkAdjustments || {},
+          baseContributions: socketBaseRecovery?.baseContributions || {},
+          perStat: socketBaseRecovery?.byLabel || {},
+          details: socketBaseRecovery?.details || null,
+          appliedStats: Object.entries(statDebug)
+            .filter(([, entry]) => entry?.baseSource === 'socketAdjusted')
+            .map(([label]) => label)
+        } : {
+          attempted: false
+        }
       };
       recordArmorDebugSample(sample);
       logDebug('armor row sample', sample);
