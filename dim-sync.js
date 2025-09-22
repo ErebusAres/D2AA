@@ -1,6 +1,8 @@
 const BUNGIE_TOKEN_KEY = 'd2aa:bungieAccessToken';
 const BUNGIE_TOKEN_EXPIRES_KEY = 'd2aa:bungieAccessTokenExpires';
 const BUNGIE_TOKEN_TYPE_KEY = 'd2aa:bungieTokenType';
+const BUNGIE_REFRESH_TOKEN_KEY = 'd2aa:bungieRefreshToken';
+const BUNGIE_REFRESH_EXPIRES_KEY = 'd2aa:bungieRefreshTokenExpires';
 const BUNGIE_STATE_KEY = 'd2aa:bungieOAuthState';
 const BUNGIE_MEMBERSHIP_KEY = 'd2aa:bungieMembership';
 const DIM_TOKEN_KEY = 'd2aa:dimAccessToken';
@@ -71,57 +73,127 @@ function setStatus(text, options = {}) {
   }
 }
 
-function parseHashTokens() {
-  if (typeof window === 'undefined') return null;
-  const hash = window.location.hash;
-  if (!hash || hash.length <= 1) return null;
+const BUNGIE_OAUTH_TOKEN_URL = 'https://www.bungie.net/Platform/App/OAuth/Token/';
 
-  const params = new URLSearchParams(hash.slice(1));
-  if (!params.has('access_token')) return null;
-
-  const accessToken = params.get('access_token');
-  const expiresIn = Number(params.get('expires_in') || params.get('expiresIn') || 0);
-  const tokenType = params.get('token_type') || 'Bearer';
-  const state = params.get('state') || null;
-
-  if (!accessToken || !Number.isFinite(expiresIn)) {
-    return null;
-  }
-
-  const redirectState = readSession(BUNGIE_STATE_KEY);
-  if (redirectState && state && redirectState !== state) {
-    // state mismatch -> ignore tokens and force a clean auth
-    clearBungieSession();
-    return null;
-  }
-
-  const expiresAt = Date.now() + Math.max(expiresIn * 1000, 0);
-  writeSession(BUNGIE_TOKEN_KEY, accessToken);
-  writeSession(BUNGIE_TOKEN_EXPIRES_KEY, String(expiresAt));
-  writeSession(BUNGIE_TOKEN_TYPE_KEY, tokenType);
-  writeSession(BUNGIE_STATE_KEY, '');
-
-  // Clean the URL hash without reloading the page
+function cleanOAuthParams() {
+  if (typeof window === 'undefined') return;
   try {
     const url = new URL(window.location.href);
     url.hash = '';
+    url.searchParams.delete('code');
+    url.searchParams.delete('state');
+    url.searchParams.delete('error');
+    url.searchParams.delete('error_description');
     window.history.replaceState({}, document.title, url.toString());
   } catch (_err) {
-    // ignore if URL parsing fails
+    // ignore if we cannot manipulate history
+  }
+}
+
+function storeBungieTokens(data) {
+  const accessToken = data?.access_token ?? data?.accessToken ?? null;
+  const expiresInSeconds = Number(
+    data?.expires_in ?? data?.expiresIn ?? data?.expiresInSeconds ?? 0
+  );
+  if (!accessToken || !Number.isFinite(expiresInSeconds) || expiresInSeconds <= 0) {
+    throw new Error('Bungie token response missing access token');
   }
 
+  const tokenType = data?.token_type ?? data?.tokenType ?? 'Bearer';
+  const now = Date.now();
+  const expiresAt = now + expiresInSeconds * 1000;
+  writeSession(BUNGIE_TOKEN_KEY, accessToken);
+  writeSession(BUNGIE_TOKEN_EXPIRES_KEY, String(expiresAt));
+  writeSession(BUNGIE_TOKEN_TYPE_KEY, tokenType);
+
+  const refreshToken = data?.refresh_token ?? data?.refreshToken ?? null;
+  const refreshExpiresIn = Number(
+    data?.refresh_expires_in ?? data?.refreshExpiresIn ?? data?.refreshExpiresInSeconds ?? 0
+  );
+  let refreshExpiresAt = 0;
+  if (refreshToken && Number.isFinite(refreshExpiresIn) && refreshExpiresIn > 0) {
+    refreshExpiresAt = now + refreshExpiresIn * 1000;
+    writeSession(BUNGIE_REFRESH_TOKEN_KEY, refreshToken);
+    writeSession(BUNGIE_REFRESH_EXPIRES_KEY, String(refreshExpiresAt));
+  } else {
+    writeSession(BUNGIE_REFRESH_TOKEN_KEY, null);
+    writeSession(BUNGIE_REFRESH_EXPIRES_KEY, null);
+  }
+
+  return { accessToken, tokenType, expiresAt, refreshToken, refreshExpiresAt };
+}
+
+async function requestBungieToken({ clientId, code, refreshToken }) {
+  if (!clientId) throw new Error('Bungie token exchange requires a clientId');
+
+  const body = new URLSearchParams();
+  body.set('client_id', clientId);
+  if (code) {
+    body.set('grant_type', 'authorization_code');
+    body.set('code', code);
+  } else if (refreshToken) {
+    body.set('grant_type', 'refresh_token');
+    body.set('refresh_token', refreshToken);
+  } else {
+    throw new Error('requestBungieToken requires an authorization code or refresh token');
+  }
+
+  const data = await fetchJson(BUNGIE_OAUTH_TOKEN_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: body.toString(),
+  });
+
+  const stored = storeBungieTokens(data);
   return {
-    accessToken,
-    expiresAt,
-    tokenType,
+    accessToken: stored.accessToken,
+    tokenType: stored.tokenType,
+    expiresAt: stored.expiresAt,
   };
+}
+
+async function handlePendingOAuthResponse({ clientId }) {
+  if (typeof window === 'undefined') return false;
+
+  const url = new URL(window.location.href);
+  const params = url.searchParams;
+
+  if (params.has('error')) {
+    const error = params.get('error');
+    const description = params.get('error_description') || params.get('errorDescription');
+    cleanOAuthParams();
+    throw new Error(`Bungie OAuth error: ${error}${description ? ` - ${description}` : ''}`);
+  }
+
+  if (!params.has('code')) {
+    return false;
+  }
+
+  const code = params.get('code');
+  const state = params.get('state');
+  const redirectState = readSession(BUNGIE_STATE_KEY);
+  if (redirectState && state && redirectState !== state) {
+    cleanOAuthParams();
+    clearBungieSession();
+    throw new Error('Bungie OAuth state mismatch, please retry');
+  }
+
+  await requestBungieToken({ clientId, code });
+  writeSession(BUNGIE_STATE_KEY, '');
+  cleanOAuthParams();
+  return true;
 }
 
 function clearBungieSession() {
   writeSession(BUNGIE_TOKEN_KEY, null);
   writeSession(BUNGIE_TOKEN_EXPIRES_KEY, null);
   writeSession(BUNGIE_TOKEN_TYPE_KEY, null);
+  writeSession(BUNGIE_REFRESH_TOKEN_KEY, null);
+  writeSession(BUNGIE_REFRESH_EXPIRES_KEY, null);
   writeSession(BUNGIE_MEMBERSHIP_KEY, null);
+  writeSession(BUNGIE_STATE_KEY, null);
 }
 
 function getStoredBungieToken() {
@@ -130,11 +202,46 @@ function getStoredBungieToken() {
   const expiresRaw = readSession(BUNGIE_TOKEN_EXPIRES_KEY);
   const expiresAt = expiresRaw ? Number(expiresRaw) : 0;
   if (!expiresAt || Date.now() + TOKEN_EXPIRY_BUFFER_MS >= expiresAt) {
-    clearBungieSession();
     return null;
   }
   const tokenType = readSession(BUNGIE_TOKEN_TYPE_KEY) || 'Bearer';
   return { accessToken: token, expiresAt, tokenType };
+}
+
+async function tryRefreshBungieToken({ clientId }) {
+  const refreshToken = readSession(BUNGIE_REFRESH_TOKEN_KEY);
+  if (!refreshToken) return null;
+
+  const expiresRaw = readSession(BUNGIE_REFRESH_EXPIRES_KEY);
+  const expiresAt = expiresRaw ? Number(expiresRaw) : 0;
+  if (!expiresAt || Date.now() + TOKEN_EXPIRY_BUFFER_MS >= expiresAt) {
+    clearBungieSession();
+    return null;
+  }
+
+  try {
+    await requestBungieToken({ clientId, refreshToken });
+    return getStoredBungieToken();
+  } catch (err) {
+    if (err?.status === 400 || err?.status === 401) {
+      clearBungieSession();
+      return null;
+    }
+    throw err;
+  }
+}
+
+async function ensureBungieAccessToken({ clientId, redirectUri }) {
+  await handlePendingOAuthResponse({ clientId });
+
+  let token = getStoredBungieToken();
+  if (token) return token;
+
+  token = await tryRefreshBungieToken({ clientId });
+  if (token) return token;
+
+  redirectToBungieAuth({ clientId, redirectUri });
+  return null;
 }
 
 function redirectToBungieAuth({ clientId, redirectUri }) {
@@ -146,7 +253,7 @@ function redirectToBungieAuth({ clientId, redirectUri }) {
   writeSession(BUNGIE_STATE_KEY, state);
 
   const authUrl = new URL('https://www.bungie.net/en/OAuth/Authorize');
-  authUrl.searchParams.set('response_type', 'token');
+  authUrl.searchParams.set('response_type', 'code');
   authUrl.searchParams.set('client_id', clientId);
   authUrl.searchParams.set('redirect_uri', redirectUri);
   authUrl.searchParams.set('state', state);
@@ -329,13 +436,16 @@ async function runSync({ bungieApiKey, clientId, redirectUri, dimApiKey }, optio
     throw new Error('initAutoDimSync requires Bungie and DIM credentials');
   }
 
-  parseHashTokens();
-
-  let bungieToken = getStoredBungieToken();
-  if (!bungieToken || options.forceBungieAuth) {
-    redirectToBungieAuth({ clientId, redirectUri });
-    return null; // redirect will pause execution
+  if (options.forceBungieAuth) {
+    clearBungieSession();
   }
+
+  const bungieToken = await ensureBungieAccessToken({ clientId, redirectUri });
+  if (!bungieToken) {
+    return null;
+  }
+
+  setStatus('DIM: Fetching Bungie profile…');
 
   let membership;
   try {
@@ -349,6 +459,8 @@ async function runSync({ bungieApiKey, clientId, redirectUri, dimApiKey }, optio
     throw err;
   }
 
+  setStatus('DIM: Connecting to DIM…');
+
   let dimToken;
   try {
     dimToken = await exchangeDimToken({ dimApiKey, membershipId: membership.membershipId });
@@ -361,6 +473,8 @@ async function runSync({ bungieApiKey, clientId, redirectUri, dimApiKey }, optio
     }
     throw err;
   }
+
+  setStatus('DIM: Syncing DIM profile…');
 
   const profile = await fetchDimProfile({
     dimApiKey,
