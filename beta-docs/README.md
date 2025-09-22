@@ -1,6 +1,6 @@
 # D2 Armor Analyzer — Beta Architecture
 
-This beta build fetches real-time Destiny 2 armor directly from Bungie.net without relying on CSV exports or a custom backend. The codebase is split into ES modules so the static page (`/D2AA/beta.html`) can load only the features it needs.
+This beta build fetches real-time Destiny 2 armor directly from Bungie.net without relying on CSV exports or a custom backend. The codebase is split into ES modules so the static page (`/beta.html` within the GitHub Pages project) can load only the features it needs.
 
 ## OAuth flow
 
