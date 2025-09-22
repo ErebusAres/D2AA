@@ -1960,6 +1960,7 @@
     const collectDebug = debugState.armorSamples.length < ARMOR_DEBUG_SAMPLE_LIMIT;
     const socketDetails = await getStatAdjustmentsFromSockets(sockets, socketDefs, { collectDetails: collectDebug });
     const hasRecognizedMasterworkPlug = Boolean(socketDetails?.hasRecognizedMasterworkPlug);
+    const hasRecognizedStatPlug = Boolean(socketDetails?.hasRecognizedStatPlug);
     const statDebug = collectDebug ? {} : null;
     const itemStateValue = Number(instance?.state);
     const isMasterworkedByState = Number.isFinite(itemStateValue) && (itemStateValue & DESTINY_ITEM_STATE_MASTERWORK) === DESTINY_ITEM_STATE_MASTERWORK;
@@ -1971,19 +1972,25 @@
       const value = Number(stat?.value);
       const numericValue = Number.isFinite(value) ? value : null;
       const totalAdjustmentRaw = Number(socketDetails?.adjustments?.[label]);
-      const totalAdjustment = Number.isFinite(totalAdjustmentRaw) ? totalAdjustmentRaw : 0;
+      const rawTotalAdjustment = Number.isFinite(totalAdjustmentRaw) ? totalAdjustmentRaw : 0;
+      let totalAdjustment = rawTotalAdjustment;
       const masterworkContributionRaw = Number(socketDetails?.masterworkAdjustments?.[label]);
-      const recognizedMasterworkBonus = Number.isFinite(masterworkContributionRaw) && Math.abs(masterworkContributionRaw) > 0.001 ? masterworkContributionRaw : 0;
+      let recognizedMasterworkBonus = 0;
+      if(Number.isFinite(masterworkContributionRaw)){
+        recognizedMasterworkBonus = Math.max(0, Math.min(masterworkContributionRaw, 2));
+        totalAdjustment = totalAdjustment - masterworkContributionRaw + recognizedMasterworkBonus;
+      }
       const fallbackMasterworkBonus = (!recognizedMasterworkBonus && isMasterworked && !hasRecognizedMasterworkPlug) ? 2 : 0;
       const socketBaseRaw = Number(socketDetails?.baseContributions?.[label]);
       const socketBase = Number.isFinite(socketBaseRaw) ? socketBaseRaw : null;
+      const recognizedAdjustment = hasRecognizedStatPlug ? Math.max(0, totalAdjustment) : 0;
       const fallbackMasterworkToSubtract = (!recognizedMasterworkBonus && fallbackMasterworkBonus) ? fallbackMasterworkBonus : 0;
-      const adjustmentToSubtract = totalAdjustment + fallbackMasterworkToSubtract;
+      const adjustmentToSubtract = recognizedAdjustment + fallbackMasterworkToSubtract;
 
       const apiBase = Number(stat?.base);
       const apiInvestment = Number(stat?.investmentValue);
       let manualBase = null;
-      if(Number.isFinite(numericValue) && Number.isFinite(adjustmentToSubtract)){
+      if(Number.isFinite(numericValue) && adjustmentToSubtract > 0){
         const candidate = numericValue - adjustmentToSubtract;
         if(Number.isFinite(candidate)){
           manualBase = Math.max(0, candidate);
@@ -2020,9 +2027,7 @@
       }
 
       if(Number.isFinite(numericValue)){
-        if(Number.isFinite(totalAdjustment) && totalAdjustment < 0){
-          // Allow base stats to exceed the current stat when penalties are equipped.
-        }else{
+        if(adjustmentToSubtract > 0){
           baseValue = Math.min(baseValue, numericValue);
         }
       }
@@ -2037,7 +2042,8 @@
           manualBase: Number.isFinite(manualBase) ? manualBase : null,
           apiBase: Number.isFinite(apiBase) ? apiBase : null,
           apiInvestment: Number.isFinite(apiInvestment) ? apiInvestment : null,
-          totalAdjustment,
+          rawTotalAdjustment: Number.isFinite(rawTotalAdjustment) ? rawTotalAdjustment : null,
+          totalAdjustment: recognizedAdjustment,
           adjustmentToSubtract: Number.isFinite(adjustmentToSubtract) ? adjustmentToSubtract : null,
           recognizedMasterworkBonus,
           fallbackMasterworkBonus,
@@ -2056,7 +2062,11 @@
     }
     row['Total (Base)'] = totalBase;
     const statTier = Math.max(0, Math.floor(totalBase / 10));
-    row.Tier = statTier;
+    if(Number.isFinite(energyTierValue)){
+      row.Tier = energyTierValue;
+    }else{
+      row.Tier = statTier;
+    }
     if(statDebug){
       const capacityNum = Number.isFinite(energyInfo?.capacity) ? energyInfo.capacity : Number(energy?.energyCapacity);
       const usedNum = Number.isFinite(energyInfo?.used) ? energyInfo.used : Number(energy?.energyUsed);
