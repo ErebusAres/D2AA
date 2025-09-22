@@ -374,7 +374,7 @@ export async function computeBaseArmorStats({
       const fallbackMasterwork = masterworkAdjustment === 0 ? masterworkBonus : 0;
       const baseValue = Math.max(
         0,
-        currentValue // - totalMods - masterworkAdjustment - fallbackMasterwork
+        currentValue /* - totalMods - masterworkAdjustment - fallbackMasterwork */
       );
       return [hash, baseValue];
     })
