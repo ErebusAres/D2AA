@@ -249,7 +249,6 @@ async function fetchMembershipId({ bungieApiKey }) {
     membershipId = String(memberships[0].membershipId);
     membershipType = memberships[0].membershipType;
   }
-
   if (!membershipId) {
     throw new Error('No Bungie memberships available for this account');
   }
