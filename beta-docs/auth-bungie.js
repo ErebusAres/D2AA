@@ -61,6 +61,7 @@ function readStoredToken() {
 }
 
 function ensureTokenFromRedirect() {
+  if (typeof window === 'undefined') return null;
   const parsed = parseTokenFromHash(window.location.hash);
   if (!parsed) return null;
   storeToken(parsed);
@@ -79,13 +80,19 @@ function redirectToOAuth({ clientId, redirectUri }) {
   window.location.assign(url.toString());
 }
 
-export function getBungieAccessToken({ clientId, redirectUri }) {
-  const existing = ensureTokenFromRedirect() || readStoredToken();
-  if (existing) {
-    return existing;
-  }
+export function getStoredBungieAccessToken() {
+  return ensureTokenFromRedirect() || readStoredToken();
+}
+
+export function clearStoredBungieAccessToken() {
+  const storage = getSessionStorage();
+  if (!storage) return;
+  storage.removeItem(TOKEN_STORAGE_KEY);
+  storage.removeItem(TOKEN_EXPIRY_KEY);
+}
+
+export function beginBungieOAuth({ clientId, redirectUri }) {
   redirectToOAuth({ clientId, redirectUri });
-  return null;
 }
 
 async function fetchJson(url, { headers }) {
