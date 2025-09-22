@@ -4,7 +4,7 @@ This beta build fetches real-time Destiny 2 armor directly from Bungie.net witho
 
 ## OAuth flow
 
-* **Grant type:** [Implicit Grant Flow](https://bungie-net.github.io/#Implicit-Grant-Flow). The page redirects the user to Bungie, and Bungie returns to `https://erebusares.github.io/D2AA/beta.html` with an access token in the URL hash.
+* **Grant type:** [Implicit Grant Flow](https://bungie-net.github.io/#Implicit-Grant-Flow). Users click “Sign in with Bungie” to start the redirect, and Bungie returns to `https://erebusares.github.io/D2AA/beta.html` with an access token in the URL hash.
 * **Storage:** The token is saved in `sessionStorage` under the key `bungie_access_token`. The hash is immediately stripped from the URL via `history.replaceState`.
 * **Expiry:** If Bungie provides `expires_in`, an absolute expiry timestamp is stored. When the token is expired the module clears it and triggers a fresh OAuth redirect.
 * **Membership lookup:** After OAuth completes we call `/User/GetMembershipsForCurrentUser/` and use the first `destinyMemberships` entry. The membership ID and type are cached in the in-memory app state.

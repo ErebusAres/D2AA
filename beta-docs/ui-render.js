@@ -124,7 +124,7 @@ function buildEmptyRow(colspan) {
   return row;
 }
 
-export function renderTable(container, initialRows, { state } = {}) {
+export function renderTable(container, initialRows, { state, onSignOut } = {}) {
   if (!container) return null;
   let rows = Array.isArray(initialRows) ? [...initialRows] : [];
   const root = createElement('div', { className: 'beta-layout' });
@@ -142,6 +142,15 @@ export function renderTable(container, initialRows, { state } = {}) {
     textContent: 'Current',
   });
   controls.append(label, toggleBase, toggleCurrent);
+
+  if (typeof onSignOut === 'function') {
+    const signOut = createElement('button', {
+      className: 'beta-signout',
+      textContent: 'Sign out',
+    });
+    signOut.addEventListener('click', () => onSignOut());
+    controls.append(signOut);
+  }
 
   const table = createElement('table', { className: 'armor-table' });
   const thead = buildTableHead();
@@ -194,8 +203,9 @@ export function renderTable(container, initialRows, { state } = {}) {
   toggleBase.addEventListener('click', () => setStatView('base'));
   toggleCurrent.addEventListener('click', () => setStatView('current'));
 
+  let unsubscribe = null;
   if (state) {
-    state.subscribe((nextState) => {
+    unsubscribe = state.subscribe((nextState) => {
       const nextView = nextState?.statView ?? 'base';
       if (nextView !== statView) {
         statView = nextView;
@@ -212,6 +222,12 @@ export function renderTable(container, initialRows, { state } = {}) {
     update(newRows) {
       rows = Array.isArray(newRows) ? [...newRows] : [];
       renderRows();
+    },
+    destroy() {
+      if (typeof unsubscribe === 'function') {
+        unsubscribe();
+        unsubscribe = null;
+      }
     },
   };
 }
