@@ -684,6 +684,7 @@
   let dimProfile = loadDimProfileCache();
   let dimSyncToken = dimProfile?.syncToken ?? null;
   let dimIsFetching = false;
+  let dimArmorIsFetching = false;
   const manifestCache = {
     inventoryItem: new Map(),
     bucket: new Map(),
@@ -1677,7 +1678,7 @@
     });
     const membership = await fetchMemberships();
     if(membership){
-      const loaded = await loadArmorFromBungie({ reason: 'auto' });
+      const loaded = await loadArmor({ reason: 'auto' });
       return loaded;
     }
     return false;
@@ -2150,8 +2151,7 @@
         item,
         def,
         instances[item.itemInstanceId],
-        statsByItem[item.itemInstanceId]?.stats || {},
-        sockets
+        statsByItem[item.itemInstanceId]?.stats || {}
       );
       if(row) rows.push(row);
     }
@@ -2477,17 +2477,19 @@
     };
   }
 
-  async function buildRowFromDefinition(item, def, instance, stats, sockets){
+  async function buildRowFromDefinition(item, def, instance, stats){
     if(!def || !def.inventory) return null;
     if(def.itemType !== 2) return null;
     if(def.classType != null && def.classType > 2 && def.classType !== 3 && def.classType !== 4) return null;
     const bucketKey = hashKey(def.inventory.bucketTypeHash);
     if(!ARMOR_BUCKET_HASH_TO_TYPE[bucketKey]) return null;
+
     const className = CLASS_BY_TYPE[def.classType] || 'Any';
     const isClassItem = bucketKey === String(1585787867);
     const typeName = isClassItem
       ? (classItemByClass[className] || def.itemTypeDisplayName || 'Class Item')
       : (def.itemTypeDisplayName || ARMOR_BUCKET_HASH_TO_TYPE[bucketKey] || 'Armor');
+
     const energy = instance?.energy;
     const energyInfo = deriveEnergyTierInfo(energy);
     const energyTierValue = Number.isFinite(energyInfo?.tier) ? energyInfo.tier : null;
@@ -2496,6 +2498,7 @@
     const capacityLevel = Number.isFinite(energyInfo?.capacity) ? energyInfo.capacity : null;
     const currentEnergy = upgradeLevel ?? capacityLevel ?? usedEnergy ?? null;
     const tierEnergySource = energyInfo?.source || null;
+
     const row = {
       Id: normId(item.itemInstanceId || item.itemHash),
       Name: def?.displayProperties?.name || 'Unknown Item',
@@ -2508,46 +2511,16 @@
       'Total (Base)': 0,
       ItemHash: item?.itemHash ?? null
     };
-    const socketDefs = Array.isArray(def?.sockets?.socketEntries) ? def.sockets.socketEntries : [];
+
     const collectDebug = debugState.armorSamples.length < ARMOR_DEBUG_SAMPLE_LIMIT;
-    const socketDetails = await getStatAdjustmentsFromSockets(sockets, socketDefs, { collectDetails: collectDebug });
-    const hasRecognizedMasterworkPlug = Boolean(socketDetails?.hasRecognizedMasterworkPlug);
-    const hasRecognizedStatPlug = Boolean(socketDetails?.hasRecognizedStatPlug);
     const statDebug = collectDebug ? {} : null;
-    const itemStateValue = Number(instance?.state);
-    const isMasterworkedByState = Number.isFinite(itemStateValue) && (itemStateValue & DESTINY_ITEM_STATE_MASTERWORK) === DESTINY_ITEM_STATE_MASTERWORK;
-    const isMasterworked = isMasterworkedByState
-      || (Number.isFinite(capacityLevel) && capacityLevel >= 10)
-      || (Number.isFinite(upgradeLevel) && upgradeLevel >= 10);
+
+    let totalBase = 0;
     for(const [hash,label] of Object.entries(STAT_HASH_TO_LABEL)){
       const stat = stats?.[hash];
-      const value = Number(stat?.value);
-      const numericValue = Number.isFinite(value) ? value : null;
-      const totalAdjustmentRaw = Number(socketDetails?.adjustments?.[label]);
-      const rawTotalAdjustment = Number.isFinite(totalAdjustmentRaw) ? totalAdjustmentRaw : 0;
-      let totalAdjustment = rawTotalAdjustment;
-      const masterworkContributionRaw = Number(socketDetails?.masterworkAdjustments?.[label]);
-      let recognizedMasterworkBonus = 0;
-      if(Number.isFinite(masterworkContributionRaw)){
-        recognizedMasterworkBonus = Math.max(0, Math.min(masterworkContributionRaw, 2));
-        totalAdjustment = totalAdjustment - masterworkContributionRaw + recognizedMasterworkBonus;
-      }
-      const fallbackMasterworkBonus = (!recognizedMasterworkBonus && isMasterworked && !hasRecognizedMasterworkPlug) ? 2 : 0;
-      const socketBaseRaw = Number(socketDetails?.baseContributions?.[label]);
-      const socketBase = Number.isFinite(socketBaseRaw) ? socketBaseRaw : null;
-      const recognizedAdjustment = hasRecognizedStatPlug ? Math.max(0, totalAdjustment) : 0;
-      const fallbackMasterworkToSubtract = (!recognizedMasterworkBonus && fallbackMasterworkBonus) ? fallbackMasterworkBonus : 0;
-      const adjustmentToSubtract = recognizedAdjustment + fallbackMasterworkToSubtract;
-
       const apiBase = Number(stat?.base);
       const apiInvestment = Number(stat?.investmentValue);
-      let manualBase = null;
-      if(Number.isFinite(numericValue) && adjustmentToSubtract > 0){
-        const candidate = numericValue - adjustmentToSubtract;
-        if(Number.isFinite(candidate)){
-          manualBase = Math.max(0, candidate);
-        }
-      }
+      const current = Number(stat?.value);
 
       let baseValue = null;
       let baseSource = 'fallback-zero';
@@ -2558,67 +2531,40 @@
       }else if(Number.isFinite(apiInvestment)){
         baseValue = apiInvestment;
         baseSource = 'apiInvestment';
-      }
-
-      if(Number.isFinite(manualBase)){
-        baseValue = manualBase;
-        baseSource = 'derivedAdjustments';
-      }else if(baseValue === null && Number.isFinite(socketBase)){
-        baseValue = socketBase;
-        baseSource = 'socketIntrinsic';
-      }
-
-      if(baseValue === null){
-        if(Number.isFinite(numericValue)){
-          baseValue = numericValue;
-          baseSource = 'current';
-        }else{
-          baseValue = 0;
-          baseSource = 'fallback-zero';
-        }
-      }
-
-      if(Number.isFinite(numericValue)){
-        if(adjustmentToSubtract > 0){
-          baseValue = Math.min(baseValue, numericValue);
-        }
+      }else if(Number.isFinite(current)){
+        baseValue = current;
+        baseSource = 'current';
+      }else{
+        baseValue = 0;
+        baseSource = 'fallback-zero';
       }
 
       const roundedBase = Math.max(0, Math.round(baseValue));
       row[label] = roundedBase;
+      totalBase += roundedBase;
 
       if(statDebug){
         statDebug[label] = {
-          current: Number.isFinite(numericValue) ? numericValue : null,
-          socketBase,
-          manualBase: Number.isFinite(manualBase) ? manualBase : null,
+          current: Number.isFinite(current) ? current : null,
           apiBase: Number.isFinite(apiBase) ? apiBase : null,
           apiInvestment: Number.isFinite(apiInvestment) ? apiInvestment : null,
-          rawTotalAdjustment: Number.isFinite(rawTotalAdjustment) ? rawTotalAdjustment : null,
-          totalAdjustment: recognizedAdjustment,
-          adjustmentToSubtract: Number.isFinite(adjustmentToSubtract) ? adjustmentToSubtract : null,
-          recognizedMasterworkBonus,
-          fallbackMasterworkBonus,
-          fallbackMasterworkApplied: fallbackMasterworkToSubtract,
           baseSource,
           computedBase: roundedBase
         };
       }
     }
-    let totalBase = 0;
-    for(const label of Object.values(STAT_HASH_TO_LABEL)){
-      const value = Number(row[label]);
-      if(Number.isFinite(value)){
-        totalBase += value;
-      }
-    }
+
     row['Total (Base)'] = totalBase;
-    const statTier = Math.max(0, Math.floor(totalBase / 10));
-    if(Number.isFinite(energyTierValue)){
+
+    const gearTier = Number(instance?.gearTier);
+    if(Number.isFinite(gearTier)){
+      row.Tier = gearTier;
+    }else if(Number.isFinite(energyTierValue)){
       row.Tier = energyTierValue;
     }else{
-      row.Tier = statTier;
+      row.Tier = 0;
     }
+
     if(statDebug){
       const capacityNum = Number.isFinite(energyInfo?.capacity) ? energyInfo.capacity : Number(energy?.energyCapacity);
       const usedNum = Number.isFinite(energyInfo?.used) ? energyInfo.used : Number(energy?.energyUsed);
@@ -2627,13 +2573,10 @@
       const sample = {
         name: row.Name,
         type: row.Type,
-        tier: statTier,
+        tier: row.Tier,
         totalBase,
         instanceId: item?.itemInstanceId || null,
         itemHash: item?.itemHash || null,
-        isMasterworked,
-        masterworkFromState: isMasterworkedByState,
-        hasRecognizedMasterworkPlug,
         energy: {
           capacity: Number.isFinite(capacityNum) ? capacityNum : null,
           used: Number.isFinite(usedNum) ? usedNum : null,
@@ -2644,19 +2587,17 @@
           derivedTier: Number.isFinite(energyTierValue) ? energyTierValue : null
         },
         tierSources: {
-          stats: statTier,
+          gear: Number.isFinite(gearTier) ? gearTier : null,
           energy: Number.isFinite(energyTierValue) ? energyTierValue : null,
           energySource: tierEnergySource
         },
         stats: statDebug,
-        adjustments: socketDetails?.adjustments || {},
-        masterworkAdjustments: socketDetails?.masterworkAdjustments || {},
-        baseContributions: socketDetails?.baseContributions || {},
-        sockets: Array.isArray(socketDetails?.details) ? socketDetails.details : []
+        sockets: []
       };
       recordArmorDebugSample(sample);
       logDebug('armor row sample', sample);
     }
+
     return row;
   }
 
@@ -2758,6 +2699,77 @@
     return success;
   }
 
+  async function loadArmorFromDimApi(options={}){
+    const reason = options?.reason || 'manual';
+    if(dimArmorIsFetching){
+      logDebug('loadArmorFromDimApi skipped', { reason, dimArmorIsFetching: true });
+      return null;
+    }
+    if(!(dimConfig?.apiKey && dimConfig.apiKey.trim())){
+      logDebug('loadArmorFromDimApi missingKey', { reason });
+      return null;
+    }
+    if(!dimTokens?.accessToken){
+      logDebug('loadArmorFromDimApi missingToken', { reason });
+      return null;
+    }
+    const membership = getSelectedMembership();
+    const membershipId = membership?.membershipId || bungieConfig?.membershipId || bungieTokens?.membershipId;
+    if(!membershipId){
+      logDebug('loadArmorFromDimApi missingMembership', { reason });
+      if(!options?.silent){
+        setDimStatus('Select a Bungie profile before loading armor from DIM.', 'error');
+      }
+      return null;
+    }
+    try{
+      dimArmorIsFetching = true;
+      if(!options?.silent){
+        setDimStatus('Loading armor from DIM…', 'loading');
+      }
+      const response = await dimApiRequest('/export', { method: 'GET' });
+      const armorEntries = Array.isArray(response?.armor) ? response.armor : null;
+      if(!armorEntries || !armorEntries.length){
+        throw new Error('Armor data is not available from the DIM API export.');
+      }
+      logDebug('loadArmorFromDimApi unsupportedPayload', {
+        reason,
+        keys: Array.isArray(armorEntries) ? Object.keys(armorEntries[0] || {}) : []
+      });
+      throw new Error('DIM armor export parsing is not implemented yet.');
+    }catch(err){
+      logDebug('loadArmorFromDimApi error', { reason, error: err?.message || err });
+      if(!options?.silent){
+        setDimStatus('DIM armor sync unavailable. Falling back to Bungie.', 'info');
+      }
+      return null;
+    }finally{
+      dimArmorIsFetching = false;
+    }
+  }
+
+  async function loadArmor(options={}){
+    const reason = options?.reason || 'manual';
+    try{
+      const dimRows = await loadArmorFromDimApi({ reason, silent: reason !== 'manual' });
+      if(Array.isArray(dimRows) && dimRows.length){
+        resetBaseTags(dimRows);
+        STATE.rows = dimRows;
+        applyDimProfileToRows({ render: false });
+        saveRows();
+        render();
+        setUploadHint('Loaded via DIM API');
+        setDimStatus(`Loaded ${dimRows.length} armor items from DIM.`, 'ok');
+        logDebug('loadArmor success', { reason, source: 'dim', itemCount: dimRows.length });
+        return true;
+      }
+    }catch(err){
+      logDebug('loadArmor dimError', { reason, error: err?.message || err });
+    }
+    const bungieLoaded = await loadArmorFromBungie(options);
+    return bungieLoaded;
+  }
+
   async function initBungieIntegration(){
     logDebug('initBungieIntegration start', {
       hasRefreshToken: Boolean(bungieTokens?.refreshToken)
@@ -2781,7 +2793,7 @@
           renderMembershipOptions();
         }
         if(membership && !bungieAutoLoadedOnce){
-          const loaded = await loadArmorFromBungie({ reason: 'auto' });
+          const loaded = await loadArmor({ reason: 'auto' });
           if(!loaded && !bungieStatusEl?.textContent){
             setBungieStatus(`Signed in as ${membership.label}. Use Refresh armor to try again.`, 'info');
           }
@@ -3041,7 +3053,7 @@ out.sort((a, b) => {
   bungieLogoutBtn = document.getElementById('bungieLogout');
 
   if(bungieLoginBtn) bungieLoginBtn.addEventListener('click', () => startBungieAuth());
-  if(bungieRefreshBtn) bungieRefreshBtn.addEventListener('click', () => loadArmorFromBungie({ reason: 'manual' }));
+  if(bungieRefreshBtn) bungieRefreshBtn.addEventListener('click', () => loadArmor({ reason: 'manual' }));
   if(bungieLogoutBtn) bungieLogoutBtn.addEventListener('click', () => { clearBungieTokens(true); });
   if(bungieMembershipSelect){
     bungieMembershipSelect.addEventListener('change', (event) => {
@@ -3059,7 +3071,7 @@ out.sort((a, b) => {
       resetBaseTags(STATE.rows);
       applyDimProfileToRows({ render: true });
       updateBungieUI();
-      loadArmorFromBungie({ reason: 'auto' });
+      loadArmor({ reason: 'auto' });
     });
   }
 
