@@ -181,6 +181,8 @@
     "Class (Base)":"https://www.bungie.net/common/destiny2_content/icons/7eb845acb5b3a4a9b7e0b2f05f5c43f1.png",
     "Weapons (Base)":"https://www.bungie.net/common/destiny2_content/icons/bc69675acdae9e6b9a68a02fb4d62e07.png"
   };
+  const BUNGIE_BASE_STAT_MIN = 0;
+  const BUNGIE_BASE_STAT_MAX = 100;
   const RARITY_ICONS = {
     "Legendary": "https://www.bungie.net/common/destiny2_content/icons/f846f489c2a97afb289b357e431ecf8d.png",
     "Exotic": "https://www.bungie.net/common/destiny2_content/icons/3e6a698e1a8a5fb446fdcbf1e63c5269.png"
@@ -978,7 +980,9 @@
     dimTokens = null;
     localStorage.removeItem(DIM_TOKEN_STORAGE);
     if(showMessage){
-      setDimStatus('DIM session cleared. You can reconnect any time.', 'info');
+      setDimStatus('DIM session cleared. Tags will sync after the next armor load.', 'info');
+    }else{
+      refreshDimStatusFromProfile();
     }
     updateDimUI();
     logDebug('clearDimTokens', { showMessage: Boolean(showMessage) });
@@ -1027,6 +1031,8 @@
     localStorage.removeItem(DIM_PROFILE_STORAGE);
     if(showMessage){
       setDimStatus('DIM profile cache cleared.', 'info');
+    }else{
+      refreshDimStatusFromProfile();
     }
     applyDimProfileToRows({ render: true });
     logDebug('clearDimProfile', { showMessage: Boolean(showMessage) });
@@ -1066,6 +1072,49 @@
     if(type === 'ok') dimStatusEl.classList.add('status-ok');
     else if(type === 'error') dimStatusEl.classList.add('status-error');
     else if(type === 'loading') dimStatusEl.classList.add('status-loading');
+  }
+
+  function formatDimSyncTimestamp(timestamp){
+    const ms = Number(timestamp);
+    if(!Number.isFinite(ms) || ms <= 0){
+      return null;
+    }
+    try{
+      return new Date(ms).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+    }catch(err){
+      return null;
+    }
+  }
+
+  function buildDimStatusSummary(){
+    if(!getDimApiKey()){
+      return { message: 'DIM Sync is not configured for this build.', type: 'info' };
+    }
+    const tagCount = Array.isArray(dimProfile?.tags) ? dimProfile.tags.length : 0;
+    const hashTagCount = Array.isArray(dimProfile?.itemHashTags) ? dimProfile.itemHashTags.length : 0;
+    const total = tagCount + hashTagCount;
+    const timeText = formatDimSyncTimestamp(dimProfile?.fetchedAt);
+    if(total > 0){
+      const parts = [];
+      if(tagCount){
+        parts.push(`${tagCount} tag${tagCount === 1 ? '' : 's'}`);
+      }
+      if(hashTagCount){
+        parts.push(`${hashTagCount} item hash tag${hashTagCount === 1 ? '' : 's'}`);
+      }
+      const counts = parts.join(' and ');
+      const when = timeText ? ` on ${timeText}` : '';
+      return { message: `Synced ${counts} from DIM${when}.`, type: 'ok' };
+    }
+    if(timeText){
+      return { message: `DIM sync completed on ${timeText}.`, type: 'info' };
+    }
+    return { message: 'DIM tags will sync automatically after armor loads.', type: 'info' };
+  }
+
+  function refreshDimStatusFromProfile(){
+    const summary = buildDimStatusSummary();
+    setDimStatus(summary.message, summary.type);
   }
 
   async function ensureDimAccessToken(){
@@ -1210,7 +1259,9 @@
     const membership = getSelectedMembership();
     const membershipId = membership?.membershipId || bungieConfig?.membershipId || bungieTokens?.membershipId;
     if(!membershipId){
-      setDimStatus('Select a Bungie profile before syncing DIM tags.', 'error');
+      if(!silent){
+        setDimStatus('Select a Bungie profile before syncing DIM tags.', 'error');
+      }
       return false;
     }
     if(dimTokens?.membershipId && String(dimTokens.membershipId) !== String(membershipId)){
@@ -1252,10 +1303,7 @@
       }else if(!silent){
         render();
       }
-      const summary = `Synced ${tags.length} DIM tag${tags.length === 1 ? '' : 's'}.`;
-      if(!silent){
-        setDimStatus(summary, 'ok');
-      }
+      refreshDimStatusFromProfile();
       logDebug('dimSync success', {
         reason,
         tagCount: tags.length,
@@ -1372,8 +1420,7 @@
     }
 
     updateDimUI();
-
-    if(dimTokens?.accessToken){
+    if(Array.isArray(STATE.rows) && STATE.rows.length){
       syncDimProfile({ reason: 'auto', silent: true });
     }
   }
@@ -2519,7 +2566,6 @@
 
     const collectDebug = debugState.armorSamples.length < ARMOR_DEBUG_SAMPLE_LIMIT;
     const statDebug = collectDebug ? {} : null;
-
     let totalBase = 0;
     for(const [hash,label] of Object.entries(STAT_HASH_TO_LABEL)){
       const stat = stats?.[hash];
@@ -2527,14 +2573,15 @@
       const apiInvestment = Number(stat?.investmentValue);
       const current = Number(stat?.value);
 
-      let baseValue = null;
       let baseSource = 'fallback-zero';
+      let baseRaw = 0;
+      let socketInfoForStat = null;
 
       if(Number.isFinite(apiBase)){
-        baseValue = apiBase;
+        baseRaw = apiBase;
         baseSource = 'apiBase';
       }else if(Number.isFinite(apiInvestment)){
-        baseValue = apiInvestment;
+        baseRaw = apiInvestment;
         baseSource = 'apiInvestment';
       }else if(Number.isFinite(current)){
         baseValue = current;
@@ -2554,8 +2601,29 @@
           apiBase: Number.isFinite(apiBase) ? apiBase : null,
           apiInvestment: Number.isFinite(apiInvestment) ? apiInvestment : null,
           baseSource,
-          computedBase: roundedBase
+          computedBase: finalBase,
+          baseRaw: Number.isFinite(baseRaw) ? baseRaw : null,
+          baseRounded: normalization.valid ? normalization.rounded : null,
+          baseClamped: normalization.valid ? normalization.clamped : false,
+          baseClampedToMin: normalization.valid ? normalization.clampedToMin : false,
+          baseClampedToMax: normalization.valid ? normalization.clampedToMax : false
         };
+        if(socketBaseRecoveryTriggered){
+          const socketDetails = socketDebugInfo || null;
+          debugEntry.socket = {
+            hasData: Boolean(socketDetails),
+            hasAdjustment: socketDetails ? socketDetails.hasAdjustment : false,
+            subtract: socketDetails && Number.isFinite(socketDetails.subtract) ? socketDetails.subtract : null,
+            masterworkSubtract: socketDetails && Number.isFinite(socketDetails.masterworkSubtract) ? socketDetails.masterworkSubtract : null,
+            baseContribution: socketDetails && Number.isFinite(socketDetails.baseContribution) ? socketDetails.baseContribution : null,
+            rawBase: socketDetails && Number.isFinite(socketDetails.rawBase) ? socketDetails.rawBase : null,
+            normalizedBase: socketDetails && socketDetails.normalized?.valid ? socketDetails.normalized.value : null,
+            normalizedRounded: socketDetails && socketDetails.normalized?.valid ? socketDetails.normalized.rounded : null,
+            normalizedClamped: socketDetails ? Boolean(socketDetails.normalized?.clamped) : false,
+            usedForBase: socketInfoForStat === socketDetails
+          };
+        }
+        statDebug[label] = debugEntry;
       }
     }
 
@@ -2687,9 +2755,7 @@
       if(reason === 'auto'){
         bungieAutoLoadedOnce = true;
       }
-      if(dimTokens?.accessToken){
-        syncDimProfile({ reason, silent: reason !== 'manual' });
-      }
+      syncDimProfile({ reason, silent: reason !== 'manual' });
       logDebug('loadArmorFromBungie success', { reason, itemCount: rows.length });
       success = true;
     }catch(err){
@@ -3073,6 +3139,7 @@ out.sort((a, b) => {
       dimProfile = { tags: [], itemHashTags: [], fetchedAt: null, syncToken: null };
       dimSyncToken = null;
       saveDimProfileCache();
+      refreshDimStatusFromProfile();
       resetBaseTags(STATE.rows);
       applyDimProfileToRows({ render: true });
       updateBungieUI();
@@ -3137,6 +3204,7 @@ out.sort((a, b) => {
           render();
           fileInput.value = '';
           setUploadHint(`Loaded • ${fileName}`);
+          syncDimProfile({ reason: 'manual' });
         },
       });
     });
@@ -3151,6 +3219,7 @@ out.sort((a, b) => {
         applyDimProfileToRows({ render: false });
         render();
         resetUploadHint();
+        syncDimProfile({ reason: 'manual' });
       } else {
         alert('No saved CSV found in this browser. Upload a DIM CSV first.');
       }
