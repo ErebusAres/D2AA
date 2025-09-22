@@ -1,20 +1,16 @@
 const BUNGIE_TOKEN_KEY = 'd2aa:bungieAccessToken';
 const BUNGIE_TOKEN_EXPIRES_KEY = 'd2aa:bungieAccessTokenExpires';
-const BUNGIE_TOKEN_TYPE_KEY = 'd2aa:bungieTokenType';
-const BUNGIE_REFRESH_TOKEN_KEY = 'd2aa:bungieRefreshToken';
-const BUNGIE_REFRESH_EXPIRES_KEY = 'd2aa:bungieRefreshTokenExpires';
-const BUNGIE_STATE_KEY = 'd2aa:bungieOAuthState';
+const BUNGIE_TOKEN_TYPE_KEY = 'd2aa:bungieAccessTokenType';
 const BUNGIE_MEMBERSHIP_KEY = 'd2aa:bungieMembership';
 const DIM_TOKEN_KEY = 'd2aa:dimAccessToken';
 const DIM_TOKEN_EXPIRES_KEY = 'd2aa:dimAccessTokenExpires';
-const DIM_MEMBERSHIP_KEY = 'd2aa:dimMembershipId';
-const PROFILE_CACHE_KEY = 'd2aa:dimProfile';
+const DIM_TOKEN_MEMBERSHIP_KEY = 'd2aa:dimMembershipId';
 const STATUS_ELEMENT_ID = 'dim-status';
 const TOKEN_EXPIRY_BUFFER_MS = 60 * 1000;
 
 class RedirectingError extends Error {
-  constructor(message) {
-    super(message);
+  constructor() {
+    super('Redirecting to Bungie OAuth');
     this.name = 'RedirectingError';
     this.isRedirect = true;
   }
@@ -36,7 +32,7 @@ function writeSession(key, value) {
       sessionStorage.setItem(key, value);
     }
   } catch (_err) {
-    // ignore storage errors (private browsing, etc.)
+    // Ignore storage errors (e.g. private browsing restrictions).
   }
 }
 
@@ -51,7 +47,11 @@ function readJsonSession(key) {
 }
 
 function writeJsonSession(key, value) {
-  writeSession(key, value == null ? null : JSON.stringify(value));
+  if (value === null || value === undefined) {
+    writeSession(key, null);
+  } else {
+    writeSession(key, JSON.stringify(value));
+  }
 }
 
 function getStatusElement() {
@@ -59,141 +59,83 @@ function getStatusElement() {
   return document.getElementById(STATUS_ELEMENT_ID);
 }
 
-function setStatus(text, options = {}) {
+function setStatus(text, { clickHandler } = {}) {
   const el = getStatusElement();
   if (!el) return;
 
   el.textContent = text;
-  if (options.clickHandler) {
+  if (clickHandler) {
     el.style.cursor = 'pointer';
-    el.onclick = options.clickHandler;
+    el.onclick = clickHandler;
   } else {
     el.style.cursor = '';
     el.onclick = null;
   }
 }
 
-const BUNGIE_OAUTH_TOKEN_URL = 'https://www.bungie.net/Platform/App/OAuth/Token/';
-
-function cleanOAuthParams() {
+function cleanOAuthHash() {
   if (typeof window === 'undefined') return;
   try {
     const url = new URL(window.location.href);
     url.hash = '';
-    url.searchParams.delete('code');
-    url.searchParams.delete('state');
-    url.searchParams.delete('error');
-    url.searchParams.delete('error_description');
     window.history.replaceState({}, document.title, url.toString());
   } catch (_err) {
-    // ignore if we cannot manipulate history
+    // ignore URL manipulation failures
   }
-}
-
-function storeBungieTokens(data) {
-  const accessToken = data?.access_token ?? data?.accessToken ?? null;
-  const expiresInSeconds = Number(
-    data?.expires_in ?? data?.expiresIn ?? data?.expiresInSeconds ?? 0
-  );
-  if (!accessToken || !Number.isFinite(expiresInSeconds) || expiresInSeconds <= 0) {
-    throw new Error('Bungie token response missing access token');
-  }
-
-  const tokenType = data?.token_type ?? data?.tokenType ?? 'Bearer';
-  const now = Date.now();
-  const expiresAt = now + expiresInSeconds * 1000;
-  writeSession(BUNGIE_TOKEN_KEY, accessToken);
-  writeSession(BUNGIE_TOKEN_EXPIRES_KEY, String(expiresAt));
-  writeSession(BUNGIE_TOKEN_TYPE_KEY, tokenType);
-
-  const refreshToken = data?.refresh_token ?? data?.refreshToken ?? null;
-  const refreshExpiresIn = Number(
-    data?.refresh_expires_in ?? data?.refreshExpiresIn ?? data?.refreshExpiresInSeconds ?? 0
-  );
-  let refreshExpiresAt = 0;
-  if (refreshToken && Number.isFinite(refreshExpiresIn) && refreshExpiresIn > 0) {
-    refreshExpiresAt = now + refreshExpiresIn * 1000;
-    writeSession(BUNGIE_REFRESH_TOKEN_KEY, refreshToken);
-    writeSession(BUNGIE_REFRESH_EXPIRES_KEY, String(refreshExpiresAt));
-  } else {
-    writeSession(BUNGIE_REFRESH_TOKEN_KEY, null);
-    writeSession(BUNGIE_REFRESH_EXPIRES_KEY, null);
-  }
-
-  return { accessToken, tokenType, expiresAt, refreshToken, refreshExpiresAt };
-}
-
-async function requestBungieToken({ clientId, code, refreshToken }) {
-  if (!clientId) throw new Error('Bungie token exchange requires a clientId');
-
-  const body = new URLSearchParams();
-  body.set('client_id', clientId);
-  if (code) {
-    body.set('grant_type', 'authorization_code');
-    body.set('code', code);
-  } else if (refreshToken) {
-    body.set('grant_type', 'refresh_token');
-    body.set('refresh_token', refreshToken);
-  } else {
-    throw new Error('requestBungieToken requires an authorization code or refresh token');
-  }
-
-  const data = await fetchJson(BUNGIE_OAUTH_TOKEN_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body: body.toString(),
-  });
-
-  const stored = storeBungieTokens(data);
-  return {
-    accessToken: stored.accessToken,
-    tokenType: stored.tokenType,
-    expiresAt: stored.expiresAt,
-  };
-}
-
-async function handlePendingOAuthResponse({ clientId }) {
-  if (typeof window === 'undefined') return false;
-
-  const url = new URL(window.location.href);
-  const params = url.searchParams;
-
-  if (params.has('error')) {
-    const error = params.get('error');
-    const description = params.get('error_description') || params.get('errorDescription');
-    cleanOAuthParams();
-    throw new Error(`Bungie OAuth error: ${error}${description ? ` - ${description}` : ''}`);
-  }
-
-  if (!params.has('code')) {
-    return false;
-  }
-
-  const code = params.get('code');
-  const state = params.get('state');
-  const redirectState = readSession(BUNGIE_STATE_KEY);
-  if (redirectState && state && redirectState !== state) {
-    cleanOAuthParams();
-    clearBungieSession();
-    throw new Error('Bungie OAuth state mismatch, please retry');
-  }
-
-  await requestBungieToken({ clientId, code });
-  writeSession(BUNGIE_STATE_KEY, '');
-  cleanOAuthParams();
-  return true;
 }
 
 function clearBungieSession() {
   writeSession(BUNGIE_TOKEN_KEY, null);
   writeSession(BUNGIE_TOKEN_EXPIRES_KEY, null);
   writeSession(BUNGIE_TOKEN_TYPE_KEY, null);
-  writeSession(BUNGIE_REFRESH_TOKEN_KEY, null);
-  writeSession(BUNGIE_REFRESH_EXPIRES_KEY, null);
-  writeSession(BUNGIE_MEMBERSHIP_KEY, null);
-  writeSession(BUNGIE_STATE_KEY, null);
+  writeJsonSession(BUNGIE_MEMBERSHIP_KEY, null);
+}
+
+function clearDimSession() {
+  writeSession(DIM_TOKEN_KEY, null);
+  writeSession(DIM_TOKEN_EXPIRES_KEY, null);
+  writeSession(DIM_TOKEN_MEMBERSHIP_KEY, null);
+}
+
+function clearAllSessions() {
+  clearBungieSession();
+  clearDimSession();
+}
+
+function captureBungieTokenFromHash() {
+  if (typeof window === 'undefined') return null;
+
+  const hash = window.location.hash;
+  if (!hash || hash.length <= 1) return null;
+
+  const params = new URLSearchParams(hash.slice(1));
+
+  if (params.has('error')) {
+    const error = params.get('error');
+    const description = params.get('error_description') || params.get('errorDescription');
+    cleanOAuthHash();
+    throw new Error(`Bungie OAuth error: ${error}${description ? ` - ${description}` : ''}`);
+  }
+
+  const token = params.get('access_token');
+  if (!token) {
+    return null;
+  }
+
+  const tokenType = params.get('token_type') || params.get('tokenType') || 'Bearer';
+  const expiresRaw = params.get('expires_in') || params.get('expiresIn');
+  const expiresInSeconds = Number(expiresRaw);
+  const lifetime = Number.isFinite(expiresInSeconds) && expiresInSeconds > 0 ? expiresInSeconds : 3600;
+  const expiresAt = Date.now() + lifetime * 1000;
+
+  writeSession(BUNGIE_TOKEN_KEY, token);
+  writeSession(BUNGIE_TOKEN_EXPIRES_KEY, String(expiresAt));
+  writeSession(BUNGIE_TOKEN_TYPE_KEY, tokenType);
+  writeJsonSession(BUNGIE_MEMBERSHIP_KEY, null);
+  clearDimSession();
+  cleanOAuthHash();
+
+  return { accessToken: token, tokenType, expiresAt };
 }
 
 function getStoredBungieToken() {
@@ -202,46 +144,11 @@ function getStoredBungieToken() {
   const expiresRaw = readSession(BUNGIE_TOKEN_EXPIRES_KEY);
   const expiresAt = expiresRaw ? Number(expiresRaw) : 0;
   if (!expiresAt || Date.now() + TOKEN_EXPIRY_BUFFER_MS >= expiresAt) {
-    return null;
-  }
-  const tokenType = readSession(BUNGIE_TOKEN_TYPE_KEY) || 'Bearer';
-  return { accessToken: token, expiresAt, tokenType };
-}
-
-async function tryRefreshBungieToken({ clientId }) {
-  const refreshToken = readSession(BUNGIE_REFRESH_TOKEN_KEY);
-  if (!refreshToken) return null;
-
-  const expiresRaw = readSession(BUNGIE_REFRESH_EXPIRES_KEY);
-  const expiresAt = expiresRaw ? Number(expiresRaw) : 0;
-  if (!expiresAt || Date.now() + TOKEN_EXPIRY_BUFFER_MS >= expiresAt) {
     clearBungieSession();
     return null;
   }
-
-  try {
-    await requestBungieToken({ clientId, refreshToken });
-    return getStoredBungieToken();
-  } catch (err) {
-    if (err?.status === 400 || err?.status === 401) {
-      clearBungieSession();
-      return null;
-    }
-    throw err;
-  }
-}
-
-async function ensureBungieAccessToken({ clientId, redirectUri }) {
-  await handlePendingOAuthResponse({ clientId });
-
-  let token = getStoredBungieToken();
-  if (token) return token;
-
-  token = await tryRefreshBungieToken({ clientId });
-  if (token) return token;
-
-  redirectToBungieAuth({ clientId, redirectUri });
-  return null;
+  const tokenType = readSession(BUNGIE_TOKEN_TYPE_KEY) || 'Bearer';
+  return { accessToken: token, tokenType, expiresAt };
 }
 
 function redirectToBungieAuth({ clientId, redirectUri }) {
@@ -249,45 +156,58 @@ function redirectToBungieAuth({ clientId, redirectUri }) {
     throw new Error('Bungie OAuth requires a browser environment.');
   }
 
-  const state = Math.random().toString(36).slice(2);
-  writeSession(BUNGIE_STATE_KEY, state);
-
   const authUrl = new URL('https://www.bungie.net/en/OAuth/Authorize');
-  authUrl.searchParams.set('response_type', 'code');
+  authUrl.searchParams.set('response_type', 'token');
   authUrl.searchParams.set('client_id', clientId);
   authUrl.searchParams.set('redirect_uri', redirectUri);
-  authUrl.searchParams.set('state', state);
 
   setStatus('DIM: Redirecting to Bungie…');
   window.location.assign(authUrl.toString());
-  throw new RedirectingError('Redirecting to Bungie OAuth');
+  throw new RedirectingError();
 }
 
-function getStoredDimToken() {
+function ensureBungieToken({ clientId, redirectUri }) {
+  const captured = captureBungieTokenFromHash();
+  if (captured) {
+    return captured;
+  }
+
+  const stored = getStoredBungieToken();
+  if (stored) {
+    return stored;
+  }
+
+  redirectToBungieAuth({ clientId, redirectUri });
+  return null;
+}
+
+function getStoredDimToken({ membershipId }) {
   const token = readSession(DIM_TOKEN_KEY);
   if (!token) return null;
+
+  const storedMembership = readSession(DIM_TOKEN_MEMBERSHIP_KEY);
+  if (!storedMembership || String(storedMembership) !== String(membershipId)) {
+    clearDimSession();
+    return null;
+  }
+
   const expiresRaw = readSession(DIM_TOKEN_EXPIRES_KEY);
   const expiresAt = expiresRaw ? Number(expiresRaw) : 0;
   if (!expiresAt || Date.now() + TOKEN_EXPIRY_BUFFER_MS >= expiresAt) {
     clearDimSession();
     return null;
   }
+
   return { accessToken: token, expiresAt };
 }
 
-function clearDimSession() {
-  writeSession(DIM_TOKEN_KEY, null);
-  writeSession(DIM_TOKEN_EXPIRES_KEY, null);
-  writeSession(DIM_MEMBERSHIP_KEY, null);
-  writeSession(PROFILE_CACHE_KEY, null);
-}
-
-async function fetchJson(url, options) {
+async function fetchJson(url, options = {}) {
   const response = await fetch(url, options);
   if (!response.ok) {
     const body = await response.text().catch(() => '');
-    const error = new Error(`Request failed (${response.status}): ${body}`);
+    const error = new Error(`Request failed (${response.status})`);
     error.status = response.status;
+    error.body = body;
     throw error;
   }
   return response.json();
@@ -299,9 +219,8 @@ async function fetchMembershipId({ bungieApiKey }) {
     return cached;
   }
 
-  const accessToken = readSession(BUNGIE_TOKEN_KEY);
-  const tokenType = readSession(BUNGIE_TOKEN_TYPE_KEY) || 'Bearer';
-  if (!accessToken) {
+  const token = getStoredBungieToken();
+  if (!token) {
     throw new Error('Missing Bungie access token');
   }
 
@@ -309,21 +228,23 @@ async function fetchMembershipId({ bungieApiKey }) {
   const data = await fetchJson(url, {
     headers: {
       'X-API-Key': bungieApiKey,
-      Authorization: `${tokenType} ${accessToken}`,
+      Authorization: `${token.tokenType} ${token.accessToken}`,
     },
   });
 
   const memberships = data?.Response?.destinyMemberships || [];
-  const primaryId = data?.Response?.primaryMembershipId;
+  const primary = data?.Response?.primaryMembershipId;
   let membershipId = null;
   let membershipType = null;
-  if (primaryId) {
-    const found = memberships.find((entry) => String(entry.membershipId) === String(primaryId));
-    if (found) {
-      membershipId = String(found.membershipId);
-      membershipType = found.membershipType;
+
+  if (primary) {
+    const match = memberships.find((entry) => String(entry.membershipId) === String(primary));
+    if (match) {
+      membershipId = String(match.membershipId);
+      membershipType = match.membershipType;
     }
   }
+
   if (!membershipId && memberships.length) {
     membershipId = String(memberships[0].membershipId);
     membershipType = memberships[0].membershipType;
@@ -341,19 +262,19 @@ async function fetchMembershipId({ bungieApiKey }) {
   return payload;
 }
 
-async function exchangeDimToken({ dimApiKey, membershipId }) {
-  const cachedToken = getStoredDimToken();
-  if (cachedToken) {
-    return cachedToken;
+async function ensureDimToken({ dimApiKey, membershipId }) {
+  const cached = getStoredDimToken({ membershipId });
+  if (cached) {
+    return cached;
   }
 
-  const bungieAccessToken = readSession(BUNGIE_TOKEN_KEY);
-  if (!bungieAccessToken) {
+  const bungieToken = getStoredBungieToken();
+  if (!bungieToken) {
     throw new Error('Missing Bungie access token for DIM exchange');
   }
 
   const body = {
-    bungieAccessToken,
+    bungieAccessToken: bungieToken.accessToken,
     membershipId,
   };
 
@@ -366,8 +287,9 @@ async function exchangeDimToken({ dimApiKey, membershipId }) {
     body: JSON.stringify(body),
   });
 
-  const accessToken = data?.accessToken;
-  const expiresInSeconds = Number(data?.expiresInSeconds ?? data?.expiresIn ?? data?.expires_in ?? 0);
+  const accessToken = data?.accessToken || data?.access_token;
+  const expiresRaw = data?.expiresInSeconds ?? data?.expiresIn ?? data?.expires_in;
+  const expiresInSeconds = Number(expiresRaw);
   if (!accessToken || !Number.isFinite(expiresInSeconds) || expiresInSeconds <= 0) {
     throw new Error('DIM token exchange returned an invalid response');
   }
@@ -375,7 +297,7 @@ async function exchangeDimToken({ dimApiKey, membershipId }) {
   const expiresAt = Date.now() + expiresInSeconds * 1000;
   writeSession(DIM_TOKEN_KEY, accessToken);
   writeSession(DIM_TOKEN_EXPIRES_KEY, String(expiresAt));
-  writeJsonSession(DIM_MEMBERSHIP_KEY, { membershipId, expiresAt });
+  writeSession(DIM_TOKEN_MEMBERSHIP_KEY, String(membershipId));
   return { accessToken, expiresAt };
 }
 
@@ -384,19 +306,12 @@ async function fetchDimProfile({ dimApiKey, dimToken, membershipId }) {
   url.searchParams.set('platformMembershipId', membershipId);
   url.searchParams.set('components', 'tags,loadouts,settings');
 
-  const profile = await fetchJson(url.toString(), {
+  return fetchJson(url.toString(), {
     headers: {
       Authorization: `Bearer ${dimToken}`,
       'X-API-Key': dimApiKey,
     },
   });
-
-  writeJsonSession(PROFILE_CACHE_KEY, {
-    profile,
-    fetchedAt: Date.now(),
-  });
-
-  return profile;
 }
 
 function dispatchProfileEvent(detail) {
@@ -405,7 +320,7 @@ function dispatchProfileEvent(detail) {
     const event = new CustomEvent('d2aa:dim-profile', { detail });
     window.dispatchEvent(event);
   } catch (_err) {
-    // ignore if CustomEvent is not supported
+    // ignore environments without CustomEvent support
   }
 }
 
@@ -413,34 +328,19 @@ function handleError(err) {
   if (err instanceof RedirectingError && err.isRedirect) {
     return;
   }
-  console.error('[D2AA][dim-sync] Failed to connect to DIM', err);
-  const el = getStatusElement();
-  if (!el) return;
 
+  console.error('[D2AA][dim-sync] Failed to connect to DIM', err);
   setStatus('DIM: Error (click to retry)', {
     clickHandler: () => {
-      clearBungieSession();
-      clearDimSession();
+      clearAllSessions();
       setStatus('DIM: Connecting…');
       window.location.reload();
     },
   });
 }
 
-async function runSync({ bungieApiKey, clientId, redirectUri, dimApiKey }, options = {}) {
-  if (typeof window === 'undefined') {
-    return null;
-  }
-
-  if (!bungieApiKey || !clientId || !redirectUri || !dimApiKey) {
-    throw new Error('initAutoDimSync requires Bungie and DIM credentials');
-  }
-
-  if (options.forceBungieAuth) {
-    clearBungieSession();
-  }
-
-  const bungieToken = await ensureBungieAccessToken({ clientId, redirectUri });
+async function runSync(config) {
+  const bungieToken = ensureBungieToken(config);
   if (!bungieToken) {
     return null;
   }
@@ -449,11 +349,11 @@ async function runSync({ bungieApiKey, clientId, redirectUri, dimApiKey }, optio
 
   let membership;
   try {
-    membership = await fetchMembershipId({ bungieApiKey });
+    membership = await fetchMembershipId({ bungieApiKey: config.bungieApiKey });
   } catch (err) {
     if (err?.status === 401) {
       clearBungieSession();
-      redirectToBungieAuth({ clientId, redirectUri });
+      redirectToBungieAuth(config);
       return null;
     }
     throw err;
@@ -463,12 +363,15 @@ async function runSync({ bungieApiKey, clientId, redirectUri, dimApiKey }, optio
 
   let dimToken;
   try {
-    dimToken = await exchangeDimToken({ dimApiKey, membershipId: membership.membershipId });
+    dimToken = await ensureDimToken({
+      dimApiKey: config.dimApiKey,
+      membershipId: membership.membershipId,
+    });
   } catch (err) {
     if (err?.status === 401) {
       clearDimSession();
       clearBungieSession();
-      redirectToBungieAuth({ clientId, redirectUri });
+      redirectToBungieAuth(config);
       return null;
     }
     throw err;
@@ -477,7 +380,7 @@ async function runSync({ bungieApiKey, clientId, redirectUri, dimApiKey }, optio
   setStatus('DIM: Syncing DIM profile…');
 
   const profile = await fetchDimProfile({
-    dimApiKey,
+    dimApiKey: config.dimApiKey,
     dimToken: dimToken.accessToken,
     membershipId: membership.membershipId,
   });
@@ -485,10 +388,8 @@ async function runSync({ bungieApiKey, clientId, redirectUri, dimApiKey }, optio
   const tags = Array.isArray(profile?.tags) ? profile.tags : [];
   const itemHashTags = Array.isArray(profile?.itemHashTags) ? profile.itemHashTags : [];
   const loadouts = Array.isArray(profile?.loadouts) ? profile.loadouts : [];
-  const taggedCount = tags.length + itemHashTags.length;
-  const loadoutCount = loadouts.length;
 
-  setStatus(`DIM: Connected ✓  Loadouts: ${loadoutCount} | Tagged: ${taggedCount}`);
+  setStatus(`DIM: Connected ✓  Loadouts: ${loadouts.length} | Tagged: ${tags.length + itemHashTags.length}`);
 
   dispatchProfileEvent({
     profile,
@@ -510,26 +411,32 @@ export function initAutoDimSync({ bungieApiKey, clientId, redirectUri, dimApiKey
     };
   }
 
-  setStatus('DIM: Connecting…');
+  if (!bungieApiKey || !clientId || !redirectUri || !dimApiKey) {
+    throw new Error('initAutoDimSync requires Bungie and DIM credentials');
+  }
 
   const config = { bungieApiKey, clientId, redirectUri, dimApiKey };
-
-  const controller = {
-    refresh: async (options = {}) => {
-      try {
-        clearDimSession();
-        if (options.forceAuth) {
-          clearBungieSession();
-        }
-        await runSync(config, { forceBungieAuth: Boolean(options.forceAuth) });
-      } catch (err) {
-        handleError(err);
-      }
-    },
-  };
+  setStatus('DIM: Connecting…');
 
   runSync(config).catch(handleError);
 
-  return controller;
+  return {
+    refresh: async (options = {}) => {
+      try {
+        if (options.forceAuth) {
+          clearAllSessions();
+        } else {
+          clearDimSession();
+        }
+        return await runSync(config);
+      } catch (err) {
+        if (err instanceof RedirectingError && err.isRedirect) {
+          return null;
+        }
+        handleError(err);
+        return null;
+      }
+    },
+  };
 }
 
