@@ -84,6 +84,20 @@
       <div id="bungieStatus" class="auth-status muted" aria-live="polite"></div>
     </section>
 
+    <section class="panel panel-auth" id="dimPanel">
+      <div class="auth-header">
+        <h2>Connect with DIM Sync</h2>
+        <p class="muted">Sign in with DIM to layer your item tags on top of Bungie or CSV armor loads.</p>
+      </div>
+      <div class="auth-buttons">
+        <button id="dimLogin" type="button" class="btn btn-primary">Sign in with DIM</button>
+        <button id="dimRefresh" type="button" class="btn">Sync DIM tags</button>
+        <button id="dimLogout" type="button" class="btn">Disconnect</button>
+      </div>
+      <div class="auth-note muted">DIM access is configured for this site. Tokens stay local to this browser.</div>
+      <div id="dimStatus" class="auth-status muted" aria-live="polite"></div>
+    </section>
+
     <section class="panel panel-debug" id="debugPanel">
       <div class="debug-header">
         <h2>Debug Console</h2>
@@ -704,6 +718,9 @@
   let bungieRefreshBtn = null;
   let bungieLogoutBtn = null;
   let dimStatusEl = null;
+  let dimLoginBtn = null;
+  let dimRefreshBtn = null;
+  let dimLogoutBtn = null;
   const rowBaseTags = new Map();
   function saveRows(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(STATE.rows)); }catch(_){} }
   function loadRows(){ try{ const s=localStorage.getItem(LS_KEY); if(!s) return null; return JSON.parse(s); }catch(_){ return null; } }
@@ -1030,6 +1047,12 @@
   }
 
   function updateDimUI(){
+    const hasKey = Boolean(getDimApiKey());
+    const bungieReady = Boolean(bungieTokens?.refreshToken);
+    const tokenValid = hasValidDimToken();
+    if(dimLoginBtn) dimLoginBtn.disabled = dimIsFetching || !hasKey || !bungieReady;
+    if(dimRefreshBtn) dimRefreshBtn.disabled = dimIsFetching || !tokenValid;
+    if(dimLogoutBtn) dimLogoutBtn.disabled = dimIsFetching || !dimTokens?.accessToken;
     updateDebugSnapshot();
   }
 
@@ -1230,9 +1253,7 @@
     }
     const dimApiKey = getDimApiKey();
     if(!dimApiKey){
-      if(!silent){
-        setDimStatus('DIM Sync is not configured for this build.', 'error');
-      }
+      setDimStatus('DIM Sync is not configured for this build.', 'error');
       return false;
     }
     const membership = getSelectedMembership();
@@ -1360,7 +1381,44 @@
 
   function initDimIntegration(){
     dimStatusEl = document.getElementById('dimStatus');
-    refreshDimStatusFromProfile();
+    dimLoginBtn = document.getElementById('dimLogin');
+    dimRefreshBtn = document.getElementById('dimRefresh');
+    dimLogoutBtn = document.getElementById('dimLogout');
+
+    if(dimLoginBtn){
+      dimLoginBtn.addEventListener('click', () => {
+        syncDimProfile({ reason: 'manual' });
+      });
+    }
+
+    if(dimRefreshBtn){
+      dimRefreshBtn.addEventListener('click', () => {
+        syncDimProfile({ reason: 'manual' });
+      });
+    }
+
+    if(dimLogoutBtn){
+      dimLogoutBtn.addEventListener('click', () => {
+        clearDimTokens(true);
+      });
+    }
+
+    if(dimProfile && (Array.isArray(dimProfile.tags) || Array.isArray(dimProfile.itemHashTags))){
+      const tagCount = Array.isArray(dimProfile.tags) ? dimProfile.tags.length : 0;
+      const hashTagCount = Array.isArray(dimProfile.itemHashTags) ? dimProfile.itemHashTags.length : 0;
+      if(tagCount || hashTagCount){
+        setDimStatus(`Loaded ${tagCount} DIM tag${tagCount === 1 ? '' : 's'} from last sync.`, 'info');
+      }else if(!getDimApiKey()){
+        setDimStatus('DIM Sync is not configured for this build.', 'info');
+      }else{
+        setDimStatus('Sign in with DIM to sync your tags.', 'info');
+      }
+    }else if(!getDimApiKey()){
+      setDimStatus('DIM Sync is not configured for this build.', 'info');
+    }else{
+      setDimStatus('Sign in with DIM to sync your tags.', 'info');
+    }
+
     updateDimUI();
     if(Array.isArray(STATE.rows) && STATE.rows.length){
       syncDimProfile({ reason: 'auto', silent: true });
@@ -2145,8 +2203,7 @@
         item,
         def,
         instances[item.itemInstanceId],
-        statsByItem[item.itemInstanceId]?.stats || {},
-        sockets
+        statsByItem[item.itemInstanceId]?.stats || {}
       );
       if(row) rows.push(row);
     }
@@ -2472,69 +2529,7 @@
     };
   }
 
-  function normalizeBaseStatValue(value){
-    const numeric = Number(value);
-    if(!Number.isFinite(numeric)){
-      return {
-        value: 0,
-        rounded: 0,
-        clamped: false,
-        valid: false,
-        raw: numeric
-      };
-    }
-    const rounded = Math.round(numeric);
-    const clampedValue = Math.max(BUNGIE_BASE_STAT_MIN, Math.min(BUNGIE_BASE_STAT_MAX, rounded));
-    return {
-      value: clampedValue,
-      rounded,
-      clamped: clampedValue !== rounded,
-      clampedToMin: clampedValue === BUNGIE_BASE_STAT_MIN && rounded < clampedValue,
-      clampedToMax: clampedValue === BUNGIE_BASE_STAT_MAX && rounded > clampedValue,
-      valid: true,
-      raw: numeric
-    };
-  }
-
-  async function deriveSocketAdjustedBaseStats(stats, sockets, socketDefs, options={}){
-    const collectDetails = Boolean(options?.collectDetails);
-    const socketList = Array.isArray(sockets) ? sockets : [];
-    const socketDefList = Array.isArray(socketDefs) ? socketDefs : [];
-    const adjustmentInfo = await getStatAdjustmentsFromSockets(socketList, socketDefList, {
-      collectDetails
-    });
-    const byLabel = {};
-    for(const [hash, label] of Object.entries(STAT_HASH_TO_LABEL)){
-      const stat = stats?.[hash];
-      const current = Number(stat?.value);
-      if(!Number.isFinite(current)) continue;
-      const subtract = adjustmentInfo.adjustments[label] || 0;
-      const masterworkSubtract = adjustmentInfo.masterworkAdjustments[label] || 0;
-      const baseContribution = adjustmentInfo.baseContributions[label] || 0;
-      const rawBase = current - subtract;
-      const normalized = normalizeBaseStatValue(rawBase);
-      byLabel[label] = {
-        current,
-        subtract,
-        masterworkSubtract,
-        baseContribution,
-        rawBase,
-        normalized,
-        hasAdjustment: Math.abs(subtract) > 0.0001
-      };
-    }
-    return {
-      adjustments: adjustmentInfo.adjustments,
-      masterworkAdjustments: adjustmentInfo.masterworkAdjustments,
-      baseContributions: adjustmentInfo.baseContributions,
-      hasRecognizedStatPlug: adjustmentInfo.hasRecognizedStatPlug,
-      hasRecognizedMasterworkPlug: adjustmentInfo.hasRecognizedMasterworkPlug,
-      details: adjustmentInfo.details,
-      byLabel
-    };
-  }
-
-  async function buildRowFromDefinition(item, def, instance, stats, sockets){
+  async function buildRowFromDefinition(item, def, instance, stats){
     if(!def || !def.inventory) return null;
     if(def.itemType !== 2) return null;
     if(def.classType != null && def.classType > 2 && def.classType !== 3 && def.classType !== 4) return null;
@@ -2571,52 +2566,12 @@
 
     const collectDebug = debugState.armorSamples.length < ARMOR_DEBUG_SAMPLE_LIMIT;
     const statDebug = collectDebug ? {} : null;
-
-    const socketList = Array.isArray(sockets) ? sockets : [];
-    const socketDefsList = Array.isArray(def?.sockets?.socketEntries) ? def.sockets.socketEntries : [];
-    let socketBaseRecovery = null;
-    let socketBaseByLabel = {};
-    let socketBaseRecoveryTriggered = false;
-
-    if(socketList.length > 0){
-      let needsSocketBaseFallback = false;
-      for(const [hash] of Object.entries(STAT_HASH_TO_LABEL)){
-        const statEntry = stats?.[hash];
-        const baseNum = Number(statEntry?.base);
-        const investmentNum = Number(statEntry?.investmentValue);
-        const currentNum = Number(statEntry?.value);
-        if(!Number.isFinite(baseNum) && !Number.isFinite(investmentNum) && Number.isFinite(currentNum)){
-          needsSocketBaseFallback = true;
-          break;
-        }
-      }
-      if(needsSocketBaseFallback){
-        socketBaseRecovery = await deriveSocketAdjustedBaseStats(stats, socketList, socketDefsList, {
-          collectDetails: Boolean(statDebug)
-        });
-        if(!socketBaseRecovery || typeof socketBaseRecovery !== 'object'){
-          socketBaseRecovery = {
-            adjustments: {},
-            masterworkAdjustments: {},
-            baseContributions: {},
-            hasRecognizedStatPlug: false,
-            hasRecognizedMasterworkPlug: false,
-            details: null,
-            byLabel: {}
-          };
-        }
-        socketBaseByLabel = socketBaseRecovery.byLabel || {};
-        socketBaseRecoveryTriggered = true;
-      }
-    }
-
     let totalBase = 0;
     for(const [hash,label] of Object.entries(STAT_HASH_TO_LABEL)){
       const stat = stats?.[hash];
       const apiBase = Number(stat?.base);
       const apiInvestment = Number(stat?.investmentValue);
       const current = Number(stat?.value);
-      const socketDebugInfo = socketBaseByLabel?.[label] || null;
 
       let baseSource = 'fallback-zero';
       let baseRaw = 0;
@@ -2629,27 +2584,19 @@
         baseRaw = apiInvestment;
         baseSource = 'apiInvestment';
       }else if(Number.isFinite(current)){
-        if(socketBaseRecoveryTriggered && socketDebugInfo && socketDebugInfo.hasAdjustment && socketDebugInfo.normalized?.valid){
-          baseRaw = socketDebugInfo.rawBase;
-          baseSource = 'socketAdjusted';
-          socketInfoForStat = socketDebugInfo;
-        }else{
-          baseRaw = current;
-          baseSource = 'current';
-        }
+        baseValue = current;
+        baseSource = 'current';
       }else{
-        baseRaw = 0;
+        baseValue = 0;
         baseSource = 'fallback-zero';
       }
 
-      const normalization = socketInfoForStat?.normalized || normalizeBaseStatValue(baseRaw);
-      const finalBase = normalization.value;
-
-      row[label] = finalBase;
-      totalBase += finalBase;
+      const roundedBase = Math.max(0, Math.round(baseValue));
+      row[label] = roundedBase;
+      totalBase += roundedBase;
 
       if(statDebug){
-        const debugEntry = {
+        statDebug[label] = {
           current: Number.isFinite(current) ? current : null,
           apiBase: Number.isFinite(apiBase) ? apiBase : null,
           apiInvestment: Number.isFinite(apiInvestment) ? apiInvestment : null,
@@ -2718,21 +2665,7 @@
           energySource: tierEnergySource
         },
         stats: statDebug,
-        sockets: socketBaseRecoveryTriggered ? {
-          attempted: true,
-          hasRecognizedStatPlug: Boolean(socketBaseRecovery?.hasRecognizedStatPlug),
-          hasRecognizedMasterworkPlug: Boolean(socketBaseRecovery?.hasRecognizedMasterworkPlug),
-          adjustments: socketBaseRecovery?.adjustments || {},
-          masterworkAdjustments: socketBaseRecovery?.masterworkAdjustments || {},
-          baseContributions: socketBaseRecovery?.baseContributions || {},
-          perStat: socketBaseRecovery?.byLabel || {},
-          details: socketBaseRecovery?.details || null,
-          appliedStats: Object.entries(statDebug)
-            .filter(([, entry]) => entry?.baseSource === 'socketAdjusted')
-            .map(([label]) => label)
-        } : {
-          attempted: false
-        }
+        sockets: []
       };
       recordArmorDebugSample(sample);
       logDebug('armor row sample', sample);
@@ -2898,7 +2831,6 @@
         render();
         setUploadHint('Loaded via DIM API');
         setDimStatus(`Loaded ${dimRows.length} armor items from DIM.`, 'ok');
-        syncDimProfile({ reason, silent: reason !== 'manual' });
         logDebug('loadArmor success', { reason, source: 'dim', itemCount: dimRows.length });
         return true;
       }
