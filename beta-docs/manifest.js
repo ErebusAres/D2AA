@@ -1,3 +1,4 @@
+
 function computeHashVariants(hash) {
   if (hash === null || hash === undefined) {
     throw new Error('Missing manifest hash');
