@@ -1,8 +1,0 @@
-D2AA.css
-D2AA.html
-README.md
-armor-base-stats.js
-beta.css
-beta.html
-dim-sync.js
-docs/dim-sync-notes.md
