@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>D2 Armor Analyzer — Beta</title>
+  <link rel="stylesheet" href="beta.css" />
+</head>
+<body>
+  <div id="app"></div>
+
+  <script type="module">
+    import { CONFIG } from './beta-docs/config.js';
+    import { ensureBungieLogin, getMembership } from './beta-docs/auth-bungie.js';
+    import { getProfile } from './beta-docs/bungie-client.js';
+    import { createManifestClient } from './beta-docs/manifest.js';
+    import { buildRowsFromBungie } from './beta-docs/items-adapter.js';
+    import { buildRowsFromCsv } from './beta-docs/csv-adapter.js';
+    import { renderApp } from './beta-docs/ui-render.js';
+    import { initDimSync, fetchDimProfile } from './beta-docs/dim-sync.js';
+    import { patchState, updateDimAuth } from './beta-docs/state.js';
+
+    const appRoot = document.getElementById('app');
+    renderApp(appRoot);
+
+    buildRowsFromCsv.registerUploadHandler('#csv-input', (rows, meta = {}) => {
+      renderApp(appRoot, {
+        rows,
+        source: 'csv',
+        dimTags: {},
+        uploadHint: meta.fileName ? `Loaded • ${meta.fileName}` : undefined
+      });
+    });
+
+    const loginBtn = document.getElementById('btn-bungie-login');
+    loginBtn?.addEventListener('click', async () => {
+      try {
+        const accessToken = await ensureBungieLogin(CONFIG.bungie);
+        const { membershipId, membershipType } = await getMembership(CONFIG.bungie.apiKey, accessToken);
+        patchState({ accessToken, membershipId, membershipType });
+
+        const dimState = await initDimSync({
+          apiKey: CONFIG.dim.apiKey,
+          apiBase: CONFIG.dim.apiBase,
+          accessToken,
+          membershipId
+        });
+        updateDimAuth(dimState);
+        renderApp(appRoot, { dimAuth: dimState });
+
+        const manifest = createManifestClient({ apiKey: CONFIG.bungie.apiKey });
+        const components = [100, 102, 200, 201, 205, 300, 304, 305, 308].join(',');
+        const profile = await getProfile(membershipType, membershipId, CONFIG.bungie.apiKey, accessToken, components);
+        const rows = await buildRowsFromBungie({ profile, manifest });
+        renderApp(appRoot, {
+          rows,
+          source: 'bungie',
+          uploadHint: 'Loaded • Bungie Profile'
+        });
+
+        if (dimState.accessToken) {
+          try {
+            const dimProfile = await fetchDimProfile({
+              apiKey: CONFIG.dim.apiKey,
+              apiBase: CONFIG.dim.apiBase,
+              membershipId
+            });
+            const tags = dimProfile?.tags || {};
+            renderApp(appRoot, { dimTags: tags });
+          } catch (err) {
+            console.warn('Failed to load DIM profile', err);
+          }
+        }
+      } catch (err) {
+        console.error('Bungie login failed', err);
+        alert('Bungie sign-in failed. Check console for details.');
+      }
+    });
+  </script>
+</body>
+</html>
