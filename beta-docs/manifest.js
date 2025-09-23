@@ -18,11 +18,7 @@ function toSignedHash(hash) {
   }
 }
 
-function delay(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-function delay(ms) {
+function backoffDelay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
@@ -92,7 +88,7 @@ export function createManifestClient({ apiKey }) {
               err?.name === 'TypeError');
           attempt += 1;
           if (retryable && attempt < maxAttempts) {
-            await delay(250 * attempt);
+            await backoffDelay(250 * attempt);
             continue;
           }
           throw err;
