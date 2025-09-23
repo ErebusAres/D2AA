@@ -1,4 +1,4 @@
-import { computeBaseArmorStats } from './armor-stats.js';
+import { CORE, computeBaseArmorStats } from './armor-stats.js';
 import { rateTotal } from './ranking.js';
 import { buildGroupKey } from './grouping.js';
 
@@ -9,6 +9,9 @@ const CLASS_NAMES = {
   3: 'Unknown'
 };
 
+const CORE_NAMES = Object.keys(CORE);
+const CORE_HASH_TO_NAME = new Map(Object.entries(CORE).map(([name, hash]) => [Number(hash), name]));
+
 const CORE_TO_DIM = {
   mobility: 'Class (Base)',
   resilience: 'Health (Base)',
@@ -17,6 +20,45 @@ const CORE_TO_DIM = {
   intellect: 'Super (Base)',
   strength: 'Melee (Base)'
 };
+
+const loggedDefinitionFailures = new Set();
+
+function createEmptyStatBlock() {
+  const block = { total: 0 };
+  for (const name of CORE_NAMES) {
+    block[name] = 0;
+  }
+  return block;
+}
+
+function finalizeTotals(block) {
+  let total = 0;
+  for (const name of CORE_NAMES) {
+    const value = Number(block[name]) || 0;
+    block[name] = value;
+    total += value;
+  }
+  block.total = total;
+  return block;
+}
+
+function buildFallbackStatBlocks(statsPayload) {
+  const base = createEmptyStatBlock();
+  const current = createEmptyStatBlock();
+  const stats = statsPayload?.stats || {};
+  for (const [hashKey, entry] of Object.entries(stats)) {
+    const statName = CORE_HASH_TO_NAME.get(Number(hashKey));
+    if (!statName) {
+      continue;
+    }
+    const baseValue =
+      Number(entry?.base) || Number(entry?.baseStatValue) || Number(entry?.value) || 0;
+    const currentValue = Number(entry?.value) || baseValue;
+    base[statName] = baseValue;
+    current[statName] = currentValue;
+  }
+  return { base: finalizeTotals(base), current: finalizeTotals(current) };
+}
 
 export async function buildRowsFromBungie({ profile, manifest }) {
   if (!profile) return [];
@@ -58,7 +100,17 @@ export async function buildRowsFromBungie({ profile, manifest }) {
     const itemHash = info?.itemHash;
     if (!itemHash) continue;
 
-    const definition = await manifest.get('DestinyInventoryItemDefinition', itemHash);
+    let definition;
+    try {
+      definition = await manifest.get('DestinyInventoryItemDefinition', itemHash);
+    } catch (err) {
+      const key = String(itemHash);
+      if (!loggedDefinitionFailures.has(key)) {
+        loggedDefinitionFailures.add(key);
+        console.warn('Skipping item due to missing manifest definition', itemHash, err);
+      }
+      continue;
+    }
     if (!definition) continue;
     const itemType = (definition.itemTypeDisplayName || definition.itemTypeAndTierDisplayName || '').toLowerCase();
     if (itemType.includes('weapon')) continue;
@@ -68,13 +120,23 @@ export async function buildRowsFromBungie({ profile, manifest }) {
     const equippable = CLASS_NAMES[definition.classType] || 'Any';
     const slot = definition.itemTypeDisplayName || definition.itemTypeAndTierDisplayName || '';
 
-    const statBlocks = await computeBaseArmorStats({
-      itemStats: stats[instanceId],
-      itemSockets: sockets[instanceId],
-      itemPlugStates: plugStates[instanceId],
-      itemInstance: instance,
-      manifest
-    });
+    let statBlocks;
+    try {
+      statBlocks = await computeBaseArmorStats({
+        itemStats: stats[instanceId],
+        itemSockets: sockets[instanceId],
+        itemPlugStates: plugStates[instanceId],
+        itemInstance: instance,
+        manifest
+      });
+    } catch (err) {
+      console.warn(
+        'Falling back to raw instance stats after compute failure',
+        instanceId,
+        err
+      );
+      statBlocks = buildFallbackStatBlocks(stats[instanceId]);
+    }
 
     const row = {
       Id: String(instanceId),
