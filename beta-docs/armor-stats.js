@@ -78,7 +78,18 @@ export async function computeBaseArmorStats({
     definitionPromises.push(manifest.get('DestinyInventoryItemDefinition', plugHash));
   });
 
-  const definitions = await Promise.all(definitionPromises);
+  const definitionResults = await Promise.allSettled(definitionPromises);
+  const definitions = definitionResults.map((result, index) => {
+    if (result.status === 'fulfilled') {
+      return result.value;
+    }
+    console.warn(
+      'Failed to load socket plug definition',
+      socketHashes[index],
+      result.reason
+    );
+    return null;
+  });
   const modsByHash = Object.fromEntries(CORE_HASHES.map((hash) => [hash, 0]));
   const artificeByHash = Object.fromEntries(CORE_HASHES.map((hash) => [hash, 0]));
   const masterworkByHash = Object.fromEntries(CORE_HASHES.map((hash) => [hash, 0]));
