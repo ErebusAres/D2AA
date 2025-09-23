@@ -1,6 +1,25 @@
 function toSignedHash(hash) {
-  const n = Number(hash);
-  return n > 0x7fffffff ? n - 0x100000000 : n;
+  if (hash === null || hash === undefined) {
+    throw new Error('Missing manifest hash');
+  }
+  try {
+    const asBigInt = BigInt(hash);
+    return BigInt.asIntN(32, asBigInt).toString();
+  } catch (bigIntError) {
+    const n = Number(hash);
+    if (Number.isFinite(n)) {
+      const truncated = Math.trunc(n);
+      return truncated > 0x7fffffff
+        ? String(truncated - 0x100000000)
+        : String(truncated);
+    }
+    console.warn('Unable to coerce manifest hash to integer', hash, bigIntError);
+    return String(hash);
+  }
+}
+
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function delay(ms) {
@@ -11,11 +30,20 @@ export function createManifestClient({ apiKey }) {
   const cache = new Map();
   return {
     async get(table, hash) {
-      const key = `${table}:${hash}`;
+      const key = `${table}:${String(hash)}`;
       if (cache.has(key)) {
         return cache.get(key);
       }
-      const url = `https://www.bungie.net/Platform/Destiny2/Manifest/${table}/${toSignedHash(hash)}/`;
+      let signedHash;
+      try {
+        signedHash = toSignedHash(hash);
+      } catch (err) {
+        const error = new Error(`Manifest ${table} ${hash} failed to normalize hash: ${err.message}`);
+        error.cause = err;
+        error.retryable = false;
+        throw error;
+      }
+      const url = `https://www.bungie.net/Platform/Destiny2/Manifest/${table}/${signedHash}/`;
       let attempt = 0;
       const maxAttempts = 3;
       while (attempt < maxAttempts) {
@@ -43,6 +71,14 @@ export function createManifestClient({ apiKey }) {
               res.statusText;
             const error = new Error(`Manifest ${table} ${hash} failed (${res.status}): ${message}`);
             error.status = res.status;
+            error.detail = message;
+            if (
+              res.status === 500 &&
+              typeof message === 'string' &&
+              message.toLowerCase().includes('unable to parse your parameters')
+            ) {
+              error.retryable = false;
+            }
             throw error;
           }
           const val = parsed?.Response ?? null;
@@ -51,9 +87,9 @@ export function createManifestClient({ apiKey }) {
         } catch (err) {
           const status = err?.status;
           const retryable =
-            (typeof status === 'number' && status >= 500) ||
-            err instanceof TypeError ||
-            err?.name === 'TypeError';
+            ((err?.retryable !== false && typeof status === 'number' && status >= 500) ||
+              err instanceof TypeError ||
+              err?.name === 'TypeError');
           attempt += 1;
           if (retryable && attempt < maxAttempts) {
             await delay(250 * attempt);

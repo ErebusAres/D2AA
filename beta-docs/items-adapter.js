@@ -21,6 +21,8 @@ const CORE_TO_DIM = {
   strength: 'Melee (Base)'
 };
 
+const loggedDefinitionFailures = new Set();
+
 function createEmptyStatBlock() {
   const block = { total: 0 };
   for (const name of CORE_NAMES) {
@@ -102,7 +104,11 @@ export async function buildRowsFromBungie({ profile, manifest }) {
     try {
       definition = await manifest.get('DestinyInventoryItemDefinition', itemHash);
     } catch (err) {
-      console.warn('Skipping item due to missing manifest definition', itemHash, err);
+      const key = String(itemHash);
+      if (!loggedDefinitionFailures.has(key)) {
+        loggedDefinitionFailures.add(key);
+        console.warn('Skipping item due to missing manifest definition', itemHash, err);
+      }
       continue;
     }
     if (!definition) continue;
