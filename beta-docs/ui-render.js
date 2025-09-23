@@ -238,6 +238,20 @@ function updateStatTitle(state) {
 
 function updateDimStatus(state) {
   if (!dimStatusEl) return;
+  const reason = state.dim?.reason;
+  if (reason === 'cors') {
+    dimStatusEl.textContent = 'DIM: Unavailable (CORS)';
+    dimStatusEl.title = 'Cross-origin requests to the DIM API are blocked from this site.';
+    return;
+  }
+  if (reason === 'config') {
+    dimStatusEl.textContent = 'DIM: Disabled (Config)';
+    dimStatusEl.title = 'DIM API configuration is invalid or missing.';
+    return;
+  }
+  if (dimStatusEl.hasAttribute('title')) {
+    dimStatusEl.removeAttribute('title');
+  }
   const connected = !!state.dim?.accessToken;
   dimStatusEl.textContent = connected ? 'DIM: Connected ✓' : 'DIM: Not Connected';
 }

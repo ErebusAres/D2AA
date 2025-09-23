@@ -14,7 +14,7 @@ export const appState = {
   accessToken: null,
   membershipId: null,
   membershipType: null,
-  dim: { accessToken: null, expires: 0 },
+  dim: { accessToken: null, expires: 0, reason: null },
   dimTagsByInstanceId: {},
   listeners: new Set()
 };
@@ -51,7 +51,16 @@ export function setDimTags(map) {
 }
 
 export function updateDimAuth(dimState) {
-  appState.dim = dimState || { accessToken: null, expires: 0 };
+  if (dimState && typeof dimState === 'object') {
+    appState.dim = {
+      accessToken: null,
+      expires: 0,
+      reason: null,
+      ...dimState
+    };
+  } else {
+    appState.dim = { accessToken: null, expires: 0, reason: null };
+  }
   notify();
 }
 
