@@ -2,24 +2,46 @@ import { CONFIG } from './config.js';
 
 export const appDim = { accessToken: null, expires: 0 };
 
-export async function initDimSync({ apiKey = CONFIG.dim.apiKey, apiBase = CONFIG.dim.apiBase, accessToken, membershipId }) {
+export async function initDimSync({
+  apiKey = CONFIG.dim.apiKey,
+  apiBase = CONFIG.dim.apiBase,
+  accessToken,
+  membershipId
+}) {
   if (!apiKey) {
     return { ...appDim };
   }
-  const res = await fetch(`${apiBase}/auth/token`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-API-Key': apiKey
-    },
-    body: JSON.stringify({ bungieAccessToken: accessToken, membershipId })
-  });
-  if (!res.ok) {
-    throw new Error(`DIM auth failed ${res.status}`);
+  let res;
+  try {
+    res = await fetch(`${apiBase}/auth/token`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-API-Key': apiKey
+      },
+      body: JSON.stringify({ bungieAccessToken: accessToken, membershipId })
+    });
+  } catch (err) {
+    console.warn('Failed to reach DIM auth endpoint', err);
+    appDim.accessToken = null;
+    appDim.expires = 0;
+    return { ...appDim };
   }
-  const json = await res.json();
-  appDim.accessToken = json?.accessToken || json?.dimAccessToken || json?.token || null;
-  appDim.expires = Date.now() + 55 * 60 * 1000;
+  if (!res.ok) {
+    console.warn(`DIM auth failed ${res.status}`);
+    appDim.accessToken = null;
+    appDim.expires = 0;
+    return { ...appDim };
+  }
+  try {
+    const json = await res.json();
+    appDim.accessToken = json?.accessToken || json?.dimAccessToken || json?.token || null;
+    appDim.expires = Date.now() + 55 * 60 * 1000;
+  } catch (err) {
+    console.warn('DIM auth response was not valid JSON', err);
+    appDim.accessToken = null;
+    appDim.expires = 0;
+  }
   return { ...appDim };
 }
 
