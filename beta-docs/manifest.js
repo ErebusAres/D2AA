@@ -1,4 +1,3 @@
-
 function computeHashVariants(hash) {
   if (hash === null || hash === undefined) {
     throw new Error('Missing manifest hash');
@@ -28,18 +27,19 @@ function computeHashVariants(hash) {
   }
 
   const variants = [];
-  if (signed !== undefined && signed !== null) {
-    variants.push(String(signed));
-  }
-  if (unsigned !== undefined && unsigned !== null) {
-    const unsignedStr = String(unsigned);
-    if (!variants.includes(unsignedStr)) {
-      variants.push(unsignedStr);
+  const pushVariant = (variant) => {
+    if (variant === undefined || variant === null) {
+      return;
     }
-  }
-  if (!variants.includes(original)) {
-    variants.push(original);
-  }
+    const asString = String(variant);
+    if (!variants.includes(asString)) {
+      variants.push(asString);
+    }
+  };
+
+  pushVariant(original);
+  pushVariant(unsigned);
+  pushVariant(signed);
 
   return variants;
 }
