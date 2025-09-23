@@ -38,6 +38,8 @@ const STAT_TO_CORE = {
   'Weapons (Base)': 'recovery'
 };
 
+const CLASS_ITEM_TYPES = new Set(Object.values(classItemByClass).filter(Boolean));
+
 let initialized = false;
 let unsubscribe = null;
 let rootEl = null;
@@ -238,6 +240,20 @@ function updateStatTitle(state) {
 
 function updateDimStatus(state) {
   if (!dimStatusEl) return;
+  const reason = state.dim?.reason;
+  if (reason === 'cors') {
+    dimStatusEl.textContent = 'DIM: Unavailable (CORS)';
+    dimStatusEl.title = 'Cross-origin requests to the DIM API are blocked from this site.';
+    return;
+  }
+  if (reason === 'config') {
+    dimStatusEl.textContent = 'DIM: Disabled (Config)';
+    dimStatusEl.title = 'DIM API configuration is invalid or missing.';
+    return;
+  }
+  if (dimStatusEl.hasAttribute('title')) {
+    dimStatusEl.removeAttribute('title');
+  }
   const connected = !!state.dim?.accessToken;
   dimStatusEl.textContent = connected ? 'DIM: Connected ✓' : 'DIM: Not Connected';
 }
@@ -478,14 +494,24 @@ async function handleTagSave(item, newTag, row, emojiSpan) {
 }
 
 function getFiltered(state) {
-  const expectedClassItem = classItemByClass[state.classFilter];
+  const selectedClass = state.classFilter || 'All';
+  const selectedClassItem = classItemByClass[selectedClass];
   const baseFiltered = (state.rows || []).filter((row) => {
-    const matchesClass = state.classFilter ? row.Equippable === state.classFilter : true;
-    const matchesSlot = state.slotFilter === 'All'
-      ? true
-      : state.slotFilter === 'Class Item'
-      ? row.Type === expectedClassItem
-      : row.Type === state.slotFilter;
+    const matchesClass = selectedClass === 'All' ? true : row.Equippable === selectedClass;
+
+    let matchesSlot = true;
+    if (state.slotFilter !== 'All') {
+      if (state.slotFilter === 'Class Item') {
+        if (selectedClass === 'All' || !selectedClassItem) {
+          matchesSlot = CLASS_ITEM_TYPES.has(row.Type);
+        } else {
+          matchesSlot = row.Type === selectedClassItem;
+        }
+      } else {
+        matchesSlot = row.Type === state.slotFilter;
+      }
+    }
+
     const matchesRarity = state.rarityFilter === 'All' ? true : row.Rarity === state.rarityFilter;
     return matchesClass && matchesSlot && matchesRarity;
   });
