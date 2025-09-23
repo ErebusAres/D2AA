@@ -454,7 +454,7 @@ async function handleTagSave(item, newTag, row, emojiSpan) {
     notes: null
   };
   const updated = { ...existing, tag: newTag || null };
-  const updates = [{ itemAnnotation: updated }];
+  const updates = [{ action: 'tag', payload: { ...updated } }];
   try {
     await applyDimUpdates({ membershipId: appState.membershipId, updates });
     const next = { ...appState.dimTagsByInstanceId, [item.dimId]: updated };
