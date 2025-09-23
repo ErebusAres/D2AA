@@ -21,7 +21,7 @@ export const RARITY_ICONS = {
   Exotic: 'https://www.bungie.net/common/destiny2_content/icons/3e6a698e1a8a5fb446fdcbf1e63c5269.png'
 };
 
-export const CLASS_OPTIONS = ['Warlock', 'Hunter', 'Titan'];
+export const CLASS_OPTIONS = ['All', 'Warlock', 'Hunter', 'Titan'];
 export const SLOT_OPTIONS = ['All', 'Helmet', 'Gauntlets', 'Chest Armor', 'Leg Armor', 'Class Item'];
 export const RARITY_OPTIONS = ['All', 'Legendary', 'Exotic'];
 export const DUPES_OPTIONS = ['All', 'Only Dupes', 'Only Same-Name'];

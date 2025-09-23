@@ -4,7 +4,7 @@ export const appState = {
   source: 'csv',
   rows: [],
   groupedRows: [],
-  classFilter: 'Warlock',
+  classFilter: 'All',
   slotFilter: 'All',
   rarityFilter: 'All',
   dupesFilter: 'All',
