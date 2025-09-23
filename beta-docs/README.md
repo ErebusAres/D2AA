@@ -36,6 +36,12 @@ Bungie OAuth login, on-demand inventory pulls, and DIM Sync for tags.
 
 ## OAuth & DIM Sync
 
+> **Production DIM API Registration:** The public deployment at
+> `https://erebusares.github.io/D2AA/beta.html` is registered with the DIM API
+> using the key `0787f112-823b-4864-95bd-8c4caab2a55b`. If the origin or
+> hostname changes, provision a new key for the updated origin and replace the
+> value in `config.js`.
+
 1. **Bungie Login** – `ensureBungieLogin` stores the access token in
    `sessionStorage` and refreshes when required. `getMembership` resolves the
    primary Destiny membership used for all subsequent calls.

@@ -6,7 +6,7 @@ export const CONFIG = {
     authorizeUrl: 'https://www.bungie.net/en/OAuth/Authorize'
   },
   dim: {
-    apiKey: '',
+    apiKey: '0787f112-823b-4864-95bd-8c4caab2a55b',
     apiBase: 'https://api.destinyitemmanager.com'
   }
 };
