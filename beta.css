@@ -51,8 +51,8 @@
   --stat-yellow: #ffdf63;
   --stat-green: #3be7a8;
   --stat-blue: #5fc7ff;
-  --row-altA: rgba(20, 24, 34, 0.9);
-  --row-altB: rgba(7, 10, 18, 0.85);
+  --row-altA: rgba(28, 34, 48, 0.92);
+  --row-altB: rgba(8, 12, 22, 0.86);
   --row-hover: rgba(68, 190, 230, 0.22);
   --row-hover-border: rgba(76, 208, 255, 0.4);
   --theme-toggle-bg: rgba(12, 18, 30, 0.82);
@@ -916,7 +916,7 @@ input[type="number"]:focus {
   }
 }
 
-body[data-theme="aqua"] {
+body[data-theme="nebula"] {
   color-scheme: dark;
   --bg: #05060f;
   --starfield: radial-gradient(circle at 20% 20%, rgba(124, 215, 255, 0.08), transparent 45%),
@@ -964,8 +964,8 @@ body[data-theme="aqua"] {
   --chip-focus-outline: rgba(124, 215, 255, 0.7);
   --chip-focus-offset: 2px;
   --chip-shadow: 0 10px 28px -16px rgba(124, 215, 255, 0.6);
-  --row-altA: rgba(28, 38, 72, 0.86);
-  --row-altB: rgba(8, 14, 30, 0.8);
+  --row-altA: rgba(42, 64, 120, 0.86);
+  --row-altB: rgba(10, 16, 38, 0.8);
   --row-hover: rgba(124, 215, 255, 0.18);
   --row-hover-border: rgba(124, 215, 255, 0.35);
   --theme-toggle-bg: rgba(12, 20, 40, 0.82);
@@ -1003,7 +1003,7 @@ body[data-theme="aqua"] {
   --focus-ring-shadow: 0 0 0 3px rgba(124, 215, 255, 0.18);
 }
 
-body[data-theme="aqua"] .tool-card--upload {
+body[data-theme="nebula"] .tool-card--upload {
   --tool-border: rgba(105, 197, 255, 0.6);
   --tool-bg: linear-gradient(145deg, rgba(8, 32, 58, 0.96), rgba(16, 54, 98, 0.92));
   --tool-glow: 0 28px 60px -34px rgba(82, 196, 255, 0.9);
@@ -1014,7 +1014,7 @@ body[data-theme="aqua"] .tool-card--upload {
   --tool-icon-color: inherit;
 }
 
-body[data-theme="aqua"] .tool-card--restore {
+body[data-theme="nebula"] .tool-card--restore {
   --tool-border: rgba(108, 134, 255, 0.6);
   --tool-bg: linear-gradient(145deg, rgba(18, 30, 70, 0.95), rgba(26, 20, 68, 0.88));
   --tool-glow: var(--shadow-purple);
@@ -1025,7 +1025,7 @@ body[data-theme="aqua"] .tool-card--restore {
   --tool-icon-color: var(--emerald);
 }
 
-body[data-theme="aqua"] .tool-card--clear {
+body[data-theme="nebula"] .tool-card--clear {
   --tool-border: rgba(249, 216, 115, 0.58);
   --tool-bg: linear-gradient(145deg, rgba(60, 42, 16, 0.94), rgba(28, 18, 10, 0.88));
   --tool-glow: var(--shadow-gold);
@@ -1083,8 +1083,8 @@ body[data-theme="solstice"] {
   --chip-focus-outline: rgba(28, 68, 132, 0.35);
   --chip-focus-offset: 3px;
   --chip-shadow: 0 10px 28px -20px rgba(28, 68, 132, 0.25);
-  --row-altA: rgba(240, 246, 255, 0.96);
-  --row-altB: rgba(206, 218, 240, 0.85);
+  --row-altA: rgba(248, 252, 255, 0.97);
+  --row-altB: rgba(212, 226, 244, 0.88);
   --row-hover: rgba(28, 68, 132, 0.12);
   --row-hover-border: rgba(28, 68, 132, 0.24);
   --theme-toggle-bg: rgba(248, 250, 255, 0.95);
@@ -1122,7 +1122,7 @@ body[data-theme="solstice"] {
   --focus-ring-shadow: 0 0 0 3px rgba(28, 68, 132, 0.2);
 }
 
-body[data-theme="nebula"] {
+body[data-theme="aurora"] {
   color-scheme: dark;
   --bg: #071222;
   --starfield: radial-gradient(circle at 18% 16%, rgba(126, 208, 255, 0.12), transparent 48%),
@@ -1171,8 +1171,8 @@ body[data-theme="nebula"] {
   --stat-yellow: #ffe98a;
   --stat-green: #46f2bf;
   --stat-blue: #7fcfff;
-  --row-altA: rgba(26, 36, 72, 0.88);
-  --row-altB: rgba(10, 18, 44, 0.82);
+  --row-altA: rgba(36, 54, 100, 0.9);
+  --row-altB: rgba(12, 20, 48, 0.84);
   --row-hover: rgba(124, 215, 255, 0.2);
   --row-hover-border: rgba(124, 215, 255, 0.34);
   --theme-toggle-bg: rgba(14, 22, 44, 0.84);
@@ -1210,7 +1210,7 @@ body[data-theme="nebula"] {
   --focus-ring-shadow: 0 0 0 3px rgba(124, 215, 255, 0.2);
 }
 
-body[data-theme="nebula"] .tool-card--upload {
+body[data-theme="aurora"] .tool-card--upload {
   --tool-border: rgba(118, 198, 255, 0.6);
   --tool-bg: linear-gradient(150deg, rgba(12, 32, 60, 0.96), rgba(22, 56, 98, 0.9));
   --tool-glow: 0 28px 60px -34px rgba(110, 206, 255, 0.88);
@@ -1220,7 +1220,7 @@ body[data-theme="nebula"] .tool-card--upload {
   --tool-icon-shadow: inset 0 0 28px rgba(124, 215, 255, 0.32);
 }
 
-body[data-theme="nebula"] .tool-card--restore {
+body[data-theme="aurora"] .tool-card--restore {
   --tool-border: rgba(116, 140, 255, 0.6);
   --tool-bg: linear-gradient(150deg, rgba(18, 32, 68, 0.95), rgba(30, 24, 72, 0.88));
   --tool-glow: var(--shadow-purple);
@@ -1231,7 +1231,7 @@ body[data-theme="nebula"] .tool-card--restore {
   --tool-icon-color: var(--emerald);
 }
 
-body[data-theme="nebula"] .tool-card--clear {
+body[data-theme="aurora"] .tool-card--clear {
   --tool-border: rgba(251, 220, 130, 0.58);
   --tool-bg: linear-gradient(150deg, rgba(58, 36, 18, 0.92), rgba(32, 18, 10, 0.86));
   --tool-glow: var(--shadow-gold);
