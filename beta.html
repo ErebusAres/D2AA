@@ -165,11 +165,12 @@
   };
 
   const THEME_OPTIONS = [
-    { id: 'eclipse', label: 'Dark', hint: 'Eclipse' },
-    { id: 'solstice', label: 'Light', hint: 'Solstice' },
-    { id: 'aqua', label: 'Classic', hint: 'Neon' }
+    { id: 'eclipse', label: 'Eclipse', hint: 'Shadowfall' },
+    { id: 'solstice', label: 'Solstice', hint: 'Radiant Dawn' },
+    { id: 'nebula', label: 'Nebula', hint: 'Azure Legacy' },
+    { id: 'aqua', label: 'Aqua', hint: 'Classic Neon' }
   ];
-  const THEME_STORAGE_KEY = 'd2aa_theme_v1';
+  const THEME_STORAGE_KEY = 'd2aa_theme_v2';
   const themeContainer = document.getElementById('themeToggle');
 
   function getStoredTheme() {
@@ -654,15 +655,15 @@ out.sort((a, b) => {
   });
 
   function updateShadowColor() {
-  const root = document.documentElement;
-  if (STATE.rarityFilter === "Legendary") {
-    root.style.setProperty('--shadow', 'var(--shadow-purple)');
-  } else if (STATE.rarityFilter === "Exotic") {
-    root.style.setProperty('--shadow', 'var(--shadow-gold)');
-  } else {
-    root.style.setProperty('--shadow', 'var(--shadow-base)');
+    const root = document.documentElement;
+    if (STATE.rarityFilter === "Legendary") {
+      root.style.setProperty('--shadow', 'var(--shadow-purple)');
+    } else if (STATE.rarityFilter === "Exotic") {
+      root.style.setProperty('--shadow', 'var(--shadow-gold)');
+    } else {
+      root.style.setProperty('--shadow', 'var(--shadow-base)');
+    }
   }
-}
 
   // Initial
   initThemeToggle();
