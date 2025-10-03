@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="beta.css" />
 
 </head>
-<body>
+<body data-theme="eclipse">
   <div class="wrap">
     <header class="panel panel-header">
       <div class="panel-header__layout">
@@ -17,6 +17,10 @@
           <div class="muted">♦ Upload your DIM CSV; dupes use top‑3 stat identities within ± tolerance. Exotics compare only against same‑name items.</div>
           <div class="muted">♦ Click "Restore last" to reload the last uploaded CSV from this browser.</div>
           <div class="muted">♦ Click "Copy ID" or A Group Badge to copy to clipboard.</div>
+          <div class="theme-toggle-wrap">
+            <span class="theme-toggle__legend">Display Theme</span>
+            <div class="theme-toggle" id="themeToggle" role="group" aria-label="Select display theme"></div>
+          </div>
         </div>
         <div class="toolbar">
           <input id="file" type="file" accept=".csv" class="toolbar__input" />
@@ -158,6 +162,68 @@
     "Brawler": "https://www.bungie.net/common/destiny2_content/icons/7bc3bc2bccdafc19dde31f867a06ee9f.png", // Melee, Health
     "Bulwark": "https://www.bungie.net/common/destiny2_content/icons/cda905547dd9eac7a39e6e898f619bc5.png", // Health, Class
     "Gunner": "https://www.bungie.net/common/destiny2_content/icons/15e3b3c25a6d4606dcb887cb67c915a1.png" // Weapons, Grenade
+  };
+
+  const THEME_OPTIONS = [
+    { id: 'eclipse', label: 'Dark', hint: 'Eclipse' },
+    { id: 'solstice', label: 'Light', hint: 'Solstice' },
+    { id: 'aqua', label: 'Classic', hint: 'Neon' }
+  ];
+  const THEME_STORAGE_KEY = 'd2aa_theme_v1';
+  const themeContainer = document.getElementById('themeToggle');
+
+  function getStoredTheme() {
+    try {
+      return localStorage.getItem(THEME_STORAGE_KEY);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function setStoredTheme(value) {
+    try {
+      localStorage.setItem(THEME_STORAGE_KEY, value);
+    } catch (_) {}
+  }
+
+  function applyTheme(themeId, skipStore = false) {
+    const valid = THEME_OPTIONS.some((opt) => opt.id === themeId) ? themeId : THEME_OPTIONS[0].id;
+    document.body.dataset.theme = valid;
+    if (!skipStore) {
+      setStoredTheme(valid);
+    }
+    if (themeContainer) {
+      const buttons = themeContainer.querySelectorAll('[data-theme-option]');
+      buttons.forEach((btn) => {
+        const isActive = btn.dataset.themeOption === valid;
+        btn.classList.toggle('is-active', isActive);
+        btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+      });
+    }
+    updateShadowColor();
+  }
+
+  function initThemeToggle() {
+    const stored = getStoredTheme();
+    const initial = THEME_OPTIONS.some((opt) => opt.id === stored) ? stored : THEME_OPTIONS[0].id;
+    if (themeContainer) {
+      themeContainer.innerHTML = '';
+      THEME_OPTIONS.forEach((opt) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'theme-toggle__btn';
+        btn.dataset.themeOption = opt.id;
+        btn.setAttribute('aria-pressed', opt.id === initial ? 'true' : 'false');
+        btn.innerHTML = `<span class="theme-toggle__title">${opt.label}</span>` +
+          (opt.hint ? `<span class="theme-toggle__hint">${opt.hint}</span>` : '');
+        btn.addEventListener('click', () => {
+          if (document.body.dataset.theme === opt.id) return;
+          applyTheme(opt.id);
+        });
+        themeContainer.appendChild(btn);
+      });
+    }
+    applyTheme(initial, true);
   }
   // ====== Helpers ======
   const normId = (s) => (s ? String(s).trim().replace(/^"|"$/g, "") : "");
@@ -599,6 +665,7 @@ out.sort((a, b) => {
 }
 
   // Initial
+  initThemeToggle();
   const cached = loadRows(); if(cached){ STATE.rows=cached; }
   render();
   updateShadowColor();
