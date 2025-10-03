@@ -3,79 +3,673 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>D2 Armor Analyzer — Beta</title>
+  <title>D2 Armor Analyzer - By ErebusAres</title>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
   <link rel="stylesheet" href="beta.css" />
+
 </head>
-<body>
-  <div id="app"></div>
+<body data-theme="eclipse">
+  <div class="wrap">
+    <header class="panel panel-header">
+      <div class="panel-header__layout">
+        <div class="panel-header__content">
+          <h1>D2 Armor Analyzer</h1>
+          <div class="muted">♦ Upload your DIM CSV; dupes use top‑3 stat identities within ± tolerance. Exotics compare only against same‑name items.</div>
+          <div class="muted">♦ Click "Restore last" to reload the last uploaded CSV from this browser.</div>
+          <div class="muted">♦ Click "Copy ID" or A Group Badge to copy to clipboard.</div>
+          <div class="theme-toggle-wrap">
+            <span class="theme-toggle__legend">Display Theme</span>
+            <div class="theme-toggle" id="themeToggle" role="group" aria-label="Select display theme"></div>
+          </div>
+        </div>
+        <div class="toolbar">
+          <input id="file" type="file" accept=".csv" class="toolbar__input" />
+          <label id="uploadTrigger" class="tool-card tool-card--upload" for="file" role="button" tabindex="0">
+            <span class="tool-icon" aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 4v9" />
+                <path d="M9 7l3-3 3 3" />
+                <path d="M5 14v6h14v-6" />
+              </svg>
+            </span>
+            <span class="tool-copy">
+              <span class="tool-title">Upload CSV</span>
+              <span class="tool-sub" id="uploadHint" data-default="Choose DIM Armor.csv" aria-live="polite">Choose DIM Armor.csv</span>
+            </span>
+          </label>
+          <button class="tool-card tool-card--restore" id="restoreBtn" type="button" aria-label="Restore last uploaded CSV">
+            <span class="tool-icon" aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20 6v6h-6" />
+                <path d="M20 12a8 8 0 1 1-8-8" />
+              </svg>
+            </span>
+            <span class="tool-copy">
+              <span class="tool-title">Restore last</span>
+              <span class="tool-sub">Load recent upload</span>
+            </span>
+          </button>
+          <button class="tool-card tool-card--clear" id="clearBtn" type="button" aria-label="Clear all data">
+            <span class="tool-icon" aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 6h16" />
+                <path d="M10 6l1-2h2l1 2" />
+                <path d="M7 6l1 14h8l1-14" />
+                <path d="M10 11v6" />
+                <path d="M14 11v6" />
+              </svg>
+            </span>
+            <span class="tool-copy">
+              <span class="tool-title">Clear</span>
+              <span class="tool-sub">Remove results</span>
+            </span>
+          </button>
+        </div>
+      </div>
+    </header>
 
-  <script type="module">
-    import { CONFIG } from './beta-docs/config.js';
-    import { ensureBungieLogin, getMembership } from './beta-docs/auth-bungie.js';
-    import { getProfile } from './beta-docs/bungie-client.js';
-    import { createManifestClient } from './beta-docs/manifest.js';
-    import { buildRowsFromBungie } from './beta-docs/items-adapter.js';
-    import { buildRowsFromCsv } from './beta-docs/csv-adapter.js';
-    import { renderApp } from './beta-docs/ui-render.js';
-    import { initDimSync, fetchDimProfile } from './beta-docs/dim-sync.js';
-    import { patchState, updateDimAuth } from './beta-docs/state.js';
+    <section class="panel" style="margin-bottom:16px">
+      <div class="filters">
+        <div class="line"><span class="label">Class</span><div id="classSeg" class="seg"></div></div>
+        <div class="line"><span class="label">Rarity</span><div id="raritySeg" class="seg"></div></div>
+        <div class="line"><span class="label">Slot</span><div id="slotSeg" class="seg"></div></div>
+        <div class="line"><span class="label">Dupes</span><div id="dupesSeg" class="seg"></div></div>
+        <div class="line"><span class="label">Tolerance</span><input id="tol" type="number" min="0" max="20" value="5" style="width:80px"/> <span class="muted">± top‑3 stat</span></div>
+      </div>
+    </section>
 
-    const appRoot = document.getElementById('app');
-    renderApp(appRoot);
+    <section class="list">
+      <div class="row header">
+        <div class="center">Tag</div>
+        <div>Item</div>
+        <div class="center">Tier</div>
+        <div>Base Stats <div class="center-info">(Health, Melee, Grenade, Super, Class, Weapons)</div></div>
+        <div class="center">Total</div>
+        <div class="center">Group</div>
+        <div class="center">Rank</div>
+        <div class="right">Copy</div>
+      </div>
+      <div id="rows"></div>
+      <div id="empty" class="empty" style="display:none"><p>
+        No items yet — upload a DIM CSV or click Restore last.<br/><br/>
 
-    buildRowsFromCsv.registerUploadHandler('#csv-input', (rows, meta = {}) => {
-      renderApp(appRoot, {
-        rows,
-        source: 'csv',
-        dimTags: {},
-        uploadHint: meta.fileName ? `Loaded • ${meta.fileName}` : undefined
+        To export from DIM: <br/>
+        ♦ Go to https://app.destinyitemmanager.com/ and sign in. <br/>
+        ♦ Navigate to Organizer. <br/>
+        ♦ Select any class. <br/>
+        ♦ Click the "Armor.csv" button at the top right to download your armor data. <br/>
+        ♦ Upload the downloaded CSV file here. <br/>
+      </p></div>
+    </section>
+  </div>
+
+  <script>
+  // ====== Constants ======
+  const STAT_COLS = [
+    "Health (Base)",
+    "Melee (Base)",
+    "Grenade (Base)",
+    "Super (Base)",
+    "Class (Base)",
+    "Weapons (Base)"
+  ];
+  const STAT_ICONS = {
+    "Health (Base)":"https://www.bungie.net/common/destiny2_content/icons/717b8b218cc14325a54869bef21d2964.png",
+    "Melee (Base)":"https://www.bungie.net/common/destiny2_content/icons/fa534aca76d7f2d7e7b4ba4df4271b42.png",
+    "Grenade (Base)":"https://www.bungie.net/common/destiny2_content/icons/065cdaabef560e5808e821cefaeaa22c.png",
+    "Super (Base)":"https://www.bungie.net/common/destiny2_content/icons/585ae4ede9c3da96b34086fccccdc8cd.png",
+    "Class (Base)":"https://www.bungie.net/common/destiny2_content/icons/7eb845acb5b3a4a9b7e0b2f05f5c43f1.png",
+    "Weapons (Base)":"https://www.bungie.net/common/destiny2_content/icons/bc69675acdae9e6b9a68a02fb4d62e07.png"
+  };
+  const RARITY_ICONS = {
+    "Legendary": "https://www.bungie.net/common/destiny2_content/icons/f846f489c2a97afb289b357e431ecf8d.png",
+    "Exotic": "https://www.bungie.net/common/destiny2_content/icons/3e6a698e1a8a5fb446fdcbf1e63c5269.png"
+  };
+  const CLASS_OPTIONS = ["Warlock", "Hunter", "Titan"];
+  const SLOT_OPTIONS = ["All", "Helmet", "Gauntlets", "Chest Armor", "Leg Armor", "Class Item"];
+  const RARITY_OPTIONS = ["All", "Legendary", "Exotic"];  const DUPES_OPTIONS = ["All", "Only Dupes", "Only Same-Name"];
+  const classItemByClass = { Warlock: "Warlock Bond", Hunter: "Hunter Cloak", Titan: "Titan Mark" };
+  const TAG_EMOJIS = {
+    favorite: "❤️",
+    keep: "🏷️",
+    junk: "🚫",
+    infuse: "⚡",
+    archive: "📦"
+  };
+  const TAG_LABELS = {
+    favorite: "Favorite",
+    keep: "Keep",
+    junk: "Junk",
+    infuse: "Infuse",
+    archive: "Archive"
+  };
+  const CLASS_ICONS = {
+    "Warlock": "https://www.bungie.net/common/destiny2_content/icons/e4006d9a8fe167bd7e83193d7601c89a.png",
+    "Hunter":  "https://www.bungie.net/common/destiny2_content/icons/05e32a388d9a65a0ef59b2193eee2db4.png",
+    "Titan":   "https://www.bungie.net/common/destiny2_content/icons/46a19ddd00d0f6ca822230943103b54a.png"
+  };
+  const SLOT_ICONS = {
+    "Helmet": "https://raw.githubusercontent.com/justrealmilk/destiny-icons/master/armor_types/helmet.svg",
+    "Gauntlets": "https://raw.githubusercontent.com/justrealmilk/destiny-icons/master/armor_types/gloves.svg",
+    "Chest Armor": "https://raw.githubusercontent.com/justrealmilk/destiny-icons/master/armor_types/chest.svg",
+    "Leg Armor": "https://raw.githubusercontent.com/justrealmilk/destiny-icons/master/armor_types/boots.svg",
+    "Class Item": "https://raw.githubusercontent.com/justrealmilk/destiny-icons/master/armor_types/class.svg"
+  };
+  const ARMOR_ARCHETYPES = {
+    "Grenadier": "https://www.bungie.net/common/destiny2_content/icons/cbf4f03459ab2818a3d37b7362b2aa93.png", // Grenade, Super
+    "Paragon": "https://www.bungie.net/common/destiny2_content/icons/b5feb81f684d767d6212ca138f30b34c.png", // Super, Melee
+    "Specialist": "https://www.bungie.net/common/destiny2_content/icons/69731c603d7bcdd0a21b26c711d55f03.png", // Class, Weapons
+    "Brawler": "https://www.bungie.net/common/destiny2_content/icons/7bc3bc2bccdafc19dde31f867a06ee9f.png", // Melee, Health
+    "Bulwark": "https://www.bungie.net/common/destiny2_content/icons/cda905547dd9eac7a39e6e898f619bc5.png", // Health, Class
+    "Gunner": "https://www.bungie.net/common/destiny2_content/icons/15e3b3c25a6d4606dcb887cb67c915a1.png" // Weapons, Grenade
+  };
+
+  const THEME_OPTIONS = [
+    { id: 'eclipse', label: 'Eclipse', hint: 'Shadowfall' },
+    { id: 'solstice', label: 'Solstice', hint: 'Radiant Dawn' },
+    { id: 'nebula', label: 'Nebula', hint: 'Azure Legacy' },
+    { id: 'aqua', label: 'Aqua', hint: 'Classic Neon' }
+  ];
+  const THEME_STORAGE_KEY = 'd2aa_theme_v2';
+  const themeContainer = document.getElementById('themeToggle');
+
+  function getStoredTheme() {
+    try {
+      return localStorage.getItem(THEME_STORAGE_KEY);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function setStoredTheme(value) {
+    try {
+      localStorage.setItem(THEME_STORAGE_KEY, value);
+    } catch (_) {}
+  }
+
+  function applyTheme(themeId, skipStore = false) {
+    const valid = THEME_OPTIONS.some((opt) => opt.id === themeId) ? themeId : THEME_OPTIONS[0].id;
+    document.body.dataset.theme = valid;
+    if (!skipStore) {
+      setStoredTheme(valid);
+    }
+    if (themeContainer) {
+      const buttons = themeContainer.querySelectorAll('[data-theme-option]');
+      buttons.forEach((btn) => {
+        const isActive = btn.dataset.themeOption === valid;
+        btn.classList.toggle('is-active', isActive);
+        btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
       });
-    });
+    }
+    updateShadowColor();
+  }
 
-    const loginBtn = document.getElementById('btn-bungie-login');
-    loginBtn?.addEventListener('click', async () => {
-      try {
-        const accessToken = await ensureBungieLogin(CONFIG.bungie);
-        const { membershipId, membershipType } = await getMembership(CONFIG.bungie.apiKey, accessToken);
-        patchState({ accessToken, membershipId, membershipType });
-
-        const dimState = await initDimSync({
-          apiKey: CONFIG.dim.apiKey,
-          apiBase: CONFIG.dim.apiBase,
-          accessToken,
-          membershipId
+  function initThemeToggle() {
+    const stored = getStoredTheme();
+    const initial = THEME_OPTIONS.some((opt) => opt.id === stored) ? stored : THEME_OPTIONS[0].id;
+    if (themeContainer) {
+      themeContainer.innerHTML = '';
+      THEME_OPTIONS.forEach((opt) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'theme-toggle__btn';
+        btn.dataset.themeOption = opt.id;
+        btn.setAttribute('aria-pressed', opt.id === initial ? 'true' : 'false');
+        btn.innerHTML = `<span class="theme-toggle__title">${opt.label}</span>` +
+          (opt.hint ? `<span class="theme-toggle__hint">${opt.hint}</span>` : '');
+        btn.addEventListener('click', () => {
+          if (document.body.dataset.theme === opt.id) return;
+          applyTheme(opt.id);
         });
-        updateDimAuth(dimState);
-        renderApp(appRoot, { dimAuth: dimState });
+        themeContainer.appendChild(btn);
+      });
+    }
+    applyTheme(initial, true);
+  }
+  // ====== Helpers ======
+  const normId = (s) => (s ? String(s).trim().replace(/^"|"$/g, "") : "");
+  const normName = (s) => String(s || "").trim().toLowerCase();
+  const num = (v) => (v == null || v === "" ? 0 : Number(v));
+  function slotNumber(type){
+    if(type === "Helmet") return 1;
+    if(type === "Gauntlets") return 2;
+    if(type === "Chest Armor") return 3;
+    if(type === "Leg Armor") return 4;
+    if(["Warlock Bond","Hunter Cloak","Titan Mark"].includes(type)) return 5;
+    return 9;
+  }
+  function starsLegendary(t){ const n=num(t); if(n>=75) return "★★★★★"; if(n===74) return "★★★★☆"; if(n===73) return "★★★☆☆"; if(n===72) return "★★☆☆☆"; if(n===71) return "★☆☆☆☆"; return "💩"; }
+  function starsExotic(t){ const n=num(t); if(n>=63) return "★★★★★"; if(n===62) return "★★★★☆"; if(n===61) return "★★★☆☆"; if(n===60) return "★★☆☆☆"; if(n===59) return "★☆☆☆☆"; return "💩"; }
+  function statColorCls(v){ if(v>=30) return "stat-cyan"; if(v>=24) return "stat-green"; if(v>=15) return "stat-yellow"; return "stat-red"; }
+  function top3Entries(item){
+    const arr = STAT_COLS.map(k => ({ name:k, value:num(item[k]) }));
+    arr.sort((a,b)=> (b.value - a.value) || a.name.localeCompare(b.name));
+    return arr.slice(0,3);
+  }
+  function similarTop3(a,b,tol){
+    const ta = top3Entries(a), tb = top3Entries(b);
+    for(let i=0;i<3;i++){
+      if(ta[i].name !== tb[i].name) return false;
+      if(Math.abs(ta[i].value - tb[i].value) > tol) return false;
+    }
+    return true;
+  }
+  function rankScore(rank){ if(!rank) return -1; const stars=(rank.match(/★/g)||[]).length; if(stars>0) return stars; return 0; }
+  async function copyTextSafe(text){
+    try{
+      if(navigator.clipboard && window.isSecureContext){ await navigator.clipboard.writeText(text); return true; }
+      throw new Error('clipboard api not available');
+    }catch(e){
+      try{ const ta=document.createElement('textarea'); ta.value=text; ta.setAttribute('readonly',''); ta.style.position='fixed'; ta.style.left='-9999px'; document.body.appendChild(ta); ta.select(); const ok=document.execCommand('copy'); document.body.removeChild(ta); return ok; }catch(e2){ alert('Copy failed: '+e2); return false; }
+    }
+  }
 
-        const manifest = createManifestClient({ apiKey: CONFIG.bungie.apiKey });
-        const components = [100, 102, 200, 201, 205, 300, 304, 305, 308].join(',');
-        const profile = await getProfile(membershipType, membershipId, CONFIG.bungie.apiKey, accessToken, components);
-        const rows = await buildRowsFromBungie({ profile, manifest });
-        renderApp(appRoot, {
-          rows,
-          source: 'bungie',
-          uploadHint: 'Loaded • Bungie Profile'
-        });
+  // ====== State & Storage ======
+  let STATE = { 
+    rows:[], 
+    classFilter:'Warlock', 
+    slotFilter:'All', 
+    rarityFilter:'All', 
+    tol:5, 
+    dupesFilter:'All' // NEW
+  };
+  const LS_KEY = 'd2_armor_rows_v1';
+  function saveRows(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(STATE.rows)); }catch(_){} }
+  function loadRows(){ try{ const s=localStorage.getItem(LS_KEY); if(!s) return null; return JSON.parse(s); }catch(_){ return null; } }
 
-        if (dimState.accessToken) {
-          try {
-            const dimProfile = await fetchDimProfile({
-              apiKey: CONFIG.dim.apiKey,
-              apiBase: CONFIG.dim.apiBase,
-              membershipId
-            });
-            const tags = dimProfile?.tags || {};
-            renderApp(appRoot, { dimTags: tags });
-          } catch (err) {
-            console.warn('Failed to load DIM profile', err);
-          }
+  // ====== Filters UI ======
+  function makeSeg(containerId, options, key){
+  const el = document.getElementById(containerId); if(!el) return; el.innerHTML='';
+  options.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.className = 'chip' + (STATE[key]===opt ? ' active' : '');
+    let label = opt;
+    // Add icons for class, rarity, and slot filters
+    if (containerId === 'classSeg' && CLASS_ICONS[opt]) {
+      label = `<span class="chip-icon-mask" style="mask-image:url('${CLASS_ICONS[opt]}');-webkit-mask-image:url('${CLASS_ICONS[opt]}');"></span>${opt}`;
+    }
+    if (containerId === 'raritySeg' && RARITY_ICONS[opt]) {
+      label = `<img src="${RARITY_ICONS[opt]}" alt="${opt}" title="${opt}" class="chip-icon rarity" style="height:1em;vertical-align:middle;margin-right:4px;">${opt}`;
+    }
+    if (containerId === 'slotSeg' && SLOT_ICONS[opt]) {
+      label = `<span class="chip-icon-mask" style="mask-image:url('${SLOT_ICONS[opt]}');-webkit-mask-image:url('${SLOT_ICONS[opt]}');"></span>${opt}`;
+    }
+    btn.innerHTML = (STATE[key]===opt? '● ' : '○ ') + label;
+    btn.addEventListener('click', ()=>{ STATE[key]=opt; render(); makeSeg(containerId, options, key); });
+    el.appendChild(btn);
+  });
+}
+  function initFilters(){
+    makeSeg('classSeg', CLASS_OPTIONS, 'classFilter');
+    makeSeg('raritySeg', RARITY_OPTIONS, 'rarityFilter');
+    makeSeg('slotSeg',   SLOT_OPTIONS,   'slotFilter');
+    makeSeg('dupesSeg',  DUPES_OPTIONS,  'dupesFilter'); // NEW
+  }
+
+  // ====== Data selection ======
+  function getFiltered(){
+  const expected = classItemByClass[STATE.classFilter];
+  // Always group on the full set for dupe logic
+  let baseFiltered = STATE.rows.filter(r =>
+    (STATE.classFilter ? r.Equippable === STATE.classFilter : true) &&
+    (STATE.slotFilter==='All' ? true : STATE.slotFilter==='Class Item' ? r.Type===expected : r.Type===STATE.slotFilter) &&
+    (STATE.rarityFilter==='All' ? true : r.Rarity === STATE.rarityFilter)
+  );
+  // Get all grouped rows for this filtered set
+  const grouped = clusterRows(baseFiltered);
+
+  if (STATE.dupesFilter === "Only Dupes") {
+    // Show only items in any dupe group (Dupe_Group !== "X")
+    return grouped.filter(r => r.Dupe_Group && r.Dupe_Group !== "X");
+  } else if (STATE.dupesFilter === "Only Same-Name") {
+    // Show only dupe groups where all items share the same name
+    // 1. Find all dupe groups
+    const dupeGroups = {};
+    for (const r of grouped) {
+      if (r.Dupe_Group && r.Dupe_Group !== "X") {
+        const key = `${r.GroupKey}::${r.Dupe_Group}`;
+        if (!dupeGroups[key]) dupeGroups[key] = [];
+        dupeGroups[key].push(r);
+      }
+    }
+    // 2. Keep only groups where all items have the same normalized name
+    const validIds = new Set();
+    for (const group of Object.values(dupeGroups)) {
+      const names = new Set(group.map(r => normName(r.Name)));
+      if (names.size === 1) {
+        for (const r of group) validIds.add(r.Id);
+      }
+    }
+    return grouped.filter(r => validIds.has(r.Id));
+  }
+  // Default: show all
+  return grouped;
+}
+
+  // ====== Grouping & Sorting ======
+  function clusterRows(filtered){
+    const byKey = new Map();
+    for(const r of filtered){
+      const k = r.Rarity==='Exotic' ? `${r.Type}|${normName(r.Name)}` : r.Type; // exotics cluster by name
+      if(!byKey.has(k)) byKey.set(k,[]);
+      byKey.get(k).push({...r});
+    }
+    const out=[]; const A='ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    for(const [key,items] of byKey){
+      const assigned = Array(items.length).fill(false);
+      const rawGroups = [];
+      for(let i=0;i<items.length;i++){
+        if(assigned[i]) continue;
+        const grp=[i]; assigned[i]=true;
+        for(let j=i+1;j<items.length;j++){
+          if(assigned[j]) continue;
+          if(STATE.sameNameOnly && normName(items[i].Name)!==normName(items[j].Name)) continue;
+          if(similarTop3(items[i],items[j],STATE.tol)){ grp.push(j); assigned[j]=true; }
         }
-      } catch (err) {
-        console.error('Bungie login failed', err);
-        alert('Bungie sign-in failed. Check console for details.');
+        rawGroups.push(grp);
+      }
+      // Order groups by best total first, then id to stabilize
+      rawGroups.sort((g1,g2)=>{
+        const best1 = Math.max(...g1.map(ix=>num(items[ix]["Total (Base)"])));
+        const best2 = Math.max(...g2.map(ix=>num(items[ix]["Total (Base)"])));
+        if(best1!==best2) return best2-best1;
+        return String(items[g1[0]].Id).localeCompare(String(items[g2[0]].Id));
+      });
+      const isExoticKey = key.includes('|');
+      let letterIdx = 0;
+      for(const grp of rawGroups){
+        const first = items[grp[0]];
+        let label = 'X';
+        if(grp.length > 1) {
+          const letter = A[Math.min(letterIdx, A.length-1)];
+          if(isExoticKey) {
+            label = `⚠️🟡${slotNumber(first.Type)}${letter}`;
+          } else {
+            label = `⚠️${slotNumber(first.Type)}${letter}`;
+          }
+          letterIdx++;
+        }
+        for(const gi of grp){
+          const it = items[gi];
+          const rank = it.Rarity==='Exotic' ? starsExotic(it["Total (Base)"]) : starsLegendary(it["Total (Base)"]); 
+          out.push({ 
+            ...it, 
+            GroupKey:key, 
+            Dupe_Group:label, 
+            Rank:rank, 
+            RankScore:rankScore(rank), 
+            Is_Dupe: label!=='X',
+            Is_Dupe_Exotic: (it.Rarity==='Exotic' && label!=='X') // <-- Add this flag
+          });
+        }
+      }
+    }
+    // Final sort: 
+out.sort((a, b) => {
+  // 1. Slot order
+  const sa = slotNumber(a.Type), sb = slotNumber(b.Type);
+  if (sa !== sb) return sa - sb;
+
+  // 2. Legendary before Exotic
+  const ra = a.Rarity === "Legendary" ? 0 : 1;
+  const rb = b.Rarity === "Legendary" ? 0 : 1;
+  if (ra !== rb) return ra - rb;
+
+  // 3. Dupe group first within each rarity
+  const da = a.Dupe_Group !== "X";
+  const db = b.Dupe_Group !== "X";
+  if (da !== db) return db - da; // true first
+
+  // 4. For dupe groups: group label, then rank desc, then total desc, then id
+  if (da && db) {
+    // Group by group key (for exotics, this is name+type)
+    if (a.GroupKey !== b.GroupKey) return String(a.GroupKey).localeCompare(String(b.GroupKey));
+    if (a.Dupe_Group !== b.Dupe_Group) return String(a.Dupe_Group).localeCompare(String(b.Dupe_Group));
+    if (b.RankScore !== a.RankScore) return b.RankScore - a.RankScore;
+    const ta = num(a["Total (Base)"]), tb = num(b["Total (Base)"]);
+    if (tb !== ta) return tb - ta;
+    return String(a.Id).localeCompare(String(b.Id));
+  }
+
+  // 5. For exotics: after dupe groups, show non-grouped exotics of same name below groups
+  if (a.Rarity === "Exotic" && b.Rarity === "Exotic") {
+    // GroupKey for exotics is type|name
+    if (a.GroupKey !== b.GroupKey) return String(a.GroupKey).localeCompare(String(b.GroupKey));
+    // Non-grouped exotics of same name (Dupe_Group === "X") come after grouped
+    if (b.RankScore !== a.RankScore) return b.RankScore - a.RankScore;
+    const ta = num(a["Total (Base)"]), tb = num(b["Total (Base)"]);
+    if (tb !== ta) return tb - ta;
+    return String(a.Id).localeCompare(String(b.Id));
+  }
+
+  // 6. For legendaries: non-dupes by name, then rank desc, then total desc, then id
+  if (a.Rarity === "Legendary" && b.Rarity === "Legendary") {
+    const na = String(a.Name).toLowerCase(), nb = String(b.Name).toLowerCase();
+    if (na !== nb) return na.localeCompare(nb);
+    if (b.RankScore !== a.RankScore) return b.RankScore - a.RankScore;
+    const ta = num(a["Total (Base)"]), tb = num(b["Total (Base)"]);
+    if (tb !== ta) return tb - ta;
+    return String(a.Id).localeCompare(String(b.Id));
+  }
+
+  // Fallback: by id
+  return String(a.Id).localeCompare(String(b.Id));
+});
+    return out;
+  }
+
+  // ====== Render ======
+  function render(){
+  updateShadowColor(); 
+    const tolEl=document.getElementById('tol'); if(tolEl) tolEl.value = STATE.tol;
+    initFilters();
+
+    const grouped = getFiltered();
+
+    // Build group->ids for copy-all
+    const groupToIds = new Map();
+    for(const it of grouped){ if(it.Dupe_Group==='X') continue; const key=`${it.GroupKey||''}::${it.Dupe_Group}`; if(!groupToIds.has(key)) groupToIds.set(key,[]); groupToIds.get(key).push(normId(it.Id)); }
+
+    const host=document.getElementById('rows');
+    const empty=document.getElementById('empty');
+    host.innerHTML='';
+    if(grouped.length===0){ if(empty) empty.style.display='block'; return; } else { if(empty) empty.style.display='none'; }
+
+    let lastGroup = null;
+    let altToggle = false;
+    for(const it of grouped){
+      // Alternate shade when group changes (by Dupe_Group label)
+      if (it.Dupe_Group !== lastGroup) {
+        altToggle = !altToggle;
+        lastGroup = it.Dupe_Group;
+      }
+      const row=document.createElement('div');
+      row.className = 'row item ' + (altToggle ? 'altA' : 'altB');
+      // Tag emoji (DIM tag)
+      const cTag = document.createElement('div');
+      cTag.className = 'center';
+      const tag = (it.Tag || '').toLowerCase();
+      cTag.textContent = TAG_EMOJIS[tag] || '';
+      cTag.title = TAG_LABELS[tag] || '';
+      // Item
+      const cItem=document.createElement('div');
+      cItem.innerHTML=`<div style="font-weight:700">${it.Name}</div>
+        <div class="itemmeta">
+          ${(["Warlock Bond","Hunter Cloak","Titan Mark"].includes(it.Type)?"Class Item":it.Type)}
+          • ${it.Equippable}
+          • <img src="${RARITY_ICONS[it.Rarity] || ''}" alt="${it.Rarity}" title="${it.Rarity}" style="height:1em;vertical-align:middle;">
+        </div>
+        <div class="tiny mono">${normId(it.Id)}</div>`;
+      // Tier
+      const cTier=document.createElement('div'); 
+      cTier.className='tier'; 
+      const tVal = Number.isFinite(it.Tier) ? Number(it.Tier) : 0; 
+      cTier.textContent = '♦'.repeat(Math.max(1, Math.min(5, tVal)));
+      // Stats chips
+      const cStats=document.createElement('div'); cStats.className='chips';
+      for(const k of STAT_COLS){
+        const pill=document.createElement('span'); pill.className=`chipStat ${statColorCls(it[k])}`; pill.title=k.replace(' (Base)','');
+        const img=document.createElement('img'); img.className='stat-ico'; img.alt=k; img.src=STAT_ICONS[k]||''; if(img.src) pill.appendChild(img);
+        const strong=document.createElement('strong'); strong.className='mono'; strong.textContent=String(it[k]||0); pill.appendChild(strong);
+        cStats.appendChild(pill);
+      }
+      // Total
+      const cTotal=document.createElement('div'); cTotal.className='center'; cTotal.style.fontWeight='700'; cTotal.textContent=String(it["Total (Base)"]||0);
+      // Group (click to copy all group ids)
+      const cGroup=document.createElement('div'); cGroup.className='center';
+      if(it.Dupe_Group!=='X'){
+        const label = it.Dupe_Group;
+        const key=`${it.GroupKey||''}::${it.Dupe_Group}`;
+        const list=(groupToIds.get(key)||[]).map(id=>`id:${id}`).join(' or ');
+        const span=document.createElement('span'); 
+        span.className='badge-warn'; 
+        span.title='Click to copy all IDs in this dupe group';
+
+        // PATCH: replace 🟡 in label with a rarity <img> for Exotic groups by assembling DOM nodes
+        // We keep label text (which might contain ⚠️🟡1A, etc.) but we render the icon instead of the 🟡
+        // Detect exotic dupe groups using the label pattern OR the item's rarity
+        const exoticGroup = /🟡/.test(label) || it.Rarity === 'Exotic';
+        if (exoticGroup && RARITY_ICONS[it.Rarity]) {
+          // Split off the visible prefix before slot/letter (remove the emoji if present)
+          const textNoYellow = label.replace('🟡','');
+          // Optional: if the label still includes the ⚠️, we keep it in text
+          // Prepend the icon after ⚠️
+          const m = textNoYellow.match(/^(⚠️)?(.*)$/);
+          const prefix = (m && m[1]) ? '⚠️' : '';
+          const rest = (m && m[2]) ? m[2] : textNoYellow;
+          if (prefix) span.append(prefix);
+
+          const img = new Image();
+          img.src = RARITY_ICONS[it.Rarity];
+          img.alt = it.Rarity;
+          img.title = it.Rarity;
+          img.style.height = '1em';
+          img.style.verticalAlign = 'middle';
+          img.style.marginRight = '4px';
+          span.appendChild(img);
+
+          span.append(rest);
+        } else {
+          // Fallback: plain text
+          span.append(label);
+        }
+        span.addEventListener('click', async ()=>{ const ok=await copyTextSafe(list); if(!ok) alert('Copy failed'); });
+        cGroup.appendChild(span);
+      } else {
+        cGroup.innerHTML = `<span class='badge-ok'>✅</span>`;
+      }
+      // Rank
+      const cRank=document.createElement('div'); cRank.className='center'; cRank.textContent=it.Rank||'';
+      // Copy single id
+      const cCopy=document.createElement('div'); cCopy.className='center';
+      const btn=document.createElement('button'); btn.className='btn'; btn.textContent='Copy id';
+      btn.addEventListener('click', async ()=>{ const ok=await copyTextSafe(`id:${normId(it.Id)}`); btn.textContent= ok? 'Copied!' : 'Copy id'; setTimeout(()=> btn.textContent='Copy id', 1200); });
+      cCopy.appendChild(btn);
+
+      row.append(cTag,cItem,cTier,cStats,cTotal,cGroup,cRank,cCopy);
+      host.appendChild(row);
+    }
+  }
+
+  // ====== Events ======
+  const fileInput = document.getElementById('file');
+  const restoreBtn = document.getElementById('restoreBtn');
+  const clearBtn = document.getElementById('clearBtn');
+  const uploadHint = document.getElementById('uploadHint');
+  const uploadTrigger = document.getElementById('uploadTrigger');
+  const uploadHintDefault = uploadHint?.dataset?.default ?? (uploadHint?.textContent ?? 'Choose DIM Armor.csv');
+
+  const setUploadHint = (text) => { if (uploadHint) uploadHint.textContent = text; };
+  const resetUploadHint = () => setUploadHint(uploadHintDefault);
+
+  if (uploadTrigger && fileInput) {
+    uploadTrigger.addEventListener('keydown', (evt) => {
+      if (evt.key === 'Enter' || evt.key === ' ') {
+        evt.preventDefault();
+        fileInput.click();
       }
     });
-  </script>
+  }
+
+  if (fileInput) {
+    fileInput.addEventListener('change', (e) => {
+      const f = e.target.files?.[0];
+      if (!f) {
+        resetUploadHint();
+        return;
+      }
+      const fileName = f.name || 'Selected file';
+      setUploadHint(fileName);
+      Papa.parse(f, {
+        header: true,
+        skipEmptyLines: true,
+        complete: (res) => {
+          const data = res.data || [];
+          STATE.rows = data.map((r) => {
+            const x = { ...r };
+            for (const k of [...STAT_COLS, 'Total (Base)', 'Tier']) {
+              if (x[k] !== undefined) {
+                const n = num(x[k]);
+                x[k] = Number.isFinite(n) ? n : 0;
+              }
+            }
+            x.Id = normId(x.Id);
+            return x;
+          });
+          saveRows();
+          render();
+          fileInput.value = '';
+          setUploadHint(`Loaded • ${fileName}`);
+        },
+      });
+    });
+  }
+
+  if (restoreBtn) {
+    restoreBtn.addEventListener('click', () => {
+      const rows = loadRows();
+      if (rows && Array.isArray(rows)) {
+        STATE.rows = rows;
+        render();
+        resetUploadHint();
+      } else {
+        alert('No saved CSV found in this browser. Upload a DIM CSV first.');
+      }
+    });
+  }
+
+  if (clearBtn) {
+    clearBtn.addEventListener('click', () => {
+      STATE.rows = [];
+      localStorage.removeItem(LS_KEY);
+      if (fileInput) fileInput.value = '';
+      render();
+      resetUploadHint();
+    });
+  }
+
+  document.getElementById('tol').addEventListener('input', (e) => {
+    const v = Number(e.target.value);
+    STATE.tol = isFinite(v) ? v : STATE.tol;
+    render();
+  });
+
+  function updateShadowColor() {
+    const root = document.documentElement;
+    if (STATE.rarityFilter === "Legendary") {
+      root.style.setProperty('--shadow', 'var(--shadow-purple)');
+    } else if (STATE.rarityFilter === "Exotic") {
+      root.style.setProperty('--shadow', 'var(--shadow-gold)');
+    } else {
+      root.style.setProperty('--shadow', 'var(--shadow-base)');
+    }
+  }
+
+  // Initial
+  initThemeToggle();
+  const cached = loadRows(); if(cached){ STATE.rows=cached; }
+  render();
+  updateShadowColor();
+</script>
 </body>
 </html>
