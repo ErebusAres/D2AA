@@ -25,9 +25,19 @@ export const BUNGIE_BASE_URL = 'https://www.bungie.net';
 export const BUNGIE_PLATFORM_URL = `${BUNGIE_BASE_URL}/Platform`;
 
 export const DIM_BASE_URL = globalConfig.dimBaseUrl ?? 'https://app.destinyitemmanager.com';
-export const DIM_API_URL = `${DIM_BASE_URL}/api`;
 
-export const DIM_CLIENT_ID = globalConfig.dimClientId ?? '';
+export const DIM_API_ENV = globalConfig.dimApiEnv ?? globalConfig.dimEnvironment ?? 'prod';
+export const DIM_PROD_API_URL = globalConfig.dimProdApiUrl ?? 'https://api.destinyitemmanager.com';
+export const DIM_DEV_API_URL = globalConfig.dimDevApiUrl ?? 'https://dev-api.destinyitemmanager.com';
+export const DIM_API_URL =
+  globalConfig.dimApiUrl ?? (DIM_API_ENV === 'dev' ? DIM_DEV_API_URL : DIM_PROD_API_URL);
+
+export const DIM_CLIENT_ID_PROD = globalConfig.dimClientIdProd ?? globalConfig.dimClientId ?? '';
+export const DIM_CLIENT_ID_DEV = globalConfig.dimClientIdDev ?? '';
+export const DIM_CLIENT_ID =
+  DIM_API_ENV === 'dev'
+    ? DIM_CLIENT_ID_DEV || DIM_CLIENT_ID_PROD
+    : DIM_CLIENT_ID_PROD || DIM_CLIENT_ID_DEV;
 export const DIM_SCOPES = ['dim:profile:read', 'dim:profile:write'];
 
 export const MANIFEST_COMPONENTS = {
