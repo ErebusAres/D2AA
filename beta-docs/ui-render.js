@@ -9,6 +9,7 @@ import {
   statTotals,
 } from './utils.js';
 import { setTolerance, setView, updateFilter } from './state.js';
+import { pullItemToCharacter } from './bungie-client.js';
 
 const THEME_OPTIONS = [
   { id: 'eclipse', label: 'Eclipse', hint: 'Default' },
@@ -28,6 +29,8 @@ let signInBtn;
 let tolInput;
 let statToggle;
 let themeContainer;
+let actionHeader;
+let toastContainer;
 const filterElements = {};
 
 function getStoredTheme() {
@@ -284,19 +287,149 @@ function buildRankCell(row) {
   return div;
 }
 
-function buildCopyCell(row) {
+function isBungiePullEnabled(state) {
+  const bungie = state?.bungie ?? {};
+  const tokens = bungie.tokens ?? {};
+  const hasToken = Boolean(tokens.accessToken ?? tokens.access_token);
+  const membershipType =
+    bungie.membershipType ?? tokens.membership_type ?? tokens.membershipType;
+  const characters = bungie.characters ?? {};
+  const hasCharacters = Object.keys(characters).length > 0;
+  return Boolean(hasToken && membershipType !== null && membershipType !== undefined && hasCharacters);
+}
+
+function updateRowPullState(rowId, updates) {
+  if (!storeRef) return;
+  storeRef.setState((current) => ({
+    rows: current.rows.map((row) =>
+      row.id === rowId ? { ...row, ...updates } : row
+    ),
+  }));
+}
+
+function ensureToastHost() {
+  if (toastContainer) return toastContainer;
+  const container = document.createElement('div');
+  container.className = 'toast-container';
+  document.body.appendChild(container);
+  toastContainer = container;
+  return container;
+}
+
+function showToast(message, variant = 'info') {
+  const container = ensureToastHost();
+  if (!container) return;
+  const toast = document.createElement('div');
+  toast.className = `toast toast--${variant}`;
+  toast.textContent = message;
+  container.appendChild(toast);
+  requestAnimationFrame(() => {
+    toast.classList.add('is-visible');
+  });
+  window.setTimeout(() => {
+    toast.classList.remove('is-visible');
+    window.setTimeout(() => {
+      toast.remove();
+    }, 300);
+  }, 4000);
+}
+
+function formatPullError(error) {
+  if (!error) return 'Pull failed';
+  const parts = ['Pull failed'];
+  const status = error.status ?? error.ErrorStatus ?? null;
+  const code = error.code ?? error.ErrorCode ?? null;
+  if (status || code) {
+    const details = [status, code ? `Code ${code}` : null]
+      .filter(Boolean)
+      .join(' • ');
+    if (details) parts.push(`(${details})`);
+  }
+  const message = error.message ?? '';
+  if (message) {
+    parts.push(`: ${message}`);
+  }
+  return parts.join(' ');
+}
+
+async function handlePull(row) {
+  if (!row || !storeRef) return;
+  updateRowPullState(row.id, { pullState: 'pulling', pullError: null });
+  try {
+    const result = await pullItemToCharacter(storeRef, row);
+    const isNoop = result?.type === 'noop';
+    updateRowPullState(row.id, {
+      pullState: 'pulled',
+      pullError: null,
+    });
+    const toastVariant = isNoop ? 'info' : 'success';
+    const toastMessage = isNoop
+      ? `${row.name} is already on your character.`
+      : `Pulled ${row.name} ✓`;
+    showToast(toastMessage, toastVariant);
+    if (typeof handlersRef.onPullSuccess === 'function') {
+      Promise.resolve()
+        .then(() => handlersRef.onPullSuccess(row, result))
+        .catch((error) => {
+          console.warn('onPullSuccess handler failed', error);
+        });
+    }
+  } catch (error) {
+    console.error('Pull item failed', error);
+    const message = formatPullError(error);
+    updateRowPullState(row.id, {
+      pullState: 'error',
+      pullError: message,
+    });
+    showToast(message, 'error');
+  }
+}
+
+function updateActionHeader(state) {
+  if (!actionHeader) return;
+  const shouldShowPull = isBungiePullEnabled(state) && state.source === 'bungie';
+  actionHeader.textContent = shouldShowPull ? 'Pull Item' : 'Copy ID';
+}
+
+function buildActionCell(row) {
   const div = document.createElement('div');
   div.className = 'right';
+  const state = storeRef?.getState?.();
+  const canPull = state && isBungiePullEnabled(state) && row.source === 'bungie';
+  if (!canPull) {
+    const button = document.createElement('button');
+    button.className = 'btn';
+    button.textContent = 'Copy ID';
+    button.addEventListener('click', async () => {
+      const id = row.itemInstanceId ?? row.id;
+      const ok = await copyTextSafe(`id:${id}`);
+      button.textContent = ok ? 'Copied!' : 'Copy ID';
+      window.setTimeout(() => {
+        button.textContent = 'Copy ID';
+      }, 1200);
+    });
+    div.appendChild(button);
+    return div;
+  }
+
   const button = document.createElement('button');
   button.className = 'btn';
-  button.textContent = 'Copy id';
-  button.addEventListener('click', async () => {
-    const id = row.itemInstanceId ?? row.id;
-    const ok = await copyTextSafe(`id:${id}`);
-    button.textContent = ok ? 'Copied!' : 'Copy id';
-    window.setTimeout(() => {
-      button.textContent = 'Copy id';
-    }, 1200);
+  const stateKey = row.pullState ?? 'idle';
+  if (stateKey === 'pulling') {
+    button.textContent = 'Pulling…';
+    button.disabled = true;
+  } else if (stateKey === 'pulled') {
+    button.textContent = 'Pulled ✓';
+    button.disabled = true;
+  } else if (stateKey === 'error') {
+    button.textContent = 'Retry Pull';
+    if (row.pullError) button.title = row.pullError;
+  } else {
+    button.textContent = 'Pull Item';
+  }
+  button.addEventListener('click', () => {
+    if (button.disabled) return;
+    handlePull(row);
   });
   div.appendChild(button);
   return div;
@@ -317,7 +450,7 @@ function buildRow(row, group, isDupe) {
     buildTotalCell(row, storeRef.getState().view),
     buildGroupCell(group),
     buildRankCell(row),
-    buildCopyCell(row),
+    buildActionCell(row),
   );
 
   return tr;
@@ -374,6 +507,7 @@ function render(state) {
   syncStatToggle(state);
   updateShadowColor(state);
   if (tolInput) tolInput.value = state.tol;
+  updateActionHeader(state);
   renderRows(state);
 }
 
@@ -405,6 +539,8 @@ export function initUI(store, handlers = {}) {
   tolInput = document.getElementById(UI_IDS.tolInput);
   statToggle = document.getElementById(UI_IDS.statToggle);
   themeContainer = document.getElementById(UI_IDS.themeToggle);
+  actionHeader = document.getElementById(UI_IDS.actionHeader);
+  toastContainer = ensureToastHost();
 
   filterElements.classType = document.getElementById(UI_IDS.classSeg);
   filterElements.rarity = document.getElementById(UI_IDS.raritySeg);

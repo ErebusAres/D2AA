@@ -108,3 +108,164 @@ export async function loadCurrentProfile(auth, store) {
     characters,
   };
 }
+
+const ITEM_LOCATION_POSTMASTER = 4;
+const POSTMASTER_BUCKET_HASHES = new Set([
+  215593132, // Lost Items
+  375726501, // Engrams
+  4292445962, // Messages
+]);
+
+function resolveState(store) {
+  if (!store) return null;
+  if (typeof store.getState === 'function') {
+    return store.getState();
+  }
+  return store;
+}
+
+function getAccessTokenFromState(state) {
+  const tokens = state?.bungie?.tokens;
+  if (!tokens) return null;
+  return tokens.accessToken ?? tokens.access_token ?? null;
+}
+
+function getMembershipTypeFromState(state) {
+  return (
+    state?.bungie?.membershipType ??
+    state?.bungie?.tokens?.membership_type ??
+    state?.bungie?.tokens?.membershipType ??
+    null
+  );
+}
+
+function getMembershipIdFromState(state) {
+  return (
+    state?.bungie?.membershipId ??
+    state?.bungie?.tokens?.membership_id ??
+    state?.bungie?.tokens?.membershipId ??
+    null
+  );
+}
+
+function getPreferredCharacterId(state) {
+  const characters = state?.bungie?.characters;
+  if (!characters || typeof characters !== 'object') return null;
+  const entries = Object.entries(characters);
+  if (!entries.length) return null;
+  entries.sort((a, b) => {
+    const aDate = Date.parse(a[1]?.dateLastPlayed ?? '') || 0;
+    const bDate = Date.parse(b[1]?.dateLastPlayed ?? '') || 0;
+    return bDate - aDate;
+  });
+  return entries[0]?.[0] ?? null;
+}
+
+async function postItemAction(path, accessToken, payload) {
+  const url = `${BUNGIE_PLATFORM_URL}${path}`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: getBungieHeaders(accessToken),
+    body: JSON.stringify(payload),
+  });
+
+  const text = await res.text();
+  let data = null;
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch (error) {
+    console.warn('Failed to parse Bungie action response', error);
+  }
+
+  if (!res.ok) {
+    const error = new Error(`Bungie request failed: ${res.status}`);
+    error.status = res.status;
+    error.data = data ?? text;
+    throw error;
+  }
+
+  const errorCode = data?.ErrorCode;
+  if (errorCode !== 1) {
+    const error = new Error(data?.Message ?? data?.ErrorStatus ?? 'Bungie action failed');
+    error.code = errorCode;
+    error.status = data?.ErrorStatus;
+    error.data = data;
+    throw error;
+  }
+
+  return data?.Response ?? null;
+}
+
+function buildTransferPayload(item, membershipType, characterId) {
+  const instanceId = item?.itemInstanceId ?? item?.rawItem?.itemInstanceId ?? item?.id;
+  const itemHash = item?.itemHash ?? item?.rawItem?.itemHash;
+  const quantity = item?.rawItem?.quantity ?? 1;
+  const membership = Number(membershipType);
+  if (!instanceId) {
+    throw new Error('Item instance id unavailable for transfer');
+  }
+  if (!itemHash) {
+    throw new Error('Item reference hash unavailable for transfer');
+  }
+  if (!Number.isFinite(membership)) {
+    throw new Error('Invalid membership type for transfer');
+  }
+  return {
+    characterId: String(characterId),
+    membershipType: membership,
+    itemId: String(instanceId),
+    itemReferenceHash: Number(itemHash),
+    stackSize: Number(quantity) || 1,
+    transferToVault: false,
+  };
+}
+
+function isPostmasterItem(item) {
+  const location = item?.rawItem?.location ?? item?.location;
+  if (location === ITEM_LOCATION_POSTMASTER) return true;
+  const bucket = item?.rawItem?.bucketHash ?? item?.bucketHash;
+  if (!bucket) return false;
+  return POSTMASTER_BUCKET_HASHES.has(Number(bucket));
+}
+
+export async function pullItemToCharacter(store, item, options = {}) {
+  invariant(store, 'State store is required for pulling items');
+  invariant(item, 'Item is required for pulling');
+
+  const state = resolveState(store);
+  const accessToken = getAccessTokenFromState(state);
+  if (!accessToken) {
+    throw new Error('Bungie access token unavailable');
+  }
+  const membershipType = options.membershipType ?? getMembershipTypeFromState(state);
+  if (membershipType === null || membershipType === undefined) {
+    throw new Error('Bungie membership type unavailable');
+  }
+  const characterId = options.characterId ?? options.targetCharacterId ?? getPreferredCharacterId(state);
+  if (!characterId) {
+    throw new Error('No character available for transfer');
+  }
+
+  const payload = buildTransferPayload(item, membershipType, characterId);
+
+  if (isPostmasterItem(item)) {
+    const membershipId = options.membershipId ?? getMembershipIdFromState(state);
+    if (!membershipId) {
+      throw new Error('Bungie membership id unavailable for postmaster pull');
+    }
+    const postmasterPayload = {
+      ...payload,
+      ownerId: String(membershipId),
+    };
+    await postItemAction('/Destiny2/Actions/Items/PullFromPostmaster/', accessToken, postmasterPayload);
+    return { type: 'postmaster', characterId: String(characterId) };
+  }
+
+  const currentOwner = item?.rawItem?.characterId ?? item?.characterId ?? null;
+  if (currentOwner && String(currentOwner) === String(characterId)) {
+    return { type: 'noop', reason: 'already_on_character', characterId: String(characterId) };
+  }
+
+  await postItemAction('/Destiny2/Actions/Items/TransferItem/', accessToken, payload);
+  return { type: 'transfer', characterId: String(characterId) };
+}

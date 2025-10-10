@@ -66,6 +66,7 @@ export const UI_IDS = {
   signInBtn: 'signInWithBungie',
   statToggle: 'statToggle',
   appMount: 'app',
+  actionHeader: 'actionHeader',
 };
 
 export const FILTERS = {
