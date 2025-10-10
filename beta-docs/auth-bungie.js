@@ -2,17 +2,9 @@ import {
   BUNGIE_CLIENT_ID,
   BUNGIE_REDIRECT_URI,
   BUNGIE_SCOPES,
-  BUNGIE_PLATFORM_URL,
   STORAGE_KEYS,
 } from './config.js';
-import {
-  buildExpiresAt,
-  clearSearchParam,
-  invariant,
-  isTokenExpired,
-  readSearchParam,
-  safeJsonStringify,
-} from './utils.js';
+import { buildExpiresAt, invariant, isTokenExpired } from './utils.js';
 import {
   persistBungieTokens,
   restoreBungieTokens,
@@ -30,17 +22,45 @@ function randomString(length = 32) {
   return result;
 }
 
+function parseAuthFragment() {
+  const { hash } = window.location;
+  if (!hash || hash.length <= 1) return null;
+  const trimmed = hash.startsWith('#') ? hash.slice(1) : hash;
+  if (!trimmed) return null;
+  const params = new URLSearchParams(trimmed);
+  if (!params.has('access_token')) return null;
+  const fragment = {};
+  params.forEach((value, key) => {
+    fragment[key] = value;
+  });
+  return fragment;
+}
+
+function clearAuthFragment() {
+  const url = `${window.location.origin}${window.location.pathname}${window.location.search}`;
+  try {
+    window.history.replaceState({}, document.title, url);
+  } catch (error) {
+    console.warn('Unable to clear auth fragment', error);
+    window.location.hash = '';
+  }
+}
+
+function toNumber(value) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : 0;
+}
+
 export class BungieAuth {
   constructor(store) {
     invariant(store, 'BungieAuth requires a StateStore instance');
     this.store = store;
-    this.tokens = restoreBungieTokens();
-    if (this.tokens) {
-      updateBungieState(store, {
-        tokens: this.tokens,
-        status: 'ready',
-        membershipId: this.tokens.membership_id ?? this.tokens.membershipId ?? null,
-      });
+    this.tokens = null;
+    this.expiryTimeoutId = null;
+
+    const restored = restoreBungieTokens();
+    if (restored) {
+      this.setTokens(restored);
     }
   }
 
@@ -52,7 +72,7 @@ export class BungieAuth {
       console.warn('Unable to store oauth state', error);
     }
     const params = new URLSearchParams({
-      response_type: 'code',
+      response_type: 'token',
       client_id: BUNGIE_CLIENT_ID,
       state,
       redirect_uri: BUNGIE_REDIRECT_URI,
@@ -69,106 +89,133 @@ export class BungieAuth {
   }
 
   async handleRedirect() {
-    const code = readSearchParam('code');
-    const state = readSearchParam('state');
-    if (!code) return null;
-    const storedState = sessionStorage.getItem(STORAGE_KEYS.bungieOAuthState);
-    if (storedState && state !== storedState) {
+    const fragment = parseAuthFragment();
+    if (!fragment) return null;
+
+    let storedState = null;
+    try {
+      storedState = sessionStorage.getItem(STORAGE_KEYS.bungieOAuthState);
+    } catch (error) {
+      console.warn('Unable to read oauth state', error);
+    }
+    const fragmentState = fragment.state ?? null;
+    if (storedState && fragmentState !== storedState) {
+      try {
+        sessionStorage.removeItem(STORAGE_KEYS.bungieOAuthState);
+      } catch (error) {
+        console.warn('Unable to clear oauth state', error);
+      }
+      clearAuthFragment();
       throw new Error('OAuth state mismatch');
     }
     try {
       sessionStorage.removeItem(STORAGE_KEYS.bungieOAuthState);
-    } catch (_) {}
-    clearSearchParam('code');
-    clearSearchParam('state');
-    const token = await this.exchangeCode(code);
+    } catch (error) {
+      console.warn('Unable to clear oauth state', error);
+    }
+
+    const token = this.normalizeTokenResponse(fragment);
     this.setTokens(token);
+    clearAuthFragment();
     return token;
   }
 
-  async exchangeCode(code) {
-    const body = new URLSearchParams({
-      client_id: BUNGIE_CLIENT_ID,
-      grant_type: 'authorization_code',
-      code,
-    });
-    const res = await fetch(`${BUNGIE_PLATFORM_URL}/App/OAuth/Token/`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: body.toString(),
-    });
-    if (!res.ok) {
-      const text = await res.text();
-      throw new Error(`Bungie token exchange failed: ${res.status} ${text}`);
-    }
-    const json = await res.json();
-    const normalized = this.normalizeTokenResponse(json);
-    persistBungieTokens(normalized);
-    return normalized;
-  }
+  normalizeTokenResponse(payload) {
+    if (!payload) return null;
 
-  async refreshToken() {
-    if (!this.tokens?.refresh_token) {
-      throw new Error('No refresh token available');
-    }
-    const body = new URLSearchParams({
-      grant_type: 'refresh_token',
-      refresh_token: this.tokens.refresh_token,
-      client_id: BUNGIE_CLIENT_ID,
-    });
-    const res = await fetch(`${BUNGIE_PLATFORM_URL}/App/OAuth/Token/`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: body.toString(),
-    });
-    if (!res.ok) {
-      const text = await res.text();
-      throw new Error(`Bungie token refresh failed: ${res.status} ${text}`);
-    }
-    const json = await res.json();
-    const normalized = this.normalizeTokenResponse(json);
-    this.setTokens(normalized);
-    return normalized;
-  }
+    const accessToken = payload.access_token ?? payload.accessToken ?? null;
+    const refreshToken = payload.refresh_token ?? payload.refreshToken ?? null;
+    const expiresIn = payload.expires_in ?? payload.expiresIn;
+    const refreshExpiresIn = payload.refresh_expires_in ?? payload.refreshExpiresIn;
+    const membershipId = payload.membership_id ?? payload.membershipId ?? null;
+    const membershipType = payload.membership_type ?? payload.membershipType ?? null;
 
-  normalizeTokenResponse(response) {
-    const token = {
-      ...response,
-      accessToken: response.access_token,
-      refreshToken: response.refresh_token,
-      expiresAt: buildExpiresAt(response.expires_in ?? 0),
-      refreshExpiresAt: buildExpiresAt(response.refresh_expires_in ?? 0),
-      membership_id: response.membership_id ?? response.membershipId ?? null,
+    const normalized = {
+      ...payload,
+      access_token: accessToken,
+      accessToken,
+      refresh_token: refreshToken,
+      refreshToken,
+      membership_id: membershipId,
+      membershipId,
+      membership_type: membershipType,
+      membershipType,
     };
-    return token;
+
+    if (!normalized.expiresAt) {
+      const seconds = toNumber(expiresIn);
+      normalized.expires_in = seconds;
+      normalized.expiresIn = seconds;
+      normalized.expiresAt = seconds ? buildExpiresAt(seconds) : null;
+    } else {
+      normalized.expiresAt = Number(normalized.expiresAt);
+      if (!normalized.expires_in) {
+        normalized.expires_in = Math.max(0, Math.round((normalized.expiresAt - Date.now()) / 1000));
+      }
+    }
+
+    if (!normalized.refreshExpiresAt && refreshExpiresIn !== undefined) {
+      const seconds = toNumber(refreshExpiresIn);
+      normalized.refresh_expires_in = seconds;
+      normalized.refreshExpiresIn = seconds;
+      normalized.refreshExpiresAt = seconds ? buildExpiresAt(seconds) : null;
+    } else if (normalized.refreshExpiresAt) {
+      normalized.refreshExpiresAt = Number(normalized.refreshExpiresAt);
+    }
+
+    return normalized;
+  }
+
+  scheduleTokenExpiry(tokens) {
+    if (!tokens?.expiresAt) return;
+    const delay = tokens.expiresAt - Date.now();
+    if (delay <= 0) {
+      this.signOut();
+      return;
+    }
+    this.expiryTimeoutId = window.setTimeout(() => {
+      this.signOut();
+    }, delay);
+  }
+
+  clearExpiryTimer() {
+    if (this.expiryTimeoutId) {
+      window.clearTimeout(this.expiryTimeoutId);
+      this.expiryTimeoutId = null;
+    }
   }
 
   setTokens(tokens) {
-    this.tokens = tokens;
-    persistBungieTokens(tokens);
+    this.clearExpiryTimer();
+    if (!tokens) {
+      this.tokens = null;
+      return;
+    }
+
+    const normalized = this.normalizeTokenResponse(tokens);
+    if (!normalized || isTokenExpired(normalized)) {
+      this.signOut();
+      return;
+    }
+
+    this.tokens = normalized;
+    persistBungieTokens(normalized);
+    this.scheduleTokenExpiry(normalized);
     updateBungieState(this.store, {
-      tokens,
+      tokens: normalized,
       status: 'ready',
-      membershipId: tokens?.membership_id ?? tokens?.membershipId ?? null,
+      membershipId: normalized.membership_id ?? normalized.membershipId ?? null,
+      membershipType: normalized.membership_type ?? normalized.membershipType ?? null,
     });
   }
 
   async getAccessToken() {
     if (!this.tokens) return null;
     if (isTokenExpired(this.tokens)) {
-      try {
-        await this.refreshToken();
-      } catch (error) {
-        console.error('Refresh failed', error);
-        this.signOut();
-        throw error;
-      }
+      this.signOut();
+      return null;
     }
-    return this.tokens.access_token ?? this.tokens.accessToken ?? null;
+    return this.tokens.accessToken ?? this.tokens.access_token ?? null;
   }
 
   getMembershipId() {
@@ -180,6 +227,7 @@ export class BungieAuth {
   }
 
   signOut() {
+    this.clearExpiryTimer();
     this.tokens = null;
     clearBungieTokens();
     updateBungieState(this.store, {
