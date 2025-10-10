@@ -102,7 +102,7 @@
         <div class="center">Total</div>
         <div class="center">Group</div>
         <div class="center">Rank</div>
-        <div class="right">Copy</div>
+        <div class="right" id="actionHeader">Copy ID</div>
       </div>
       <div id="rows"></div>
       <div id="empty" class="empty" style="display:none"><p>
@@ -142,6 +142,7 @@
     onRestore: handleRestore,
     onClear: handleClear,
     onSignIn: () => auth.startLogin(),
+    onPullSuccess: () => bootstrapBungieProfile(),
   });
 
   let manifestPromise = null;
