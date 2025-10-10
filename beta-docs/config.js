@@ -17,7 +17,8 @@ export const BUNGIE_SCOPES = [
   'ReadBasicUserProfile',
   'ReadDestinyInventoryAndVault',
   'ReadDestinyVendorsAndAdvisors',
-  'Destiny2.ReadGroups'
+  'Destiny2.ReadGroups',
+  'MoveEquipDestinyItems',
 ];
 
 export const BUNGIE_BASE_URL = 'https://www.bungie.net';
