@@ -6,15 +6,59 @@ import {
   updateDimState,
 } from './state.js';
 
+function resolveState(store) {
+  if (!store) return null;
+  if (typeof store.getState === 'function') {
+    return store.getState();
+  }
+  return store;
+}
+
+function resolveMembershipId(store, tokens) {
+  const state = resolveState(store);
+  return (
+    state?.bungie?.membershipId ??
+    state?.bungie?.tokens?.membership_id ??
+    state?.bungie?.tokens?.membershipId ??
+    tokens?.membershipId ??
+    tokens?.membership_id ??
+    null
+  );
+}
+
 async function dimFetch(path, token, options = {}) {
   const url = path.startsWith('http') ? path : `${DIM_API_URL}${path}`;
-  const headers = buildDimHeaders(token?.accessToken ?? token?.access_token);
-  const res = await fetch(url, { ...options, headers });
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`DIM request failed: ${res.status} ${text}`);
+  const baseHeaders = buildDimHeaders(token?.accessToken ?? token?.access_token);
+  const extraHeaders = options.headers ?? null;
+  if (extraHeaders) {
+    const entries =
+      extraHeaders instanceof Headers
+        ? extraHeaders.entries()
+        : Object.entries(extraHeaders);
+    for (const [key, value] of entries) {
+      if (value !== undefined && value !== null) {
+        baseHeaders.set(key, value);
+      }
+    }
   }
-  return res.json();
+  const fetchOptions = { ...options, headers: baseHeaders };
+  const res = await fetch(url, fetchOptions);
+  const text = await res.text();
+  if (!res.ok) {
+    const error = new Error(`DIM request failed: ${res.status}`);
+    error.status = res.status;
+    error.body = text;
+    throw error;
+  }
+  if (!text) return null;
+  try {
+    return JSON.parse(text);
+  } catch (error) {
+    const parseError = new Error('Failed to parse DIM response');
+    parseError.cause = error;
+    parseError.body = text;
+    throw parseError;
+  }
 }
 
 export class DimSync {
@@ -22,7 +66,8 @@ export class DimSync {
     this.store = store;
     this.tokens = restoreDimTokens();
     if (this.tokens) {
-      updateDimState(store, { status: 'ready', token: this.tokens });
+      this.tokens = this.normalizeTokens(this.tokens);
+      updateDimState(store, { status: 'ready', token: this.tokens, error: null });
     }
   }
 
@@ -32,7 +77,7 @@ export class DimSync {
       return;
     }
 
-    if (this.tokens && this.tokens.refreshToken) {
+    if (this.tokens && (this.tokens.refreshToken || this.tokens.refresh_token)) {
       try {
         await this.refresh();
         await this.loadAnnotations();
@@ -55,55 +100,122 @@ export class DimSync {
   async authorizeWithBungie(auth) {
     const accessToken = await auth.getAccessToken();
     if (!accessToken) throw new Error('Bungie access token is required for DIM sync');
-    updateDimState(this.store, { status: 'authorizing' });
-    const res = await dimFetch('/auth/bungie', null, {
+    const membershipId = resolveMembershipId(this.store, this.tokens);
+    if (!membershipId) {
+      throw new Error('Bungie membership id is required for DIM sync');
+    }
+    updateDimState(this.store, { status: 'authorizing', error: null });
+    const payload = {
+      bungieAccessToken: accessToken,
+      membershipId: String(membershipId),
+    };
+    const res = await dimFetch('/auth/token', null, {
       method: 'POST',
-      headers: buildDimHeaders(),
-      body: JSON.stringify({ accessToken }),
+      body: JSON.stringify(payload),
     });
     this.setTokens(this.normalizeTokens(res));
   }
 
   async refresh() {
-    if (!this.tokens?.refreshToken && !this.tokens?.refresh_token) {
+    const refreshToken = this.tokens?.refreshToken ?? this.tokens?.refresh_token;
+    if (!refreshToken) {
       throw new Error('DIM refresh token unavailable');
     }
-    updateDimState(this.store, { status: 'refreshing' });
-    const res = await dimFetch('/auth/refresh', null, {
+    const membershipId = resolveMembershipId(this.store, this.tokens);
+    updateDimState(this.store, { status: 'refreshing', error: null });
+    const payload = {
+      refreshToken,
+    };
+    if (membershipId) {
+      payload.membershipId = String(membershipId);
+    }
+    const res = await dimFetch('/auth/token', null, {
       method: 'POST',
-      headers: buildDimHeaders(),
-      body: JSON.stringify({ refreshToken: this.tokens.refreshToken ?? this.tokens.refresh_token }),
+      body: JSON.stringify(payload),
     });
     this.setTokens(this.normalizeTokens(res));
   }
 
   normalizeTokens(response) {
+    if (!response) return null;
+    const expiresIn = response?.expiresIn ?? response?.expires_in ?? null;
+    const expiresAt =
+      response?.expiresAt ?? response?.expires_at ?? (expiresIn ? buildExpiresAt(expiresIn) : null);
     return {
       ...response,
       accessToken: response.accessToken ?? response.access_token,
       refreshToken: response.refreshToken ?? response.refresh_token,
-      expiresAt: buildExpiresAt(response.expiresIn ?? response.expires_in ?? 0),
+      expiresAt: expiresAt ? Number(expiresAt) : null,
+      membershipId: response.membershipId ?? response.membership_id ?? null,
     };
   }
 
   setTokens(tokens) {
-    this.tokens = tokens;
-    persistDimTokens(tokens);
-    updateDimState(this.store, { status: 'ready', token: tokens });
+    const normalized = this.normalizeTokens(tokens);
+    this.tokens = normalized;
+    persistDimTokens(normalized);
+    updateDimState(this.store, { status: 'ready', token: normalized, error: null });
   }
 
   async loadAnnotations() {
     if (!this.tokens) return null;
-    updateDimState(this.store, { status: 'loading' });
-    const res = await dimFetch('/profile/items', this.tokens, {
-      method: 'GET',
+    const membershipId = resolveMembershipId(this.store, this.tokens);
+    if (!membershipId) {
+      const empty = new Map();
+      updateDimState(this.store, { status: 'ready', tagsByInstance: empty, error: null });
+      return empty;
+    }
+    updateDimState(this.store, { status: 'loading', error: null });
+    const params = new URLSearchParams({
+      platformMembershipId: String(membershipId),
+      components: 'tags,loadouts',
     });
-    const items = Array.isArray(res?.items) ? res.items : [];
-    const map = toMap(items, (item) => item.id ?? item.itemInstanceId ?? item.item_id);
-    updateDimState(this.store, {
-      status: 'ready',
-      tagsByInstance: map,
-    });
-    return map;
+    try {
+      const res = await dimFetch(`/profile?${params.toString()}`, this.tokens, {
+        method: 'GET',
+      });
+      const annotations = Array.isArray(res?.itemAnnotations)
+        ? res.itemAnnotations
+        : Array.isArray(res?.profile?.itemAnnotations)
+        ? res.profile.itemAnnotations
+        : [];
+      const map = toMap(annotations, (item) => item.itemInstanceId ?? item.id ?? item.item_id);
+      updateDimState(this.store, {
+        status: 'ready',
+        tagsByInstance: map,
+        error: null,
+      });
+      return map;
+    } catch (error) {
+      console.warn('DIM annotations load failed', error);
+      updateDimState(this.store, {
+        status: 'error',
+        error: error.message ?? 'Failed to load DIM annotations',
+      });
+      throw error;
+    }
+  }
+
+  async saveTag(update) {
+    if (!this.tokens) {
+      throw new Error('DIM tokens unavailable');
+    }
+    const updates = Array.isArray(update) ? update : [update];
+    if (!updates.length) return;
+    updateDimState(this.store, { status: 'saving', error: null });
+    try {
+      await dimFetch('/profile', this.tokens, {
+        method: 'POST',
+        body: JSON.stringify({ updates }),
+      });
+      await this.loadAnnotations();
+    } catch (error) {
+      console.error('DIM tag save failed', error);
+      updateDimState(this.store, {
+        status: 'error',
+        error: error.message ?? 'Failed to save DIM tag',
+      });
+      throw error;
+    }
   }
 }

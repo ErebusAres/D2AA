@@ -29,6 +29,11 @@ Before loading `beta.html`, set `window.D2AA_CONFIG` with the Bungie API key and
     bungieClientId: '12345',
     bungieRedirectUri: 'https://your.domain/beta.html',
     dimBaseUrl: 'https://app.destinyitemmanager.com',
+    dimApiEnv: 'prod',
+    dimProdApiUrl: 'https://api.destinyitemmanager.com',
+    dimDevApiUrl: 'https://dev-api.destinyitemmanager.com',
+    dimClientIdProd: 'your-prod-dim-key',
+    dimClientIdDev: 'your-dev-dim-key',
   };
 </script>
 ```
