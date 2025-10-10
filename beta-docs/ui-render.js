@@ -334,6 +334,47 @@ function showToast(message, variant = 'info') {
   }, 4000);
 }
 
+function extractBungieErrorMessage(data) {
+  if (!data) return null;
+  if (typeof data === 'string') {
+    const trimmed = data.trim();
+    return trimmed ? trimmed : null;
+  }
+  if (typeof data !== 'object') return null;
+
+  const message = typeof data.Message === 'string' ? data.Message.trim() : '';
+  if (message) return message;
+
+  if (Array.isArray(data.Messages)) {
+    const merged = data.Messages.map((entry) => (typeof entry === 'string' ? entry.trim() : ''))
+      .filter(Boolean)
+      .join(' ');
+    if (merged) return merged;
+  }
+
+  const messageData = data.MessageData;
+  if (messageData && typeof messageData === 'object') {
+    const parts = [];
+    for (const value of Object.values(messageData)) {
+      if (Array.isArray(value)) {
+        value.forEach((entry) => {
+          if (typeof entry === 'string' && entry.trim()) {
+            parts.push(entry.trim());
+          }
+        });
+      } else if (typeof value === 'string' && value.trim()) {
+        parts.push(value.trim());
+      }
+    }
+    if (parts.length) {
+      return parts.join(' ');
+    }
+  }
+
+  const fallback = typeof data.error === 'string' ? data.error.trim() : '';
+  return fallback || null;
+}
+
 function formatPullError(error) {
   if (!error) return 'Pull failed';
   const parts = ['Pull failed'];
@@ -345,7 +386,12 @@ function formatPullError(error) {
       .join(' • ');
     if (details) parts.push(`(${details})`);
   }
-  const message = error.message ?? '';
+  let message = error.message ?? '';
+  const bungieMessage = extractBungieErrorMessage(error.data);
+  if (bungieMessage && (!message || !message.includes(bungieMessage))) {
+    message = message ? `${message} ${bungieMessage}` : bungieMessage;
+  }
+  message = message.trim();
   if (message) {
     parts.push(`: ${message}`);
   }
