@@ -52,6 +52,8 @@ export async function loadCurrentProfile(auth, store) {
       'ItemInstances',
       'ItemStats',
       'ItemObjectives',
+      'ItemSockets',
+      'ItemPlugStates',
       'CharacterLoadouts',
     ].join(','),
   });
@@ -64,6 +66,8 @@ export async function loadCurrentProfile(auth, store) {
   const characters = guardObject(profileResponse?.characters?.data);
   const itemInstances = guardObject(profileResponse?.itemComponents?.instances?.data);
   const itemStats = guardObject(profileResponse?.itemComponents?.stats?.data);
+  const itemSockets = guardObject(profileResponse?.itemComponents?.sockets?.data);
+  const itemPlugStates = guardObject(profileResponse?.itemComponents?.plugStates?.data);
 
   const inventoryItems = [];
   const pushItems = (bucket) => {
@@ -91,6 +95,18 @@ export async function loadCurrentProfile(auth, store) {
     const existing = itemsByInstanceId.get(instanceId);
     if (existing) {
       existing.stats = stats.stats ?? stats;
+    }
+  }
+  for (const [instanceId, sockets] of Object.entries(itemSockets)) {
+    const existing = itemsByInstanceId.get(instanceId);
+    if (existing) {
+      existing.sockets = sockets;
+    }
+  }
+  for (const [instanceId, plugState] of Object.entries(itemPlugStates)) {
+    const existing = itemsByInstanceId.get(instanceId);
+    if (existing) {
+      existing.plugStates = plugState;
     }
   }
 
