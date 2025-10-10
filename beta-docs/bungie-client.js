@@ -17,6 +17,47 @@ async function bungieFetch(path, accessToken, options = {}) {
   return data.Response;
 }
 
+function extractBungieErrorMessage(data) {
+  if (!data) return null;
+  if (typeof data === 'string') {
+    const text = data.trim();
+    return text ? text : null;
+  }
+  if (typeof data !== 'object') return null;
+
+  const message = typeof data.Message === 'string' ? data.Message.trim() : '';
+  if (message) return message;
+
+  if (Array.isArray(data.Messages)) {
+    const joined = data.Messages.map((m) => (typeof m === 'string' ? m.trim() : ''))
+      .filter(Boolean)
+      .join(' ');
+    if (joined) return joined;
+  }
+
+  const messageData = data.MessageData;
+  if (messageData && typeof messageData === 'object') {
+    const parts = [];
+    for (const value of Object.values(messageData)) {
+      if (Array.isArray(value)) {
+        value.forEach((entry) => {
+          if (typeof entry === 'string' && entry.trim()) {
+            parts.push(entry.trim());
+          }
+        });
+      } else if (typeof value === 'string' && value.trim()) {
+        parts.push(value.trim());
+      }
+    }
+    if (parts.length) {
+      return parts.join(' ');
+    }
+  }
+
+  const fallback = typeof data.error === 'string' ? data.error.trim() : '';
+  return fallback || null;
+}
+
 function pickDestinyMembership(memberships) {
   const destinyMemberships = guardArray(memberships?.destinyMemberships);
   if (!destinyMemberships.length) return null;
@@ -155,15 +196,6 @@ function getMembershipTypeFromState(state) {
   );
 }
 
-function getMembershipIdFromState(state) {
-  return (
-    state?.bungie?.membershipId ??
-    state?.bungie?.tokens?.membership_id ??
-    state?.bungie?.tokens?.membershipId ??
-    null
-  );
-}
-
 function getPreferredCharacterId(state) {
   const characters = state?.bungie?.characters;
   if (!characters || typeof characters !== 'object') return null;
@@ -194,15 +226,25 @@ async function postItemAction(path, accessToken, payload) {
   }
 
   if (!res.ok) {
-    const error = new Error(`Bungie request failed: ${res.status}`);
+    const bungieMessage = extractBungieErrorMessage(data);
+    const statusText = res.statusText ? ` ${res.statusText}` : '';
+    const errorMessage = bungieMessage
+      ? `Bungie request failed: ${bungieMessage}`
+      : `Bungie request failed: ${res.status}${statusText}`;
+    const error = new Error(errorMessage);
     error.status = res.status;
+    if (data && typeof data === 'object') {
+      if (data.ErrorStatus) error.ErrorStatus = data.ErrorStatus;
+      if (data.ErrorCode !== undefined) error.code = data.ErrorCode;
+    }
     error.data = data ?? text;
     throw error;
   }
 
   const errorCode = data?.ErrorCode;
   if (errorCode !== 1) {
-    const error = new Error(data?.Message ?? data?.ErrorStatus ?? 'Bungie action failed');
+    const bungieMessage = extractBungieErrorMessage(data);
+    const error = new Error(bungieMessage ?? data?.ErrorStatus ?? 'Bungie action failed');
     error.code = errorCode;
     error.status = data?.ErrorStatus;
     error.data = data;
@@ -265,13 +307,10 @@ export async function pullItemToCharacter(store, item, options = {}) {
   const payload = buildTransferPayload(item, membershipType, characterId);
 
   if (isPostmasterItem(item)) {
-    const membershipId = options.membershipId ?? getMembershipIdFromState(state);
-    if (!membershipId) {
-      throw new Error('Bungie membership id unavailable for postmaster pull');
-    }
     const postmasterPayload = {
       ...payload,
-      ownerId: String(membershipId),
+      itemTransfer: true,
+      transferToVault: false,
     };
     await postItemAction('/Destiny2/Actions/Items/PullFromPostmaster/', accessToken, postmasterPayload);
     return { type: 'postmaster', characterId: String(characterId) };
