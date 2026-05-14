@@ -18,8 +18,9 @@ const STAT_ICONS = {
 const RARITY_ICONS = { Basic: '', Common: '', Uncommon: '', Rare: '', Legendary: 'https://www.bungie.net/common/destiny2_content/icons/f846f489c2a97afb289b357e431ecf8d.png', Exotic: 'https://www.bungie.net/common/destiny2_content/icons/3e6a698e1a8a5fb446fdcbf1e63c5269.png' };
 const CLASS_ICONS = { Warlock: 'https://www.bungie.net/common/destiny2_content/icons/e4006d9a8fe167bd7e83193d7601c89a.png', Hunter: 'https://www.bungie.net/common/destiny2_content/icons/05e32a388d9a65a0ef59b2193eee2db4.png', Titan: 'https://www.bungie.net/common/destiny2_content/icons/46a19ddd00d0f6ca822230943103b54a.png' };
 const SLOT_ICONS = { Helmet: 'https://raw.githubusercontent.com/justrealmilk/destiny-icons/master/armor_types/helmet.svg', Gauntlets: 'https://raw.githubusercontent.com/justrealmilk/destiny-icons/master/armor_types/gloves.svg', 'Chest Armor': 'https://raw.githubusercontent.com/justrealmilk/destiny-icons/master/armor_types/chest.svg', 'Leg Armor': 'https://raw.githubusercontent.com/justrealmilk/destiny-icons/master/armor_types/boots.svg', 'Class Item': 'https://raw.githubusercontent.com/justrealmilk/destiny-icons/master/armor_types/class.svg' };
+const TAG_OPTIONS = ['', 'favorite', 'keep', 'junk', 'infuse', 'archive'];
 const TAG_EMOJIS = { favorite: '❤️', keep: '🏷️', junk: '🚫', infuse: '⚡', archive: '📦' };
-const TAG_LABELS = { favorite: 'Favorite', keep: 'Keep', junk: 'Junk', infuse: 'Infuse', archive: 'Archive' };
+const TAG_LABELS = { '': 'No tag', favorite: 'Favorite', keep: 'Keep', junk: 'Junk', infuse: 'Infuse', archive: 'Archive' };
 const CLASS_OPTIONS = ['Warlock', 'Hunter', 'Titan'];
 const RARITY_OPTIONS = ['All', 'Common', 'Uncommon', 'Rare', 'Legendary', 'Exotic'];
 const SLOT_OPTIONS = ['All', 'Helmet', 'Gauntlets', 'Chest Armor', 'Leg Armor', 'Class Item'];
@@ -35,6 +36,7 @@ const THEME_OPTIONS = [
 ];
 const LS_ROWS = 'd2aa_beta2_rows_v1';
 const LS_THEME = 'd2aa_beta2_theme_v1';
+const LS_TAGS = 'd2aa_beta2_tag_overrides_v1';
 let STATE = { rows: [], classFilter: 'Warlock', rarityFilter: 'All', slotFilter: 'All', dupesFilter: 'All', search: '', sortBy: 'default', tol: 5, visible: [] };
 const $ = (id) => document.getElementById(id);
 const normId = (s) => (s ? String(s).trim().replace(/^"|"$/g, '') : '');
@@ -53,6 +55,15 @@ function top3Entries(item) { return STAT_COLS.map((name) => ({ name, value: num(
 function similarTop3(a, b, tol) { const ta = top3Entries(a); const tb = top3Entries(b); return ta.every((entry, i) => entry.name === tb[i].name && Math.abs(entry.value - tb[i].value) <= tol); }
 function saveRows() { try { localStorage.setItem(LS_ROWS, JSON.stringify(STATE.rows)); } catch (_) {} }
 function loadRows() { try { const raw = localStorage.getItem(LS_ROWS); return raw ? JSON.parse(raw) : null; } catch (_) { return null; } }
+function loadTagOverrides() { try { return JSON.parse(localStorage.getItem(LS_TAGS) || '{}'); } catch (_) { return {}; } }
+function saveTagOverrides(tags) { try { localStorage.setItem(LS_TAGS, JSON.stringify(tags || {})); } catch (_) {} }
+function normalizeTag(tag) { const value = String(tag || '').trim().toLowerCase(); return TAG_OPTIONS.includes(value) ? value : ''; }
+function tagLabel(tag) { return TAG_LABELS[normalizeTag(tag)] || 'No tag'; }
+function tagEmoji(tag) { return TAG_EMOJIS[normalizeTag(tag)] || '＋'; }
+function tagKey(row) { return normId(row?.Id); }
+function applyTagOverrides(row) { const tags = loadTagOverrides(); const key = tagKey(row); const parsed = { ...row, Tag: normalizeTag(row.Tag) }; return key && Object.prototype.hasOwnProperty.call(tags, key) ? { ...parsed, Tag: normalizeTag(tags[key]) } : parsed; }
+function setRowTag(row, tag) { const key = tagKey(row); const normalized = normalizeTag(tag); if (!key) return; const tags = loadTagOverrides(); tags[key] = normalized; saveTagOverrides(tags); STATE.rows = STATE.rows.map((item) => tagKey(item) === key ? { ...item, Tag: normalized } : item); saveRows(); }
+function chooseTag(row) { const current = normalizeTag(row.Tag); const menu = TAG_OPTIONS.map((tag, idx) => `${idx}. ${TAG_EMOJIS[tag] || '—'} ${TAG_LABELS[tag]}`).join('\n'); const input = prompt(`Set tag for ${row.Name}:\n\n${menu}\n\nType a number or tag name.`, current || ''); if (input === null) return; const trimmed = input.trim().toLowerCase(); const byIndex = TAG_OPTIONS[Number(trimmed)] ?? null; const picked = byIndex !== null ? byIndex : normalizeTag(trimmed); setRowTag(row, picked); render(); }
 async function copyText(text) { try { await navigator.clipboard.writeText(text); return true; } catch (_) { const ta = document.createElement('textarea'); ta.value = text; ta.setAttribute('readonly', ''); ta.className = 'sr-only'; document.body.appendChild(ta); ta.select(); const ok = document.execCommand('copy'); ta.remove(); return ok; } }
 function iconImg(src, alt, className = '') { const img = document.createElement('img'); img.src = src || ''; img.alt = alt; img.title = alt; if (className) img.className = className; return img; }
 function maskedIcon(src, label) { const span = document.createElement('span'); span.className = 'seg-mask'; span.title = label; span.setAttribute('aria-hidden', 'true'); span.style.maskImage = `url('${src}')`; span.style.webkitMaskImage = `url('${src}')`; return span; }
@@ -95,6 +106,20 @@ function groupRowsForAction(row, groupRows) { return (groupRows || []).filter((i
 async function copyOrPullSingle(row, btn) { if (row.Source === 'Bungie' && window.D2AA_BUNGIE?.pullItem) { btn.textContent = 'Pulling...'; await window.D2AA_BUNGIE.pullItem(row); btn.textContent = 'Pulled'; return; } const ok = await copyText(`id:${normId(row.Id)}`); btn.textContent = ok ? 'Copied' : 'Failed'; }
 async function copyOrPullGroup(row, rows, btn) { const groupRows = groupRowsForAction(row, rows); if (isBungieMode() && window.D2AA_BUNGIE?.pullItems) { btn.textContent = 'Pulling...'; await window.D2AA_BUNGIE.pullItems(groupRows); btn.textContent = 'Pulled'; return; } const ok = await copyText(groupRows.map((item) => `id:${normId(item.Id)}`).join(' or ')); btn.textContent = ok ? 'Copied' : 'Failed'; }
 
+function renderTagCell(row) {
+  const tagCell = document.createElement('div');
+  tagCell.className = 'center tag-cell';
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = `tag-btn${normalizeTag(row.Tag) ? ' has-tag' : ''}`;
+  btn.textContent = tagEmoji(row.Tag);
+  btn.title = `${tagLabel(row.Tag)} — click to change tag`;
+  btn.setAttribute('aria-label', `${tagLabel(row.Tag)} tag for ${row.Name}. Click to change.`);
+  btn.addEventListener('click', () => chooseTag(row));
+  tagCell.appendChild(btn);
+  return tagCell;
+}
+
 function renderGroupBadge(row, groupRows) {
   const cell = document.createElement('div'); cell.className = 'center';
   if (!row.Is_Dupe) { const ok = document.createElement('span'); ok.className = 'ok-badge'; ok.title = 'No duplicate group'; ok.textContent = '✅'; cell.appendChild(ok); return cell; }
@@ -105,7 +130,7 @@ function renderGroupBadge(row, groupRows) {
 
 function renderRow(row, allRows) {
   const el = document.createElement('div'); el.className = `armor-grid armor-row ${rarityClass(row.Rarity)}${row.Is_Dupe ? ' is-dupe' : ''}`; el.dataset.rarity = rarityLabel(row.Rarity);
-  const tagCell = document.createElement('div'); tagCell.className = 'center tag-cell'; const tag = String(row.Tag || '').toLowerCase(); tagCell.textContent = TAG_EMOJIS[tag] || ''; tagCell.title = TAG_LABELS[tag] || 'No DIM tag';
+  const tagCell = renderTagCell(row);
   const itemCell = document.createElement('div'); const name = document.createElement('div'); name.className = 'item-name'; name.textContent = row.Name || '(Unnamed item)'; const meta = document.createElement('div'); meta.className = 'item-meta'; const rarityIcon = iconImg(RARITY_ICONS[row.Rarity], row.Rarity || 'Rarity', 'rarity-ico-inline'); meta.append(`${slotLabel(row.Type)} • ${row.Equippable} • `, rarityIcon, ` ${row.Rarity || ''}`); if (row.Source === 'Bungie') meta.append(` • ${row.IsInVault ? 'Vault' : row.IsEquipped ? 'Equipped' : 'Inventory'}`); const id = document.createElement('div'); id.className = 'item-id'; id.textContent = normId(row.Id); itemCell.append(name, meta, id);
   const tier = document.createElement('div'); tier.className = 'center tier'; tier.title = `Stat tier ${num(row.Tier)} from base total`; tier.textContent = '♦'.repeat(Math.max(1, Math.min(5, num(row.Tier))));
   const total = document.createElement('div'); total.className = 'center total-value'; total.textContent = String(num(row['Total (Base)']));
@@ -117,14 +142,14 @@ function renderRow(row, allRows) {
 
 function updateSummary(rows) { const groups = new Set(rows.filter((r) => r.Is_Dupe).map((r) => `${r.GroupKey}::${r.Dupe_Group}`)); const avg = rows.length ? Math.round(rows.reduce((sum, r) => sum + num(r['Total (Base)'], 0), 0) / rows.length) : 0; $('summaryShown').textContent = rows.length; $('summaryDupes').textContent = rows.filter((r) => r.Is_Dupe).length; $('summaryGroups').textContent = groups.size; $('summaryAvg').textContent = avg; $('resultCount').textContent = `${rows.length} shown`; }
 function render() { renderSegments(); const rows = getFiltered(); STATE.visible = rows; updateSummary(rows); $('tolOut').textContent = `±${STATE.tol}`; const host = $('rows'); host.textContent = ''; $('empty').classList.toggle('is-hidden', rows.length > 0); for (const row of rows) host.appendChild(renderRow(row, rows)); }
-function parseRows(data) { return data.map((row) => { const x = { ...row }; for (const key of [...STAT_COLS, 'Total (Base)', 'Tier']) x[key] = Number.isFinite(num(x[key])) ? num(x[key]) : 0; x.Id = normId(x.Id); return x; }).filter((row) => row.Id && row.Name && row.Type && row.Equippable); }
+function parseRows(data) { return data.map((row) => { const x = { ...row }; for (const key of [...STAT_COLS, 'Total (Base)', 'Tier']) x[key] = Number.isFinite(num(x[key])) ? num(x[key]) : 0; x.Id = normId(x.Id); return applyTagOverrides(x); }).filter((row) => row.Id && row.Name && row.Type && row.Equippable); }
 function loadExternalRows(rows, label = 'External import loaded') { STATE.rows = parseRows(rows || []); saveRows(); const uploadHint = $('uploadHint'); if (uploadHint) uploadHint.textContent = label; render(); }
 
 function bindEvents() {
   const file = $('file'); const uploadTrigger = $('uploadTrigger'); const uploadHint = $('uploadHint'); const defaultHint = uploadHint?.dataset.default || 'Choose DIM Armor.csv';
   uploadTrigger?.addEventListener('keydown', (event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); file.click(); } });
   file.addEventListener('change', (event) => { const selected = event.target.files?.[0]; if (!selected) return; Papa.parse(selected, { header: true, skipEmptyLines: true, complete: (res) => { loadExternalRows(res.data || [], `Loaded • ${selected.name}`); file.value = ''; } }); });
-  $('restoreBtn').addEventListener('click', () => { const rows = loadRows(); if (!Array.isArray(rows)) { alert('No saved import found in this browser. Upload a DIM CSV or use Bungie import first.'); return; } STATE.rows = rows; uploadHint.textContent = defaultHint; render(); });
+  $('restoreBtn').addEventListener('click', () => { const rows = loadRows(); if (!Array.isArray(rows)) { alert('No saved import found in this browser. Upload a DIM CSV or use Bungie import first.'); return; } STATE.rows = parseRows(rows); uploadHint.textContent = defaultHint; render(); });
   $('clearBtn').addEventListener('click', () => { STATE.rows = []; localStorage.removeItem(LS_ROWS); uploadHint.textContent = defaultHint; render(); });
   $('searchBox').addEventListener('input', (event) => { STATE.search = event.target.value; render(); });
   $('sortBy').addEventListener('change', (event) => { STATE.sortBy = event.target.value; render(); });
@@ -132,5 +157,5 @@ function bindEvents() {
   $('copyVisibleBtn').addEventListener('click', async () => { const ids = STATE.visible.map((row) => `id:${normId(row.Id)}`).filter(Boolean).join(' or '); if (!ids) return; const ok = await copyText(ids); const btn = $('copyVisibleBtn'); const old = btn.querySelector('.action-title').textContent; btn.querySelector('.action-title').textContent = ok ? 'Copied visible IDs' : 'Copy failed'; setTimeout(() => { btn.querySelector('.action-title').textContent = old; }, 1200); });
 }
 
-window.D2AA = { loadRows: loadExternalRows, parseRows, render, getState: () => STATE };
-makeThemeButtons(); bindEvents(); const cached = loadRows(); if (Array.isArray(cached)) STATE.rows = cached; render();
+window.D2AA = { loadRows: loadExternalRows, parseRows, render, getState: () => STATE, setTag: setRowTag, getTags: loadTagOverrides };
+makeThemeButtons(); bindEvents(); const cached = loadRows(); if (Array.isArray(cached)) STATE.rows = parseRows(cached); render();
