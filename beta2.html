@@ -16,7 +16,7 @@
       <div class="brand-block">
         <p class="eyebrow">Destiny 2</p>
         <h1>D2 Armor Analyzer</h1>
-        <p class="muted">Upload your DIM Armor.csv or sign in with Bungie to identify duplicate armor, rank pieces, and copy DIM-ready item filters.</p>
+        <p class="muted">Upload your DIM Armor.csv or connect your Destiny account to identify duplicate armor, rank pieces, and copy or pull items.</p>
       </div>
 
       <section class="card-block" aria-labelledby="quickHelpTitle">
@@ -24,7 +24,7 @@
         <ul class="help-list">
           <li>Dupe groups compare top-3 stat identities within the selected tolerance.</li>
           <li>Exotics only compare against the same armor name.</li>
-          <li>Click a group badge to copy all IDs in that duplicate group.</li>
+          <li>DIM imports copy item filters; Bungie sync can pull items to the matching character.</li>
         </ul>
       </section>
 
@@ -43,17 +43,17 @@
 
         <button class="action-card action-card--bungie" id="bungieSetupBtn" type="button">
           <span class="action-icon" aria-hidden="true">⚙</span>
-          <span><span class="action-title">Bungie API Setup</span><span class="action-sub">Store API key + OAuth client ID locally</span></span>
+          <span><span class="action-title">Bungie Dev Config</span><span class="action-sub">Optional override for embedded public app config</span></span>
         </button>
         <button class="action-card action-card--bungie" id="bungieLoginBtn" type="button">
           <span class="action-icon" aria-hidden="true">◇</span>
-          <span><span class="action-title">Sign in with Bungie</span><span class="action-sub">Authorize read-only inventory access</span></span>
+          <span><span class="action-title">Connect Destiny Account</span><span class="action-sub">Bungie / Steam sign-in</span></span>
         </button>
         <button class="action-card action-card--bungie" id="bungieImportBtn" type="button">
           <span class="action-icon" aria-hidden="true">↓</span>
-          <span><span class="action-title">Import from Bungie</span><span class="action-sub">Fetch vault + character armor</span></span>
+          <span><span class="action-title">Sync from Bungie</span><span class="action-sub">Fetch vault + character armor</span></span>
         </button>
-        <div id="bungieStatus" class="source-status is-missing" aria-live="polite">Bungie API not configured yet.</div>
+        <div id="bungieStatus" class="source-status is-missing" aria-live="polite">Ready to connect your Destiny account.</div>
 
         <button class="action-card" id="restoreBtn" type="button">
           <span class="action-icon" aria-hidden="true">↻</span>
@@ -90,11 +90,11 @@
             <div class="center">Total</div>
             <div class="center">Group</div>
             <div class="center">Rank</div>
-            <div class="right">Copy</div>
+            <div class="right">Action</div>
           </div>
           <div id="rows"></div>
           <div id="empty" class="empty-state">
-            <p>No items yet — upload a DIM CSV, restore your last import, or sign in with Bungie.</p>
+            <p>No items yet — upload a DIM CSV, restore your last import, or connect your Destiny account.</p>
             <p class="muted">DIM path: Organizer → select any class → Armor.csv button → upload the downloaded file here.</p>
           </div>
         </div>
