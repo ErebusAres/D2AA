@@ -1,0 +1,184 @@
+/* Beta2 theme overrides: six Destiny shader-inspired palettes.
+   Default is Calus Royal: purple, ivory, and gold. */
+
+:root,
+body[data-theme='calus'],
+body[data-theme='eclipse'] {
+  --bg: #120b1e;
+  --bg-2: #24163a;
+  --panel: rgba(24, 16, 40, 0.92);
+  --panel-2: rgba(45, 31, 70, 0.78);
+  --panel-3: rgba(255, 246, 222, 0.052);
+  --border: rgba(229, 197, 111, 0.30);
+  --border-strong: rgba(255, 231, 153, 0.58);
+  --text: #fff8e7;
+  --muted: #cdbfd8;
+  --accent: #d7b65a;
+  --accent-strong: #fff1b6;
+  --warn: #ffd166;
+  --danger: #ff6f91;
+  --ok: #a7ffd5;
+  --theme-glow: 161 105 255;
+  --theme-metal: 229 197 111;
+}
+
+body[data-theme='taken'] {
+  --bg: #020306;
+  --bg-2: #0a0e13;
+  --panel: rgba(5, 8, 12, 0.94);
+  --panel-2: rgba(17, 22, 28, 0.80);
+  --panel-3: rgba(255, 255, 255, 0.055);
+  --border: rgba(210, 236, 255, 0.22);
+  --border-strong: rgba(247, 252, 255, 0.60);
+  --text: #f7fbff;
+  --muted: #a9b8c3;
+  --accent: #e6f7ff;
+  --accent-strong: #ffffff;
+  --warn: #f4f1dc;
+  --danger: #ff5f84;
+  --ok: #8af7ff;
+  --theme-glow: 146 235 255;
+  --theme-metal: 255 255 255;
+}
+
+body[data-theme='trials'] {
+  --bg: #050403;
+  --bg-2: #15110a;
+  --panel: rgba(10, 9, 7, 0.93);
+  --panel-2: rgba(31, 25, 14, 0.78);
+  --panel-3: rgba(255, 225, 140, 0.050);
+  --border: rgba(255, 205, 91, 0.28);
+  --border-strong: rgba(255, 231, 160, 0.62);
+  --text: #fff7df;
+  --muted: #ccbfa2;
+  --accent: #f6c74f;
+  --accent-strong: #ffe8a1;
+  --warn: #ffcf5e;
+  --danger: #ff725c;
+  --ok: #d2ff91;
+  --theme-glow: 255 199 79;
+  --theme-metal: 255 231 160;
+}
+
+body[data-theme='void'] {
+  --bg: #060315;
+  --bg-2: #10102d;
+  --panel: rgba(13, 8, 34, 0.93);
+  --panel-2: rgba(29, 20, 61, 0.78);
+  --panel-3: rgba(210, 104, 255, 0.045);
+  --border: rgba(192, 103, 255, 0.28);
+  --border-strong: rgba(242, 160, 255, 0.62);
+  --text: #f8edff;
+  --muted: #c4acd3;
+  --accent: #b968ff;
+  --accent-strong: #f0b7ff;
+  --warn: #ffd36d;
+  --danger: #ff66cc;
+  --ok: #85e9ff;
+  --theme-glow: 185 104 255;
+  --theme-metal: 240 183 255;
+}
+
+body[data-theme='iron'] {
+  --bg: #0c0b0a;
+  --bg-2: #1a1712;
+  --panel: rgba(20, 18, 15, 0.93);
+  --panel-2: rgba(42, 36, 27, 0.78);
+  --panel-3: rgba(224, 156, 82, 0.048);
+  --border: rgba(201, 139, 72, 0.26);
+  --border-strong: rgba(234, 177, 105, 0.58);
+  --text: #f4eadb;
+  --muted: #bcae9c;
+  --accent: #c98b48;
+  --accent-strong: #f0bd7d;
+  --warn: #f1bc63;
+  --danger: #e55c4f;
+  --ok: #c7ee9b;
+  --theme-glow: 229 92 79;
+  --theme-metal: 201 139 72;
+}
+
+body[data-theme='vanguard'] {
+  --bg: #050d18;
+  --bg-2: #0b1b31;
+  --panel: rgba(8, 18, 33, 0.93);
+  --panel-2: rgba(17, 35, 61, 0.78);
+  --panel-3: rgba(255, 133, 54, 0.044);
+  --border: rgba(255, 133, 54, 0.26);
+  --border-strong: rgba(255, 180, 92, 0.58);
+  --text: #eef6ff;
+  --muted: #aab9c8;
+  --accent: #ff8536;
+  --accent-strong: #ffbf7d;
+  --warn: #ffbd66;
+  --danger: #ff5f6d;
+  --ok: #8ffff0;
+  --theme-glow: 255 133 54;
+  --theme-metal: 255 191 125;
+}
+
+body {
+  background:
+    radial-gradient(circle at 8% 0%, rgb(var(--theme-glow, 161 105 255) / .26), transparent 31rem),
+    radial-gradient(circle at 88% 12%, rgb(var(--theme-metal, 229 197 111) / .16), transparent 28rem),
+    linear-gradient(135deg, var(--bg), var(--bg-2));
+}
+
+.panel::before {
+  background:
+    linear-gradient(115deg, rgb(var(--theme-glow, 161 105 255) / .14), transparent 34%),
+    radial-gradient(circle at top right, rgb(var(--theme-metal, 229 197 111) / .14), transparent 44%);
+}
+
+.theme-btn {
+  position: relative;
+  overflow: hidden;
+}
+
+.theme-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: .65;
+  background: linear-gradient(135deg, rgb(var(--theme-glow, 161 105 255) / .12), rgb(var(--theme-metal, 229 197 111) / .10));
+  pointer-events: none;
+}
+
+.theme-btn > * { position: relative; }
+
+.select-field--themed {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 34px;
+  border-color: color-mix(in srgb, var(--accent) 34%, var(--border));
+  background:
+    linear-gradient(135deg, rgba(255,255,255,.055), rgba(0,0,0,.18)),
+    linear-gradient(90deg, transparent calc(100% - 32px), color-mix(in srgb, var(--accent) 17%, transparent) calc(100% - 32px)),
+    rgba(0,0,0,.22);
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--accent-strong) 50%),
+    linear-gradient(135deg, var(--accent-strong) 50%, transparent 50%),
+    linear-gradient(135deg, rgba(255,255,255,.055), rgba(0,0,0,.18));
+  background-position:
+    calc(100% - 18px) 14px,
+    calc(100% - 12px) 14px,
+    0 0;
+  background-size:
+    6px 6px,
+    6px 6px,
+    100% 100%;
+  background-repeat: no-repeat;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+.select-field--themed:hover {
+  border-color: var(--border-strong);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--accent) 18%, transparent),
+    0 0 18px color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+.select-field--themed option {
+  color: #f7f7f7;
+  background: #16131f;
+}
