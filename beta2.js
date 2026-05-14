@@ -24,6 +24,7 @@ const TAG_LABELS = { '': 'No tag', favorite: 'Favorite', keep: 'Keep', junk: 'Ju
 const CLASS_OPTIONS = ['Warlock', 'Hunter', 'Titan'];
 const RARITY_OPTIONS = ['All', 'Common', 'Uncommon', 'Rare', 'Legendary', 'Exotic'];
 const SLOT_OPTIONS = ['All', 'Helmet', 'Gauntlets', 'Chest Armor', 'Leg Armor', 'Class Item'];
+const LOCATION_OPTIONS = ['All', 'Equipped', 'Inventory', 'Vault'];
 const DUPE_OPTIONS = ['All', 'Only Dupes', 'Only Same-Name'];
 const CLASS_ITEM_BY_CLASS = { Warlock: 'Warlock Bond', Hunter: 'Hunter Cloak', Titan: 'Titan Mark' };
 const THEME_OPTIONS = [
@@ -37,7 +38,7 @@ const THEME_OPTIONS = [
 const LS_ROWS = 'd2aa_beta2_rows_v1';
 const LS_THEME = 'd2aa_beta2_theme_v1';
 const LS_TAGS = 'd2aa_beta2_tag_overrides_v1';
-let STATE = { rows: [], classFilter: 'Warlock', rarityFilter: 'All', slotFilter: 'All', dupesFilter: 'All', search: '', sortBy: 'default', tol: 5, visible: [] };
+let STATE = { rows: [], classFilter: 'Warlock', rarityFilter: 'All', slotFilter: 'All', locationFilter: 'All', dupesFilter: 'All', search: '', sortBy: 'default', tol: 5, visible: [] };
 const $ = (id) => document.getElementById(id);
 const normId = (s) => (s ? String(s).trim().replace(/^"|"$/g, '') : '');
 const normName = (s) => String(s || '').trim().toLowerCase();
@@ -50,6 +51,9 @@ const rankScore = (rank) => (rank.match(/★/g) || []).length;
 const legendaryRank = (t) => { const n = num(t); if (n >= 75) return '★★★★★'; if (n === 74) return '★★★★☆'; if (n === 73) return '★★★☆☆'; if (n === 72) return '★★☆☆☆'; if (n === 71) return '★☆☆☆☆'; return '💩'; };
 const exoticRank = (t) => { const n = num(t); if (n >= 63) return '★★★★★'; if (n === 62) return '★★★★☆'; if (n === 61) return '★★★☆☆'; if (n === 60) return '★★☆☆☆'; if (n === 59) return '★☆☆☆☆'; return '💩'; };
 const statClass = (v) => { const n = num(v); if (n >= 30) return 'stat-cyan'; if (n >= 24) return 'stat-green'; if (n >= 15) return 'stat-yellow'; return 'stat-red'; };
+const locationLabel = (row) => row.Source === 'Bungie' ? (row.IsInVault ? 'Vault' : row.IsEquipped ? 'Equipped' : 'Inventory') : 'DIM';
+const locationIcon = (row) => row.IsInVault ? '🏦' : row.IsEquipped ? '⚔️' : '🎒';
+function matchesLocation(row) { if (STATE.locationFilter === 'All') return true; if (row.Source !== 'Bungie') return STATE.locationFilter === 'All'; return locationLabel(row) === STATE.locationFilter; }
 
 function top3Entries(item) { return STAT_COLS.map((name) => ({ name, value: num(item[name]) })).sort((a, b) => (b.value - a.value) || a.name.localeCompare(b.name)).slice(0, 3); }
 function similarTop3(a, b, tol) { const ta = top3Entries(a); const tb = top3Entries(b); return ta.every((entry, i) => entry.name === tb[i].name && Math.abs(entry.value - tb[i].value) <= tol); }
@@ -68,6 +72,7 @@ async function copyText(text) { try { await navigator.clipboard.writeText(text);
 function iconImg(src, alt, className = '') { const img = document.createElement('img'); img.src = src || ''; img.alt = alt; img.title = alt; if (className) img.className = className; return img; }
 function maskedIcon(src, label) { const span = document.createElement('span'); span.className = 'seg-mask'; span.title = label; span.setAttribute('aria-hidden', 'true'); span.style.maskImage = `url('${src}')`; span.style.webkitMaskImage = `url('${src}')`; return span; }
 function isBungieMode() { return STATE.rows.some((row) => row.Source === 'Bungie'); }
+function updateStoredRow(row, patch) { const key = tagKey(row); STATE.rows = STATE.rows.map((item) => tagKey(item) === key ? { ...item, ...patch } : item); saveRows(); render(); }
 
 function clusterRows(filtered) {
   const byKey = new Map();
@@ -86,7 +91,7 @@ function defaultSort(a, b) { const slot = slotNumber(a.Type) - slotNumber(b.Type
 
 function getFiltered() {
   const expectedClassItem = CLASS_ITEM_BY_CLASS[STATE.classFilter];
-  let filtered = STATE.rows.filter((row) => { const q = STATE.search.trim().toLowerCase(); const matchesSearch = !q || String(row.Name || '').toLowerCase().includes(q) || String(row.Id || '').toLowerCase().includes(q) || String(row.Type || '').toLowerCase().includes(q); return row.Equippable === STATE.classFilter && (STATE.rarityFilter === 'All' || row.Rarity === STATE.rarityFilter) && (STATE.slotFilter === 'All' || (STATE.slotFilter === 'Class Item' ? row.Type === expectedClassItem : row.Type === STATE.slotFilter)) && matchesSearch; });
+  let filtered = STATE.rows.filter((row) => { const q = STATE.search.trim().toLowerCase(); const matchesSearch = !q || String(row.Name || '').toLowerCase().includes(q) || String(row.Id || '').toLowerCase().includes(q) || String(row.Type || '').toLowerCase().includes(q); return row.Equippable === STATE.classFilter && (STATE.rarityFilter === 'All' || row.Rarity === STATE.rarityFilter) && (STATE.slotFilter === 'All' || (STATE.slotFilter === 'Class Item' ? row.Type === expectedClassItem : row.Type === STATE.slotFilter)) && matchesLocation(row) && matchesSearch; });
   filtered = clusterRows(filtered);
   if (STATE.dupesFilter === 'Only Dupes') filtered = filtered.filter((row) => row.Is_Dupe);
   if (STATE.dupesFilter === 'Only Same-Name') { const grouped = new Map(); for (const row of filtered.filter((r) => r.Is_Dupe)) { const key = `${row.GroupKey}::${row.Dupe_Group}`; if (!grouped.has(key)) grouped.set(key, []); grouped.get(key).push(row); } const keepIds = new Set(); for (const rows of grouped.values()) { if (new Set(rows.map((r) => normName(r.Name))).size === 1) rows.forEach((r) => keepIds.add(r.Id)); } filtered = filtered.filter((row) => keepIds.has(row.Id)); }
@@ -99,11 +104,12 @@ function getFiltered() {
 
 function makeThemeButtons() { const host = $('themeToggle'); if (!host) return; host.textContent = ''; const stored = localStorage.getItem(LS_THEME) || 'calus'; document.body.dataset.theme = THEME_OPTIONS.some((t) => t.id === stored) ? stored : 'calus'; for (const theme of THEME_OPTIONS) { const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'theme-btn'; btn.dataset.themeOption = theme.id; btn.innerHTML = `<span class="theme-title">${theme.label}</span><span class="theme-hint">${theme.hint}</span>`; btn.addEventListener('click', () => { document.body.dataset.theme = theme.id; localStorage.setItem(LS_THEME, theme.id); makeThemeButtons(); }); btn.classList.toggle('is-active', document.body.dataset.theme === theme.id); host.appendChild(btn); } }
 function makeSegment(hostId, options, stateKey, iconMap = null, useMask = false) { const host = $(hostId); if (!host) return; host.textContent = ''; for (const opt of options) { const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'seg-btn'; btn.classList.toggle('is-active', STATE[stateKey] === opt); btn.title = opt; if (iconMap && iconMap[opt]) btn.appendChild(useMask ? maskedIcon(iconMap[opt], opt) : iconImg(iconMap[opt], opt, 'seg-icon')); const txt = document.createElement('span'); txt.textContent = opt; btn.appendChild(txt); btn.addEventListener('click', () => { STATE[stateKey] = opt; render(); }); host.appendChild(btn); } }
-function renderSegments() { makeSegment('classSeg', CLASS_OPTIONS, 'classFilter', CLASS_ICONS, true); makeSegment('raritySeg', RARITY_OPTIONS, 'rarityFilter', RARITY_ICONS, false); makeSegment('slotSeg', SLOT_OPTIONS, 'slotFilter', SLOT_ICONS, true); makeSegment('dupesSeg', DUPE_OPTIONS, 'dupesFilter'); }
+function renderSegments() { makeSegment('classSeg', CLASS_OPTIONS, 'classFilter', CLASS_ICONS, true); makeSegment('raritySeg', RARITY_OPTIONS, 'rarityFilter', RARITY_ICONS, false); makeSegment('slotSeg', SLOT_OPTIONS, 'slotFilter', SLOT_ICONS, true); makeSegment('locationSeg', LOCATION_OPTIONS, 'locationFilter'); makeSegment('dupesSeg', DUPE_OPTIONS, 'dupesFilter'); }
 function renderStats(row) { const wrap = document.createElement('div'); wrap.className = 'stat-chips'; for (const stat of STAT_COLS) { const value = num(row[stat]); const chip = document.createElement('span'); chip.className = `stat-chip ${statClass(value)}`; chip.title = `${stat.replace(' (Base)', '')}: ${value}`; chip.appendChild(iconImg(STAT_ICONS[stat], stat.replace(' (Base)', ''))); const strong = document.createElement('strong'); strong.textContent = String(value); chip.appendChild(strong); wrap.appendChild(chip); } return wrap; }
 
 function groupRowsForAction(row, groupRows) { return (groupRows || []).filter((item) => item.GroupKey === row.GroupKey && item.Dupe_Group === row.Dupe_Group); }
-async function copyOrPullSingle(row, btn) { if (row.Source === 'Bungie' && window.D2AA_BUNGIE?.pullItem) { btn.textContent = 'Pulling...'; await window.D2AA_BUNGIE.pullItem(row); btn.textContent = 'Pulled'; return; } const ok = await copyText(`id:${normId(row.Id)}`); btn.textContent = ok ? 'Copied' : 'Failed'; }
+async function copyOrPullSingle(row, btn) { if (row.Source === 'Bungie' && window.D2AA_BUNGIE?.pullItem) { btn.textContent = 'Pulling...'; await window.D2AA_BUNGIE.pullItem(row); updateStoredRow(row, { IsInVault: false, IsEquipped: false, OwnerCharacterId: row.TargetCharacterId }); btn.textContent = 'Pulled'; return; } const ok = await copyText(`id:${normId(row.Id)}`); btn.textContent = ok ? 'Copied' : 'Failed'; }
+async function vaultSingle(row, btn) { if (row.Source !== 'Bungie' || !window.D2AA_BUNGIE?.vaultItem) return; btn.textContent = 'Vaulting...'; await window.D2AA_BUNGIE.vaultItem(row); updateStoredRow(row, { IsInVault: true, IsEquipped: false, OwnerCharacterId: '' }); btn.textContent = 'Vaulted'; }
 async function copyOrPullGroup(row, rows, btn) { const groupRows = groupRowsForAction(row, rows); if (isBungieMode() && window.D2AA_BUNGIE?.pullItems) { btn.textContent = 'Pulling...'; await window.D2AA_BUNGIE.pullItems(groupRows); btn.textContent = 'Pulled'; return; } const ok = await copyText(groupRows.map((item) => `id:${normId(item.Id)}`).join(' or ')); btn.textContent = ok ? 'Copied' : 'Failed'; }
 
 function renderTagCell(row) {
@@ -128,15 +134,29 @@ function renderGroupBadge(row, groupRows) {
   cell.appendChild(btn); return cell;
 }
 
+function renderActionCell(row) {
+  const action = document.createElement('div'); action.className = 'right action-stack';
+  const primary = document.createElement('button'); primary.type = 'button'; primary.className = 'copy-btn'; primary.textContent = row.Source === 'Bungie' ? 'Pull' : 'Copy ID'; primary.title = row.Source === 'Bungie' ? 'Pull this item to matching character inventory' : 'Copy DIM item ID filter';
+  if (row.Source === 'Bungie' && !row.IsInVault && row.OwnerCharacterId === row.TargetCharacterId && !row.IsEquipped) primary.classList.add('copy-btn--disabled');
+  primary.addEventListener('click', async () => { if (primary.classList.contains('copy-btn--disabled')) return; try { await copyOrPullSingle(row, primary); } catch (err) { console.error(err); primary.textContent = 'Failed'; alert(err.message || err); } setTimeout(() => { primary.textContent = row.Source === 'Bungie' ? 'Pull' : 'Copy ID'; }, 1200); });
+  action.appendChild(primary);
+  if (row.Source === 'Bungie' && !row.IsInVault && !row.IsEquipped) {
+    const vault = document.createElement('button'); vault.type = 'button'; vault.className = 'copy-btn copy-btn--vault'; vault.textContent = 'Vault'; vault.title = 'Send this inventory item to the vault';
+    vault.addEventListener('click', async () => { try { await vaultSingle(row, vault); } catch (err) { console.error(err); vault.textContent = 'Failed'; alert(err.message || err); } setTimeout(() => render(), 1200); });
+    action.appendChild(vault);
+  }
+  return action;
+}
+
 function renderRow(row, allRows) {
   const el = document.createElement('div'); el.className = `armor-grid armor-row ${rarityClass(row.Rarity)}${row.Is_Dupe ? ' is-dupe' : ''}`; el.dataset.rarity = rarityLabel(row.Rarity);
   const tagCell = renderTagCell(row);
-  const itemCell = document.createElement('div'); const name = document.createElement('div'); name.className = 'item-name'; name.textContent = row.Name || '(Unnamed item)'; const meta = document.createElement('div'); meta.className = 'item-meta'; const rarityIcon = iconImg(RARITY_ICONS[row.Rarity], row.Rarity || 'Rarity', 'rarity-ico-inline'); meta.append(`${slotLabel(row.Type)} • ${row.Equippable} • `, rarityIcon, ` ${row.Rarity || ''}`); if (row.Source === 'Bungie') meta.append(` • ${row.IsInVault ? 'Vault' : row.IsEquipped ? 'Equipped' : 'Inventory'}`); const id = document.createElement('div'); id.className = 'item-id'; id.textContent = normId(row.Id); itemCell.append(name, meta, id);
+  const itemCell = document.createElement('div'); const name = document.createElement('div'); name.className = 'item-name'; name.textContent = row.Name || '(Unnamed item)'; const meta = document.createElement('div'); meta.className = 'item-meta'; const rarityIcon = iconImg(RARITY_ICONS[row.Rarity], row.Rarity || 'Rarity', 'rarity-ico-inline'); meta.append(`${slotLabel(row.Type)} • ${row.Equippable} • `, rarityIcon, ` ${row.Rarity || ''}`); if (row.Source === 'Bungie') { const loc = document.createElement('span'); loc.className = 'location-pill'; loc.title = `Location: ${locationLabel(row)}`; loc.textContent = `${locationIcon(row)} ${locationLabel(row)}`; meta.append(' ', loc); } const id = document.createElement('div'); id.className = 'item-id'; id.textContent = normId(row.Id); itemCell.append(name, meta, id);
   const tier = document.createElement('div'); tier.className = 'center tier'; tier.title = `Stat tier ${num(row.Tier)} from base total`; tier.textContent = '♦'.repeat(Math.max(1, Math.min(5, num(row.Tier))));
   const total = document.createElement('div'); total.className = 'center total-value'; total.textContent = String(num(row['Total (Base)']));
   const group = renderGroupBadge(row, allRows);
   const rank = document.createElement('div'); rank.className = 'center'; rank.title = row.Rarity === 'Exotic' ? 'Exotic rank threshold' : 'Legendary rank threshold'; rank.textContent = row.Rank;
-  const action = document.createElement('div'); action.className = 'right'; const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'copy-btn'; btn.textContent = row.Source === 'Bungie' ? 'Pull' : 'Copy ID'; btn.title = row.Source === 'Bungie' ? 'Pull this item to matching character inventory' : 'Copy DIM item ID filter'; btn.addEventListener('click', async () => { try { await copyOrPullSingle(row, btn); } catch (err) { console.error(err); btn.textContent = 'Failed'; alert(err.message || err); } setTimeout(() => { btn.textContent = row.Source === 'Bungie' ? 'Pull' : 'Copy ID'; }, 1200); }); action.appendChild(btn);
+  const action = renderActionCell(row);
   el.append(tagCell, itemCell, tier, renderStats(row), total, group, rank, action); return el;
 }
 
