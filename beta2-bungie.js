@@ -33,6 +33,7 @@
   function cleanConfig(config) { return Object.fromEntries(Object.entries(config || {}).filter(([, value]) => String(value || '').trim())); }
   function getConfig() { return { ...PUBLIC_CONFIG, ...cleanConfig(readJson(STORAGE.config)) }; }
   function getToken() { return readJson(STORAGE.token); }
+  function localTagFor(id) { return window.D2AA?.getTags?.()?.[String(id || '').trim()] || ''; }
 
   function saveToken(token) {
     const now = Math.floor(Date.now() / 1000);
@@ -225,7 +226,7 @@
       const statRow = statsForItem(item, def, statComponents[instanceId], defs.stats);
       const targetCharacterId = characterMap[equippable]?.characterId || '';
       rows.push({
-        Name: def.displayProperties?.name || 'Unknown Armor', Id: instanceId, Type: type, Rarity: rarity, Equippable: equippable, Tag: '', Tier: armorTier(statRow['Total (Base)']), ...statRow,
+        Name: def.displayProperties?.name || 'Unknown Armor', Id: instanceId, Type: type, Rarity: rarity, Equippable: equippable, Tag: localTagFor(instanceId), Tier: armorTier(statRow['Total (Base)']), ...statRow,
         Source: 'Bungie', ItemHash: item.itemHash, BucketHash: def.inventory?.bucketTypeHash || item.bucketHash || 0, MembershipType: membership.membershipType, OwnerCharacterId: item.d2aaOwner === 'vault' ? '' : item.d2aaOwner, TargetCharacterId: targetCharacterId, IsInVault: item.location === 2 || item.bucketHash === VAULT_BUCKET_HASH || item.d2aaOwner === 'vault', IsEquipped: Boolean(item.d2aaEquipped)
       });
     }
