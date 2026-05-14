@@ -1,3 +1,189 @@
 @import url('D2AA.css');
 
-/* Beta reset: keep the original D2AA visual/rendering baseline. */
+/*
+  D2AA beta side-rail layout
+  --------------------------------
+  Purpose:
+  - Keep the original D2AA table renderer, item rows, stat icon chips, DIM tag emojis,
+    dupe group badges, rank display, and theme/button styling intact.
+  - Only reposition the three existing top-level sections:
+      header.panel-header        -> left rail
+      section.panel filters      -> right rail
+      section.list               -> center analyzer table
+
+  Important:
+  - Do not override .row, .item, .chips, .chipStat, .badge-warn, .badge-ok,
+    .itemmeta, .tier, .btn, .tool-card, or theme color variables here.
+*/
+
+:root {
+  --beta-shell-width: min(1880px, calc(100vw - 28px));
+  --beta-left-rail: clamp(310px, 19vw, 380px);
+  --beta-right-rail: clamp(300px, 17vw, 360px);
+  --beta-shell-gap: 18px;
+  --beta-sticky-offset: 18px;
+}
+
+/* Three-column shell: left actions, center table, right filters. */
+.wrap {
+  width: var(--beta-shell-width);
+  max-width: none;
+  min-height: 100vh;
+  margin-inline: auto;
+  padding: 18px 0 28px;
+  display: grid;
+  grid-template-columns: var(--beta-left-rail) minmax(760px, 1fr) var(--beta-right-rail);
+  grid-template-areas: 'beta-left beta-center beta-right';
+  gap: var(--beta-shell-gap);
+  align-items: start;
+}
+
+/* Left rail: keep existing panel/header/tool-card visuals, only stack them vertically. */
+.wrap > .panel-header {
+  grid-area: beta-left;
+  margin: 0;
+  position: sticky;
+  top: var(--beta-sticky-offset);
+  max-height: calc(100vh - (var(--beta-sticky-offset) * 2));
+  overflow: auto;
+}
+
+.wrap > .panel-header .panel-header__layout {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 18px;
+}
+
+.wrap > .panel-header .panel-header__content,
+.wrap > .panel-header .toolbar,
+.wrap > .panel-header .theme-toggle-wrap {
+  width: 100%;
+  max-width: none;
+}
+
+.wrap > .panel-header h1 {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  line-height: 1.08;
+}
+
+.wrap > .panel-header h1::after {
+  width: 100%;
+  flex: none;
+}
+
+/* Keep original theme button styling; only let the group fit the narrower rail. */
+.wrap > .panel-header .theme-toggle {
+  width: 100%;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+/* Right rail: existing filter chips stay visually identical, just live in the right column. */
+.wrap > section.panel:not(.panel-header) {
+  grid-area: beta-right;
+  margin: 0 !important;
+  position: sticky;
+  top: var(--beta-sticky-offset);
+  max-height: calc(100vh - (var(--beta-sticky-offset) * 2));
+  overflow: auto;
+}
+
+.wrap > section.panel:not(.panel-header)::before {
+  content: 'Filters';
+  display: block;
+  margin: 0 0 14px;
+  color: var(--accent);
+  font-family: 'Orbitron', 'Rajdhani', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.wrap > section.panel:not(.panel-header) .filters {
+  gap: 18px;
+}
+
+.wrap > section.panel:not(.panel-header) .line {
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.wrap > section.panel:not(.panel-header) .label {
+  width: 100%;
+}
+
+.wrap > section.panel:not(.panel-header) .seg {
+  width: 100%;
+}
+
+.wrap > section.panel:not(.panel-header) #tol {
+  width: 100% !important;
+}
+
+.wrap > section.panel:not(.panel-header) .line:has(#tol) .muted {
+  width: 100%;
+  line-height: 1.35;
+}
+
+/* Center table: keep original row/chip/badge styles. Only place it in the center lane. */
+.wrap > .list {
+  grid-area: beta-center;
+  min-width: 0;
+  margin: 0;
+  overflow: auto;
+  max-height: calc(100vh - 36px);
+}
+
+/* Keep the original header visuals, but make it useful in a scrollable center table. */
+.wrap > .list > .row.header {
+  position: sticky;
+  top: -20px;
+  z-index: 10;
+  background: var(--panel) !important;
+  backdrop-filter: blur(18px);
+}
+
+/* Tablet/laptop: side rails become a two-column control band above the table. */
+@media (max-width: 1240px) {
+  .wrap {
+    width: min(1120px, calc(100vw - 24px));
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-areas:
+      'beta-left beta-right'
+      'beta-center beta-center';
+  }
+
+  .wrap > .panel-header,
+  .wrap > section.panel:not(.panel-header),
+  .wrap > .list {
+    position: relative;
+    top: auto;
+    max-height: none;
+  }
+}
+
+/* Phone/small screens: return to the original stacked flow. */
+@media (max-width: 760px) {
+  .wrap {
+    width: min(720px, calc(100vw - 18px));
+    display: flex;
+    flex-direction: column;
+    padding-block: 12px 20px;
+  }
+
+  .wrap > .panel-header,
+  .wrap > section.panel:not(.panel-header),
+  .wrap > .list {
+    width: 100%;
+  }
+
+  .wrap > .panel-header .theme-toggle {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .wrap > .list > .row.header {
+    top: -20px;
+  }
+}
