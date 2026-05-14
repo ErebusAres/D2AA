@@ -1,5 +1,6 @@
 /* Beta2 duplicate-group row banding
-   Applies clean alternating visual bands by actual duplicate group, while keeping ungrouped rows neutral. */
+   Applies clean alternating visual bands by actual duplicate group, while keeping ungrouped rows neutral.
+   Group labels stay in the Group column; no extra overlay labels are drawn over rows. */
 
 #rows {
   background:
@@ -59,40 +60,12 @@
 }
 
 .armor-row.band-start {
-  border-top: 1px solid color-mix(in srgb, var(--accent) 34%, transparent);
+  border-top: 1px solid color-mix(in srgb, var(--accent) 28%, transparent);
 }
 
 .armor-row.band-start::after {
-  content: attr(data-band-label);
-  position: absolute;
-  top: 50%;
-  left: 1px;
-  width: 56px;
-  height: 13px;
-  display: grid;
-  place-items: center;
-  transform: translateY(-50%) rotate(-90deg);
-  transform-origin: center;
-  padding: 0 4px;
-  border: 1px solid color-mix(in srgb, var(--accent) 34%, transparent);
-  border-radius: 999px;
-  color: color-mix(in srgb, var(--accent-strong) 86%, var(--text));
-  background: color-mix(in srgb, var(--panel) 90%, black 10%);
-  font-family: 'Orbitron', 'Rajdhani', sans-serif;
-  font-size: 7px;
-  font-weight: 700;
-  letter-spacing: .08em;
-  line-height: 1;
-  text-transform: uppercase;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: clip;
-  pointer-events: none;
-  box-shadow: 0 0 14px color-mix(in srgb, var(--accent) 12%, transparent);
-}
-
-.armor-row.band-start > :first-child {
-  padding-left: 12px;
+  display: none;
+  content: none;
 }
 
 .armor-row:hover::before {
@@ -105,14 +78,4 @@
   background:
     linear-gradient(90deg, color-mix(in srgb, var(--accent) 6%, transparent), transparent 50%),
     rgba(255,255,255,.03);
-}
-
-@media (max-width: 760px) {
-  .armor-row.band-start::after {
-    display: none;
-  }
-
-  .armor-row.band-start > :first-child {
-    padding-left: 0;
-  }
 }
