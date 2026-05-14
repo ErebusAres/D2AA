@@ -1,0 +1,100 @@
+/* Beta2 grouped row banding
+   Applies a subtle alternating visual band by armor type block without replacing dupe/status styling. */
+
+#rows {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.018), transparent 42px),
+    rgba(0,0,0,.045);
+}
+
+.armor-row {
+  position: relative;
+  isolation: isolate;
+  transition: background .14s ease, box-shadow .14s ease, border-color .14s ease;
+}
+
+.armor-row::before {
+  content: '';
+  position: absolute;
+  inset: 1px 0 1px 0;
+  z-index: -1;
+  opacity: .98;
+  pointer-events: none;
+}
+
+.armor-row.band-a::before {
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--accent) 5%, transparent), transparent 42%),
+    rgba(255,255,255,.018);
+}
+
+.armor-row.band-b::before {
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--accent-strong) 3%, transparent), transparent 40%),
+    rgba(0,0,0,.11);
+}
+
+.armor-row.band-start {
+  border-top: 1px solid color-mix(in srgb, var(--accent) 32%, transparent);
+}
+
+.armor-row.band-start::after {
+  content: attr(data-band-label);
+  position: absolute;
+  top: -1px;
+  left: 7px;
+  max-width: 120px;
+  padding: 1px 7px 2px;
+  border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent);
+  border-top: 0;
+  border-radius: 0 0 8px 8px;
+  color: color-mix(in srgb, var(--accent-strong) 84%, var(--text));
+  background: color-mix(in srgb, var(--panel) 90%, black 10%);
+  font-family: 'Orbitron', 'Rajdhani', sans-serif;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .12em;
+  line-height: 1.1;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}
+
+.armor-row.band-start > :first-child {
+  padding-top: 8px;
+}
+
+.armor-row.is-dupe::before {
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--warn) 11%, transparent), transparent 54%),
+    linear-gradient(180deg, rgba(255,255,255,.035), rgba(0,0,0,.025));
+}
+
+.armor-row.is-dupe.band-a::before {
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--warn) 13%, transparent), transparent 54%),
+    linear-gradient(90deg, color-mix(in srgb, var(--accent) 4%, transparent), transparent 44%),
+    rgba(255,255,255,.02);
+}
+
+.armor-row.is-dupe.band-b::before {
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--warn) 12%, transparent), transparent 54%),
+    rgba(0,0,0,.10);
+}
+
+.armor-row:hover::before {
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--accent) 9%, transparent), transparent 56%),
+    rgba(255,255,255,.045);
+}
+
+@media (max-width: 760px) {
+  .armor-row.band-start::after {
+    left: 8px;
+    max-width: 96px;
+    font-size: 8px;
+  }
+}
