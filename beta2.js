@@ -17,6 +17,10 @@ const STAT_ICONS = {
 };
 
 const RARITY_ICONS = {
+  Basic: '',
+  Common: '',
+  Uncommon: '',
+  Rare: '',
   Legendary: 'https://www.bungie.net/common/destiny2_content/icons/f846f489c2a97afb289b357e431ecf8d.png',
   Exotic: 'https://www.bungie.net/common/destiny2_content/icons/3e6a698e1a8a5fb446fdcbf1e63c5269.png'
 };
@@ -38,7 +42,7 @@ const SLOT_ICONS = {
 const TAG_EMOJIS = { favorite: '❤️', keep: '🏷️', junk: '🚫', infuse: '⚡', archive: '📦' };
 const TAG_LABELS = { favorite: 'Favorite', keep: 'Keep', junk: 'Junk', infuse: 'Infuse', archive: 'Archive' };
 const CLASS_OPTIONS = ['Warlock', 'Hunter', 'Titan'];
-const RARITY_OPTIONS = ['All', 'Legendary', 'Exotic'];
+const RARITY_OPTIONS = ['All', 'Common', 'Uncommon', 'Rare', 'Legendary', 'Exotic'];
 const SLOT_OPTIONS = ['All', 'Helmet', 'Gauntlets', 'Chest Armor', 'Leg Armor', 'Class Item'];
 const DUPE_OPTIONS = ['All', 'Only Dupes', 'Only Same-Name'];
 const CLASS_ITEM_BY_CLASS = { Warlock: 'Warlock Bond', Hunter: 'Hunter Cloak', Titan: 'Titan Mark' };
@@ -69,6 +73,8 @@ const normName = (s) => String(s || '').trim().toLowerCase();
 const num = (v) => (v == null || v === '' ? 0 : Number(v));
 const slotLabel = (type) => ['Warlock Bond', 'Hunter Cloak', 'Titan Mark'].includes(type) ? 'Class Item' : type;
 const slotNumber = (type) => ({ Helmet: 1, Gauntlets: 2, 'Chest Armor': 3, 'Leg Armor': 4, 'Warlock Bond': 5, 'Hunter Cloak': 5, 'Titan Mark': 5, 'Class Item': 5 }[type] || 9);
+const rarityClass = (rarity) => `rarity-${String(rarity || 'unknown').trim().toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
+const rarityLabel = (rarity) => String(rarity || 'Unknown').trim() || 'Unknown';
 const rankScore = (rank) => (rank.match(/★/g) || []).length;
 const legendaryRank = (t) => { const n = num(t); if (n >= 75) return '★★★★★'; if (n === 74) return '★★★★☆'; if (n === 73) return '★★★☆☆'; if (n === 72) return '★★☆☆☆'; if (n === 71) return '★☆☆☆☆'; return '💩'; };
 const exoticRank = (t) => { const n = num(t); if (n >= 63) return '★★★★★'; if (n === 62) return '★★★★☆'; if (n === 61) return '★★★☆☆'; if (n === 60) return '★★☆☆☆'; if (n === 59) return '★☆☆☆☆'; return '💩'; };
@@ -336,7 +342,8 @@ function renderGroupBadge(row, groupIds) {
 
 function renderRow(row, groupMap) {
   const el = document.createElement('div');
-  el.className = `armor-grid armor-row${row.Is_Dupe ? ' is-dupe' : ''}`;
+  el.className = `armor-grid armor-row ${rarityClass(row.Rarity)}${row.Is_Dupe ? ' is-dupe' : ''}`;
+  el.dataset.rarity = rarityLabel(row.Rarity);
 
   const tagCell = document.createElement('div');
   tagCell.className = 'center tag-cell';
