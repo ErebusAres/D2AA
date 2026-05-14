@@ -6,6 +6,7 @@
   <title>D2 Armor Analyzer Beta 2 - By ErebusAres</title>
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
   <link rel="stylesheet" href="beta2.css" />
+  <link rel="stylesheet" href="beta2-groups.css" />
 </head>
 <body data-theme="eclipse">
   <div class="app-shell">
@@ -94,7 +95,7 @@
         <label class="field-label" for="searchBox">Search name or ID</label>
         <input id="searchBox" class="text-field" type="search" placeholder="Contraverse, 12345, helmet..." autocomplete="off" />
         <label class="field-label" for="sortBy">Sort results</label>
-        <select id="sortBy" class="select-field">
+        <select id="sortBy" class="select-field select-field--themed">
           <option value="default">Default analyzer order</option>
           <option value="totalDesc">Total: high to low</option>
           <option value="rankDesc">Rank: high to low</option>
@@ -132,5 +133,6 @@
   </div>
 
   <script src="beta2.js"></script>
+  <script src="beta2-groups.js"></script>
 </body>
 </html>
