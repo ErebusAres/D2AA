@@ -403,7 +403,7 @@ function renderRow(row, groupMap) {
 
 function updateSummary(rows) {
   const groups = new Set(rows.filter((r) => r.Is_Dupe).map((r) => `${r.GroupKey}::${r.Dupe_Group}`));
-  const avg = rows.length ? Math.round(rows.reduce((sum, r) => sum + num(r['Total (Base)']), 0) / rows.length) : 0;
+  const avg = rows.length ? Math.round(rows.reduce((sum, r) => sum + num(r['Total (Base)'], 0), 0) / rows.length) : 0;
   $('summaryShown').textContent = rows.length;
   $('summaryDupes').textContent = rows.filter((r) => r.Is_Dupe).length;
   $('summaryGroups').textContent = groups.size;
@@ -440,6 +440,14 @@ function parseRows(data) {
   }).filter((row) => row.Id && row.Name && row.Type && row.Equippable);
 }
 
+function loadExternalRows(rows, label = 'External import loaded') {
+  STATE.rows = parseRows(rows || []);
+  saveRows();
+  const uploadHint = $('uploadHint');
+  if (uploadHint) uploadHint.textContent = label;
+  render();
+}
+
 function bindEvents() {
   const file = $('file');
   const uploadTrigger = $('uploadTrigger');
@@ -460,18 +468,15 @@ function bindEvents() {
       header: true,
       skipEmptyLines: true,
       complete: (res) => {
-        STATE.rows = parseRows(res.data || []);
-        saveRows();
-        uploadHint.textContent = `Loaded • ${selected.name}`;
+        loadExternalRows(res.data || [], `Loaded • ${selected.name}`);
         file.value = '';
-        render();
       }
     });
   });
 
   $('restoreBtn').addEventListener('click', () => {
     const rows = loadRows();
-    if (!Array.isArray(rows)) { alert('No saved CSV found in this browser. Upload a DIM CSV first.'); return; }
+    if (!Array.isArray(rows)) { alert('No saved import found in this browser. Upload a DIM CSV or use Bungie import first.'); return; }
     STATE.rows = rows;
     uploadHint.textContent = defaultHint;
     render();
@@ -497,6 +502,13 @@ function bindEvents() {
     setTimeout(() => { btn.querySelector('.action-title').textContent = old; }, 1200);
   });
 }
+
+window.D2AA = {
+  loadRows: loadExternalRows,
+  parseRows,
+  render,
+  getState: () => STATE
+};
 
 makeThemeButtons();
 bindEvents();
