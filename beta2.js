@@ -47,10 +47,12 @@ const SLOT_OPTIONS = ['All', 'Helmet', 'Gauntlets', 'Chest Armor', 'Leg Armor', 
 const DUPE_OPTIONS = ['All', 'Only Dupes', 'Only Same-Name'];
 const CLASS_ITEM_BY_CLASS = { Warlock: 'Warlock Bond', Hunter: 'Hunter Cloak', Titan: 'Titan Mark' };
 const THEME_OPTIONS = [
-  { id: 'eclipse', label: 'Eclipse', hint: 'Shadowfall' },
-  { id: 'solstice', label: 'Solstice', hint: 'Radiant' },
-  { id: 'nebula', label: 'Nebula', hint: 'Neon' },
-  { id: 'aurora', label: 'Aurora', hint: 'Azure' }
+  { id: 'calus', label: 'Calus Royal', hint: 'Purple / Ivory / Gold' },
+  { id: 'taken', label: 'Taken', hint: 'Black / White / Cyan' },
+  { id: 'trials', label: 'Trials Gold', hint: 'Black / White / Gold' },
+  { id: 'void', label: 'Void Neon', hint: 'Violet / Magenta / Blue' },
+  { id: 'iron', label: 'Iron Banner', hint: 'Charcoal / Brass / Red' },
+  { id: 'vanguard', label: 'Vanguard', hint: 'Navy / Orange / White' }
 ];
 
 const LS_ROWS = 'd2aa_beta2_rows_v1';
@@ -251,8 +253,8 @@ function makeThemeButtons() {
   const host = $('themeToggle');
   if (!host) return;
   host.textContent = '';
-  const stored = localStorage.getItem(LS_THEME) || 'eclipse';
-  document.body.dataset.theme = THEME_OPTIONS.some((t) => t.id === stored) ? stored : 'eclipse';
+  const stored = localStorage.getItem(LS_THEME) || 'calus';
+  document.body.dataset.theme = THEME_OPTIONS.some((t) => t.id === stored) ? stored : 'calus';
   for (const theme of THEME_OPTIONS) {
     const btn = document.createElement('button');
     btn.type = 'button';
