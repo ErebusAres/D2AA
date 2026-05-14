@@ -1,5 +1,12 @@
 (() => {
   const SLOT_LABELS = new Set(['Helmet', 'Gauntlets', 'Chest Armor', 'Leg Armor', 'Class Item']);
+  const SLOT_SHORT = {
+    Helmet: 'HELMET',
+    Gauntlets: 'ARMS',
+    'Chest Armor': 'CHEST',
+    'Leg Armor': 'LEGS',
+    'Class Item': 'CLASS'
+  };
 
   function extractSlotLabel(row) {
     const meta = row.querySelector('.item-meta')?.textContent || '';
@@ -20,7 +27,14 @@
     const slot = extractSlotLabel(row);
     const group = extractGroupLabel(row);
     const isDupe = group !== 'X';
-    return isDupe ? `${slot} • Group ${group}` : `${slot} • Ungrouped`;
+    return isDupe ? `${slot}::${group}` : `${slot}::X`;
+  }
+
+  function bandLabel(row) {
+    const slot = extractSlotLabel(row);
+    const group = extractGroupLabel(row);
+    if (group === 'X') return '';
+    return `${SLOT_SHORT[slot] || slot.toUpperCase()} · ${group}`;
   }
 
   function bandMode(row) {
@@ -58,8 +72,8 @@
         row.classList.add(['band-a', 'band-b', 'band-c', 'band-d'][band.index % 4]);
       }
 
-      row.dataset.bandLabel = key;
-      if (isStart) row.classList.add('band-start');
+      row.dataset.bandLabel = bandLabel(row);
+      if (isStart && band.mode === 'dupe') row.classList.add('band-start');
       lastKey = key;
     }
   }
