@@ -7,6 +7,7 @@
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
   <link rel="stylesheet" href="beta2.css" />
   <link rel="stylesheet" href="beta2-themes.css" />
+  <link rel="stylesheet" href="beta2-bungie.css" />
   <link rel="stylesheet" href="beta2-groups.css" />
 </head>
 <body data-theme="calus">
@@ -15,7 +16,7 @@
       <div class="brand-block">
         <p class="eyebrow">Destiny 2</p>
         <h1>D2 Armor Analyzer</h1>
-        <p class="muted">Upload your DIM Armor.csv to identify duplicate armor, rank pieces, and copy DIM-ready item filters.</p>
+        <p class="muted">Upload your DIM Armor.csv or sign in with Bungie to identify duplicate armor, rank pieces, and copy DIM-ready item filters.</p>
       </div>
 
       <section class="card-block" aria-labelledby="quickHelpTitle">
@@ -28,18 +29,35 @@
       </section>
 
       <section class="card-block" aria-labelledby="uploadTitle">
-        <h2 id="uploadTitle">Data</h2>
+        <h2 id="uploadTitle">Data Sources</h2>
         <input id="file" type="file" accept=".csv" class="sr-only" aria-label="Upload DIM Armor CSV" />
         <label id="uploadTrigger" class="action-card action-card--upload" for="file" role="button" tabindex="0">
           <span class="action-icon" aria-hidden="true">⇧</span>
           <span>
-            <span class="action-title">Upload CSV</span>
+            <span class="action-title">Upload DIM CSV</span>
             <span class="action-sub" id="uploadHint" data-default="Choose DIM Armor.csv" aria-live="polite">Choose DIM Armor.csv</span>
           </span>
         </label>
+
+        <div class="source-divider"><span>or</span></div>
+
+        <button class="action-card action-card--bungie" id="bungieSetupBtn" type="button">
+          <span class="action-icon" aria-hidden="true">⚙</span>
+          <span><span class="action-title">Bungie API Setup</span><span class="action-sub">Store API key + OAuth client ID locally</span></span>
+        </button>
+        <button class="action-card action-card--bungie" id="bungieLoginBtn" type="button">
+          <span class="action-icon" aria-hidden="true">◇</span>
+          <span><span class="action-title">Sign in with Bungie</span><span class="action-sub">Authorize read-only inventory access</span></span>
+        </button>
+        <button class="action-card action-card--bungie" id="bungieImportBtn" type="button">
+          <span class="action-icon" aria-hidden="true">↓</span>
+          <span><span class="action-title">Import from Bungie</span><span class="action-sub">Fetch vault + character armor</span></span>
+        </button>
+        <div id="bungieStatus" class="source-status is-missing" aria-live="polite">Bungie API not configured yet.</div>
+
         <button class="action-card" id="restoreBtn" type="button">
           <span class="action-icon" aria-hidden="true">↻</span>
-          <span><span class="action-title">Restore last</span><span class="action-sub">Load recent browser upload</span></span>
+          <span><span class="action-title">Restore last</span><span class="action-sub">Load recent browser upload/import</span></span>
         </button>
         <button class="action-card action-card--danger" id="clearBtn" type="button">
           <span class="action-icon" aria-hidden="true">×</span>
@@ -76,7 +94,7 @@
           </div>
           <div id="rows"></div>
           <div id="empty" class="empty-state">
-            <p>No items yet — upload a DIM CSV or restore your last upload.</p>
+            <p>No items yet — upload a DIM CSV, restore your last import, or sign in with Bungie.</p>
             <p class="muted">DIM path: Organizer → select any class → Armor.csv button → upload the downloaded file here.</p>
           </div>
         </div>
@@ -134,6 +152,7 @@
   </div>
 
   <script src="beta2.js"></script>
+  <script src="beta2-bungie.js"></script>
   <script src="beta2-groups.js"></script>
 </body>
 </html>
