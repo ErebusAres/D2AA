@@ -10,6 +10,10 @@
     defs: 'd2aa_bungie_defs_v1'
   };
 
+  // Manifest definition tables are too large for localStorage. Keep them in memory for the current page session only.
+  localStorage.removeItem(STORAGE.defs);
+  const DEF_MEMORY = {};
+
   const PROFILE_COMPONENTS = [100, 102, 200, 201, 205, 300, 304].join(',');
   const CLASS_TYPE = { 0: 'Titan', 1: 'Hunter', 2: 'Warlock' };
   const CLASS_ITEM_BY_CLASS = { Warlock: 'Warlock Bond', Hunter: 'Hunter Cloak', Titan: 'Titan Mark' };
@@ -216,18 +220,16 @@
   }
 
   async function getDefinitionTable(tableName) {
-    const cache = readJson(STORAGE.defs, {});
-    if (cache[tableName]) return cache[tableName];
+    if (DEF_MEMORY[tableName]) return DEF_MEMORY[tableName];
 
     const manifest = await getManifest();
     const path = manifest.jsonWorldComponentContentPaths?.en?.[tableName];
     if (!path) throw new Error(`Manifest table missing: ${tableName}.`);
 
-    const res = await fetch(`https://www.bungie.net${path}`);
+    const res = await fetch(`https://www.bungie.net${path}`, { cache: 'force-cache' });
     if (!res.ok) throw new Error(`Manifest download failed: ${tableName} (${res.status}).`);
     const table = await res.json();
-    cache[tableName] = table;
-    writeJson(STORAGE.defs, cache);
+    DEF_MEMORY[tableName] = table;
     return table;
   }
 
@@ -334,7 +336,7 @@
         setStatus('Sign in with Bungie before importing.', false);
         return;
       }
-      setStatus('Fetching Bungie profile and manifest...', false);
+      setStatus('Fetching Bungie profile and manifest definitions...', false);
       const membership = await getMembership();
       const profilePromise = bungieFetch(`/Destiny2/${membership.membershipType}/Profile/${membership.membershipId}/?components=${PROFILE_COMPONENTS}`, true);
       const defsPromise = getDefinitions();
