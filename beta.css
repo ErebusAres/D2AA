@@ -12,8 +12,9 @@
       section.list               -> center analyzer table
 
   Important:
-  - Do not override .row, .item, .chips, .chipStat, .badge-warn, .badge-ok,
-    .itemmeta, .tier, .btn, .tool-card, or theme color variables here.
+  - Do not replace the renderer or change row markup here.
+  - Stat chip rules below intentionally mirror the original production sizing so any beta/prototype
+    stat icons stay compact instead of ballooning.
 */
 
 :root {
@@ -143,6 +144,50 @@
   z-index: 10;
   background: var(--panel) !important;
   backdrop-filter: blur(18px);
+}
+
+/* Stat chip safety guard: match original compact production sizing. */
+.wrap > .list .chips,
+.wrap > .list .stat-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.wrap > .list .chipStat,
+.wrap > .list .stat-chip {
+  width: 52px;
+  min-width: 52px;
+  max-width: 52px;
+  height: 22px;
+  min-height: 22px;
+  max-height: 22px;
+  box-sizing: border-box;
+  padding: 0 6px;
+  gap: 4px;
+}
+
+.wrap > .list .stat-ico,
+.wrap > .list .stat-chip img {
+  width: 13px;
+  min-width: 13px;
+  max-width: 13px;
+  height: 13px;
+  min-height: 13px;
+  max-height: 13px;
+  object-fit: contain;
+  flex: 0 0 13px;
+}
+
+.wrap > .list .chipStat .mono,
+.wrap > .list .stat-chip .mono,
+.wrap > .list .stat-chip strong {
+  width: 22px;
+  min-width: 22px;
+  max-width: 22px;
+  font-size: 14px;
+  line-height: 1;
 }
 
 /* Tablet/laptop: side rails become a two-column control band above the table. */
