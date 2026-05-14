@@ -1,5 +1,5 @@
-/* Beta2 grouped row banding
-   Applies a subtle alternating visual band by armor type block without replacing dupe/status styling. */
+/* Beta2 duplicate-group row banding
+   Applies clean alternating visual bands by actual duplicate group, while keeping ungrouped rows neutral. */
 
 #rows {
   background:
@@ -16,26 +16,50 @@
 .armor-row::before {
   content: '';
   position: absolute;
-  inset: 1px 0 1px 0;
+  inset: 1px 0;
   z-index: -1;
   opacity: .98;
   pointer-events: none;
 }
 
+.armor-row.band-solo::before {
+  background: rgba(255,255,255,.012);
+}
+
+.armor-row.band-solo.band-b::before {
+  background: rgba(0,0,0,.08);
+}
+
 .armor-row.band-a::before {
   background:
-    linear-gradient(90deg, color-mix(in srgb, var(--accent) 5%, transparent), transparent 42%),
+    linear-gradient(90deg, color-mix(in srgb, var(--warn) 13%, transparent), transparent 54%),
+    linear-gradient(90deg, color-mix(in srgb, var(--accent) 10%, transparent), transparent 44%),
     rgba(255,255,255,.018);
 }
 
 .armor-row.band-b::before {
   background:
-    linear-gradient(90deg, color-mix(in srgb, var(--accent-strong) 3%, transparent), transparent 40%),
-    rgba(0,0,0,.11);
+    linear-gradient(90deg, color-mix(in srgb, var(--warn) 13%, transparent), transparent 54%),
+    linear-gradient(90deg, color-mix(in srgb, var(--accent-strong) 9%, transparent), transparent 44%),
+    rgba(0,0,0,.115);
+}
+
+.armor-row.band-c::before {
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--warn) 13%, transparent), transparent 54%),
+    linear-gradient(90deg, color-mix(in srgb, #8dffcb 8%, transparent), transparent 44%),
+    rgba(255,255,255,.022);
+}
+
+.armor-row.band-d::before {
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--warn) 13%, transparent), transparent 54%),
+    linear-gradient(90deg, color-mix(in srgb, #ff8da0 8%, transparent), transparent 44%),
+    rgba(0,0,0,.10);
 }
 
 .armor-row.band-start {
-  border-top: 1px solid color-mix(in srgb, var(--accent) 32%, transparent);
+  border-top: 1px solid color-mix(in srgb, var(--accent) 34%, transparent);
 }
 
 .armor-row.band-start::after {
@@ -43,7 +67,7 @@
   position: absolute;
   top: -1px;
   left: 7px;
-  max-width: 120px;
+  max-width: 170px;
   padding: 1px 7px 2px;
   border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent);
   border-top: 0;
@@ -62,39 +86,32 @@
   pointer-events: none;
 }
 
+.armor-row.band-solo.band-start::after {
+  color: color-mix(in srgb, var(--muted) 80%, var(--text));
+  border-color: rgba(255,255,255,.12);
+  background: color-mix(in srgb, var(--panel) 92%, black 8%);
+}
+
 .armor-row.band-start > :first-child {
   padding-top: 8px;
 }
 
-.armor-row.is-dupe::before {
-  background:
-    linear-gradient(90deg, color-mix(in srgb, var(--warn) 11%, transparent), transparent 54%),
-    linear-gradient(180deg, rgba(255,255,255,.035), rgba(0,0,0,.025));
-}
-
-.armor-row.is-dupe.band-a::before {
-  background:
-    linear-gradient(90deg, color-mix(in srgb, var(--warn) 13%, transparent), transparent 54%),
-    linear-gradient(90deg, color-mix(in srgb, var(--accent) 4%, transparent), transparent 44%),
-    rgba(255,255,255,.02);
-}
-
-.armor-row.is-dupe.band-b::before {
-  background:
-    linear-gradient(90deg, color-mix(in srgb, var(--warn) 12%, transparent), transparent 54%),
-    rgba(0,0,0,.10);
-}
-
 .armor-row:hover::before {
   background:
-    linear-gradient(90deg, color-mix(in srgb, var(--accent) 9%, transparent), transparent 56%),
-    rgba(255,255,255,.045);
+    linear-gradient(90deg, color-mix(in srgb, var(--accent) 12%, transparent), transparent 56%),
+    rgba(255,255,255,.05);
+}
+
+.armor-row.band-solo:hover::before {
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--accent) 6%, transparent), transparent 50%),
+    rgba(255,255,255,.03);
 }
 
 @media (max-width: 760px) {
   .armor-row.band-start::after {
     left: 8px;
-    max-width: 96px;
+    max-width: 118px;
     font-size: 8px;
   }
 }
