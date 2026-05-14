@@ -1,18 +1,18 @@
 @import url('D2AA.css');
 
 /*
-  D2AA beta layout experiment
-  - Keeps the live D2AA.html / D2AA.css untouched.
-  - beta.html already points here, so this file layers a new app-shell layout on top of the current production styling.
-  - Current DOM is reused: header = left command rail, filters = right control rail, list = center analyzer table.
+  D2AA beta layout experiment v2
+  Goal: keep the original analyzer/table feel intact while testing left/right side sections.
+  This file intentionally does NOT restyle the generated armor rows, stat chips, item icons,
+  rarity chips, duplicate badges, or table metadata. It only moves the existing blocks around.
 */
 
 :root {
   --beta-shell-max: 1880px;
-  --beta-left: clamp(280px, 18vw, 360px);
-  --beta-right: clamp(260px, 16vw, 340px);
-  --beta-shell-gap: 18px;
-  --beta-rail-top: 18px;
+  --beta-left: clamp(300px, 19vw, 380px);
+  --beta-right: clamp(300px, 18vw, 360px);
+  --beta-gap: 18px;
+  --beta-sticky-top: 18px;
 }
 
 .wrap {
@@ -22,102 +22,92 @@
   margin: 0 auto;
   padding: 18px 0 28px;
   display: grid;
-  grid-template-columns: var(--beta-left) minmax(740px, 1fr) var(--beta-right);
-  grid-template-areas:
-    'left center right';
-  gap: var(--beta-shell-gap);
+  grid-template-columns: var(--beta-left) minmax(760px, 1fr) var(--beta-right);
+  grid-template-areas: 'left center right';
+  gap: var(--beta-gap);
   align-items: start;
 }
 
+/* Left rail: title, theme selector, upload/restore/clear */
 .panel-header {
   grid-area: left;
   margin-bottom: 0;
-  min-height: calc(100vh - 46px);
   position: sticky;
-  top: var(--beta-rail-top);
-  display: flex;
-  flex-direction: column;
+  top: var(--beta-sticky-top);
+  max-height: calc(100vh - 36px);
+  overflow: auto;
 }
 
 .panel-header__layout {
-  display: flex;
   flex-direction: column;
-  gap: 22px;
-  min-height: 100%;
+  align-items: stretch;
+  gap: 20px;
 }
 
 .panel-header__content {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+  flex: 0 0 auto;
 }
 
 .panel-header h1 {
-  display: block;
-  margin-bottom: 8px;
-  line-height: 1.12;
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 10px;
+  line-height: 1.1;
 }
 
 .panel-header h1::after {
-  display: block;
   width: 100%;
-  margin-top: 12px;
+  flex: 0 0 auto;
 }
 
 .panel-header .muted {
   line-height: 1.45;
-  text-transform: none;
-  letter-spacing: 0.035em;
-  font-size: 13px;
 }
 
-.theme-toggle-wrap {
+.theme-toggle-wrap,
+.theme-toggle,
+.toolbar {
   width: 100%;
-  margin-top: 10px;
 }
 
 .theme-toggle {
-  width: 100%;
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .theme-toggle__btn {
   min-width: 0;
-  padding: 10px 8px;
 }
 
 .toolbar {
-  width: 100%;
-  margin-top: auto;
+  max-width: none;
 }
 
-.tool-card {
-  width: 100%;
-}
-
+/* Right rail: keep the existing chip visuals, only stack the filter groups. */
 .wrap > section.panel {
   grid-area: right;
   margin-bottom: 0 !important;
-  min-height: calc(100vh - 46px);
   position: sticky;
-  top: var(--beta-rail-top);
+  top: var(--beta-sticky-top);
+  max-height: calc(100vh - 36px);
+  overflow: auto;
 }
 
 .wrap > section.panel::after {
-  content: 'Controls';
+  content: 'Analyzer Controls';
   display: block;
-  margin-bottom: 16px;
+  margin: 0 0 16px;
   color: var(--accent);
   font-family: 'Orbitron', 'Rajdhani', sans-serif;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;
+  order: -1;
 }
 
 .filters {
-  gap: 22px;
+  gap: 20px;
 }
 
 .line {
@@ -127,123 +117,45 @@
 
 .label {
   width: 100%;
-  display: block;
-  color: var(--accent-strong);
-  font-size: 11px;
 }
 
 .seg {
   width: 100%;
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 8px;
-}
-
-.seg .chip {
-  width: 100%;
-  justify-content: flex-start;
-  text-align: left;
-  padding: 8px 13px;
-  border-radius: 14px;
 }
 
 #tol {
   width: 100% !important;
-  max-width: none;
 }
 
 .line:has(#tol) .muted {
   width: 100%;
-  text-transform: none;
-  letter-spacing: 0.035em;
   line-height: 1.35;
 }
 
+/* Center: keep the original table styling and generated content. Only give it the middle lane. */
 .list {
   grid-area: center;
   min-width: 0;
-  padding: 16px;
   overflow: auto;
   max-height: calc(100vh - 36px);
 }
 
-.list::before {
-  background: linear-gradient(160deg, rgba(98, 220, 255, 0.035), transparent 42%);
-}
-
-.row {
-  grid-template-columns: 56px minmax(210px, 1.65fr) 74px minmax(370px, 3.6fr) 72px minmax(110px, .9fr) minmax(100px, .9fr) 88px;
-  gap: 10px;
-}
-
+/* Quality-of-life only: sticky header without changing row/chip/image styles. */
 .row.header {
   position: sticky;
-  top: -16px;
+  top: -20px;
   z-index: 5;
-  padding: 10px 4px 9px;
   background: var(--panel) !important;
-  border-bottom-color: var(--border-strong);
   backdrop-filter: blur(18px);
 }
 
-.row.item {
-  min-height: 44px;
-  padding: 8px 4px;
-  border-radius: 10px;
+/* Slightly quieter center background, but keeps the original table identity. */
+.list::before {
+  opacity: 0.55;
 }
 
-.row.item + .row.item {
-  margin-top: 2px;
-}
-
-.chipStat {
-  height: 24px;
-  width: 54px;
-}
-
-.badge-warn,
-.badge-ok {
-  display: inline-flex;
-  min-width: 58px;
-  justify-content: center;
-  text-decoration: none;
-  border-radius: 999px;
-}
-
-.empty {
-  min-height: 52vh;
-  display: grid;
-  place-items: center;
-  text-align: center;
-  border: 1px dashed var(--border);
-  border-radius: 18px;
-  background: rgba(8, 12, 20, 0.35);
-}
-
-.empty p {
-  max-width: 560px;
-  margin: 0;
-  line-height: 1.55;
-}
-
-/* Medium desktops: keep the rails but slightly compress them. */
-@media (max-width: 1420px) {
-  :root {
-    --beta-left: 300px;
-    --beta-right: 280px;
-  }
-
-  .wrap {
-    grid-template-columns: var(--beta-left) minmax(680px, 1fr) var(--beta-right);
-  }
-
-  .theme-toggle {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* Laptop/tablet: controls move above the table in a two-column command bar. */
-@media (max-width: 1180px) {
+/* Medium screens: rails become a top command/filter band above the original table. */
+@media (max-width: 1200px) {
   .wrap {
     width: min(100% - 24px, 1120px);
     grid-template-columns: 1fr 1fr;
@@ -253,26 +165,15 @@
   }
 
   .panel-header,
-  .wrap > section.panel {
+  .wrap > section.panel,
+  .list {
     position: relative;
     top: auto;
-    min-height: 0;
-  }
-
-  .toolbar {
-    margin-top: 4px;
-  }
-
-  .list {
     max-height: none;
-  }
-
-  .seg {
-    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
   }
 }
 
-/* Mobile: return to a stacked app while keeping cleaner spacing. */
+/* Mobile: fall back as close as possible to the original stacked experience. */
 @media (max-width: 760px) {
   .wrap {
     width: min(100% - 18px, 720px);
@@ -288,37 +189,10 @@
   }
 
   .theme-toggle {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .row.header {
-    display: none;
-  }
-
-  .row {
-    grid-template-columns: 42px 1fr auto;
-    grid-template-areas:
-      'tag item tier'
-      'tag stats stats'
-      'tag total group'
-      'tag rank actions';
-    gap: 8px 10px;
-  }
-
-  .row > :nth-child(1) { grid-area: tag; }
-  .row > :nth-child(2) { grid-area: item; }
-  .row > :nth-child(3) { grid-area: tier; }
-  .row > :nth-child(4) { grid-area: stats; }
-  .row > :nth-child(5) { grid-area: total; justify-content: flex-start; }
-  .row > :nth-child(6) { grid-area: group; justify-content: flex-start; }
-  .row > :nth-child(7) { grid-area: rank; justify-content: flex-start; }
-  .row > :nth-child(8) { grid-area: actions; text-align: left; }
-
-  .chips {
-    flex-wrap: wrap;
-  }
-
-  .row.item {
-    padding: 12px 8px;
+    top: -20px;
   }
 }
