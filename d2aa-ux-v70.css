@@ -1,0 +1,149 @@
+/* D2AA UX v70: clean card grid. Name above identifier icons, centered 3x3 lower grid. */
+
+/* Top card area: 2 columns / 2 rows.
+   Icon spans both rows. Name sits above identifier icons. */
+.grid-card-top{
+  display:grid!important;
+  grid-template-columns:52px minmax(0,1fr)!important;
+  grid-template-rows:24px 24px!important;
+  column-gap:8px!important;
+  row-gap:3px!important;
+  align-items:center!important;
+  padding:8px 8px 5px!important;
+  min-height:60px!important;
+}
+.grid-item-icon{
+  grid-column:1!important;
+  grid-row:1 / span 2!important;
+  width:52px!important;
+  height:52px!important;
+  align-self:center!important;
+  justify-self:center!important;
+}
+.grid-item-title{display:contents!important;}
+.grid-item-name{
+  grid-column:2!important;
+  grid-row:1!important;
+  align-self:end!important;
+  justify-self:stretch!important;
+  min-height:0!important;
+  max-height:24px!important;
+  display:block!important;
+  overflow:hidden!important;
+  white-space:nowrap!important;
+  text-overflow:ellipsis!important;
+  line-height:1.05!important;
+  font-size:11.5px!important;
+}
+.grid-icon-row{
+  grid-column:2!important;
+  grid-row:2!important;
+  align-self:start!important;
+  justify-self:start!important;
+  display:flex!important;
+  flex-wrap:nowrap!important;
+  align-items:center!important;
+  justify-content:flex-start!important;
+  gap:6px!important;
+  margin:0!important;
+  min-width:0!important;
+  opacity:.88!important;
+}
+.grid-mini-icon,.grid-mask-icon{
+  width:13px!important;
+  height:13px!important;
+  display:block!important;
+  flex:0 0 auto!important;
+}
+.grid-location{
+  width:13px!important;
+  height:13px!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  font-size:10px!important;
+  line-height:1!important;
+  flex:0 0 auto!important;
+}
+
+/* Group corner tip: keep it outside the layout and make it small/clean. */
+.grid-group-badge{
+  top:0!important;
+  right:0!important;
+  height:18px!important;
+  min-width:26px!important;
+  max-width:36px!important;
+  padding:0 5px!important;
+  border-radius:0 12px 0 8px!important;
+  line-height:18px!important;
+  font-size:9px!important;
+}
+
+/* Lower card area: strict 3x3 grid, equal cells, no drift. */
+.grid-body{
+  display:grid!important;
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  grid-template-rows:32px 32px 32px!important;
+  gap:5px!important;
+  padding:4px 8px 8px!important;
+  align-items:stretch!important;
+}
+.grid-primary-row,.grid-stats{display:contents!important;}
+.grid-total,.grid-tier,body.grid-view .grid-aag-badge,.grid-stat{
+  margin:0!important;
+  position:relative!important;
+  z-index:2!important;
+  width:100%!important;
+  height:100%!important;
+  min-width:0!important;
+  min-height:0!important;
+  box-sizing:border-box!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+}
+.grid-total{
+  grid-column:1!important;
+  grid-row:1!important;
+  border-radius:999px!important;
+  font-size:15px!important;
+}
+.grid-tier{
+  grid-column:2!important;
+  grid-row:1!important;
+  min-width:0!important;
+  font-size:12px!important;
+  letter-spacing:-.055em!important;
+  line-height:1!important;
+  text-align:center!important;
+}
+body.grid-view .grid-aag-badge{
+  grid-column:3!important;
+  grid-row:1!important;
+  border-radius:9px!important;
+  background:rgba(0,0,0,.20)!important;
+}
+body.grid-view .grid-aag-icon{
+  width:16px!important;
+  height:16px!important;
+}
+body.grid-view .grid-aag-emoji{font-size:15px!important;}
+.grid-stat{
+  border-radius:8px!important;
+  gap:5px!important;
+  font-size:12px!important;
+  line-height:1!important;
+}
+.grid-stat img{width:16px!important;height:16px!important;object-fit:contain!important;}
+.grid-stat span{font-size:12px!important;line-height:1!important;}
+
+.grid-card{min-height:174px!important;}
+.grid-card::before{height:104px!important;}
+.grid-actions{inset:auto 8px 8px 8px!important;}
+
+@media (max-width:1180px){
+  .grid-card-top{grid-template-columns:50px minmax(0,1fr)!important;column-gap:7px!important;}
+  .grid-item-icon{width:50px!important;height:50px!important;}
+  .grid-body{grid-template-rows:31px 31px 31px!important;gap:4px!important;}
+  .grid-stat img{width:15px!important;height:15px!important;}
+}
