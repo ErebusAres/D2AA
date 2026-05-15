@@ -2114,7 +2114,7 @@ window.D2AA?.render?.();
     host.innerHTML = ['Warlock', 'Hunter', 'Titan'].map((cls) => {
       const info = stats[cls];
       const avg = info.total ? Math.round(info.sum / info.total) : 0;
-      return `<button class="grid-class-card${s.classFilter === cls ? ' is-active' : ''}" type="button" data-grid-class="${cls}">${mask(CLASS_ICONS[cls], cls, 'grid-class-icon')}<span><span class="grid-class-title">${cls}</span><span class="grid-class-meta"><span class="class-pill">${info.total} armor</span><span class="class-pill">${info.dupes} dupes</span><span class="class-pill">avg ${avg}</span></span></span><span class="grid-class-total">${info.visible}</span></button>`;
+      return `<button class="grid-class-card${s.classFilter === cls ? ' is-active' : ''}${info.total ? '' : ' is-empty'}" type="button" data-grid-class="${cls}">${mask(CLASS_ICONS[cls], cls, 'grid-class-icon')}<span><span class="grid-class-title">${cls}</span><span class="grid-class-meta"><span class="class-pill">${info.total} armor</span><span class="class-pill">${info.dupes} dupes</span><span class="class-pill">avg ${avg}</span></span></span><span class="grid-class-total">${info.visible}</span></button>`;
     }).join('');
   }
   function renderGrid(force = false) {
