@@ -13,7 +13,16 @@
   const num = (v) => Number(v || 0);
   const esc = (v) => String(v ?? '').replace(/[&<>'"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[c]));
   const state = () => window.D2AA?.getState?.() || {};
-  const allRows = () => [...(state().visible || []), ...(state().rows || [])];
+  const visibleRows = () => state().visible || state().filtered || state().rows || [];
+  const allRows = () => {
+    const seen = new Set();
+    return [...(state().visible || []), ...(state().filtered || []), ...(state().rows || [])].filter((row) => {
+      const key = normId(row.Id || row.InstanceId || row.ItemInstanceId) || `${row.Name}|${row.Dupe_Group}|${row.GroupKey}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  };
   const itemIcon = (row) => row.IconUrl || row.Icon || row.DisplayIcon || row.ScreenshotUrl || '';
   const slotLabel = (type) => ['Warlock Bond', 'Hunter Cloak', 'Titan Mark'].includes(type) ? 'Class Item' : (type || 'Armor');
   const tagIcon = (tag) => ({ favorite: '❤️', keep: '🏷️', junk: '🚫', infuse: '⚡', archive: '📦', feed: '✨' }[String(tag || '').toLowerCase()] || '');
@@ -25,22 +34,35 @@
   let lastButtonSig = '';
 
   function groupRowsFor(row) {
-    const rows = state().visible || state().rows || [];
-    const matches = rows.filter((item) => item.Is_Dupe && item.GroupKey === row.GroupKey && item.Dupe_Group === row.Dupe_Group);
-    return matches.length ? matches : allRows().filter((item) => item.Is_Dupe && item.GroupKey === row.GroupKey && item.Dupe_Group === row.Dupe_Group);
+    const rows = visibleRows();
+    const strict = rows.filter((item) => item.Is_Dupe && item.GroupKey === row.GroupKey && item.Dupe_Group === row.Dupe_Group);
+    if (strict.length) return strict;
+    const loose = rows.filter((item) => item.Is_Dupe && normId(item.Dupe_Group) === normId(row.Dupe_Group));
+    if (loose.length) return loose;
+    return allRows().filter((item) => item.Is_Dupe && normId(item.Dupe_Group) === normId(row.Dupe_Group));
+  }
+
+  function firstRowForGroup(groupText) {
+    const group = normId(groupText);
+    if (!group) return null;
+    return allRows().find((row) => row.Is_Dupe && normId(row.Dupe_Group) === group)
+      || allRows().find((row) => normId(row.Dupe_Group) === group)
+      || null;
   }
 
   function rowForCard(card) {
     if (!card) return null;
-    const id = normId(card.dataset.gridId || card.getAttribute('data-grid-id'));
+    const id = normId(card.dataset.gridId || card.getAttribute('data-grid-id') || card.dataset.id || card.getAttribute('data-id'));
     const rows = allRows();
     if (id) {
-      const byId = rows.find((row) => normId(row.Id) === id || normId(row.InstanceId) === id || normId(row.ItemInstanceId) === id);
+      const byId = rows.find((row) => normId(row.Id) === id || normId(row.InstanceId) === id || normId(row.ItemInstanceId) === id || normId(row.ItemHash) === id);
       if (byId) return byId;
     }
-    const group = normId(card.querySelector('.grid-group-badge')?.textContent);
+    const group = normId(card.querySelector('.grid-group-badge')?.textContent || card.querySelector('[data-grid-action="group"]')?.textContent);
+    const byGroup = firstRowForGroup(group);
+    if (byGroup) return byGroup;
     const name = card.querySelector('.grid-item-name')?.textContent?.trim();
-    if (group && name) return rows.find((row) => row.Is_Dupe && normId(row.Dupe_Group) === group && String(row.Name || '').trim() === name) || null;
+    if (name) return rows.find((row) => String(row.Name || '').trim() === name && row.Is_Dupe) || null;
     return null;
   }
 
@@ -56,7 +78,7 @@
       const tagBtn = event.target.closest('[data-compare-tag]');
       if (tagBtn) {
         const id = tagBtn.closest('[data-compare-id]')?.dataset.compareId;
-        const row = allRows().find((item) => normId(item.Id) === id);
+        const row = allRows().find((item) => normId(item.Id) === id || normId(item.InstanceId) === id || normId(item.ItemInstanceId) === id);
         if (!row) return;
         window.D2AA?.setTag?.(row, tagBtn.dataset.compareTag);
         window.D2AA?.render?.();
@@ -78,13 +100,14 @@
   function itemCard(row, bestByStat) {
     const icon = itemIcon(row);
     const tag = tagIcon(row.Tag);
-    return `<article class="d2aa-compare-item" data-compare-id="${esc(normId(row.Id))}"><div class="d2aa-compare-item-top"><div class="d2aa-compare-icon">${icon ? `<img src="${esc(icon)}" alt="" loading="lazy">` : `<span>${esc(slotLabel(row.Type).slice(0, 1))}</span>`}</div><div class="d2aa-compare-title"><strong>${esc(row.Name || '(Unnamed item)')}</strong><span>${esc(row.Equippable || '')} • ${esc(slotLabel(row.Type))} • ${esc(row.Rarity || '')}</span></div><div class="d2aa-compare-tag-display">${tag}</div></div><div class="d2aa-compare-summary"><span title="Base stat total">${num(row['Total (Base)'])}</span><span title="Gear tier">${diamonds(row)}</span><span>${esc(row.Source || '')}</span></div><div class="d2aa-compare-stats">${STAT_COLS.map((stat, index) => { const val = num(row[stat]); const isBest = bestByStat[stat] === val && val > 0; return `<div class="d2aa-compare-stat${isBest ? ' is-best' : ''}"><span>${STAT_LABELS[index]}</span><strong>${val}</strong></div>`; }).join('')}</div><div class="d2aa-compare-tags" aria-label="Change tag for ${esc(row.Name || 'item')}">${TAGS.map((tagOpt) => `<button type="button" data-compare-tag="${tagOpt.id}" class="${String(row.Tag || '') === tagOpt.id ? 'is-active' : ''}" title="${tagOpt.label}">${tagOpt.icon}</button>`).join('')}</div></article>`;
+    return `<article class="d2aa-compare-item" data-compare-id="${esc(normId(row.Id || row.InstanceId || row.ItemInstanceId))}"><div class="d2aa-compare-item-top"><div class="d2aa-compare-icon">${icon ? `<img src="${esc(icon)}" alt="" loading="lazy">` : `<span>${esc(slotLabel(row.Type).slice(0, 1))}</span>`}</div><div class="d2aa-compare-title"><strong>${esc(row.Name || '(Unnamed item)')}</strong><span>${esc(row.Equippable || '')} • ${esc(slotLabel(row.Type))} • ${esc(row.Rarity || '')}</span></div><div class="d2aa-compare-tag-display">${tag}</div></div><div class="d2aa-compare-summary"><span title="Base stat total">${num(row['Total (Base)'])}</span><span title="Gear tier">${diamonds(row)}</span><span>${esc(row.Source || '')}</span></div><div class="d2aa-compare-stats">${STAT_COLS.map((stat, index) => { const val = num(row[stat]); const isBest = bestByStat[stat] === val && val > 0; return `<div class="d2aa-compare-stat${isBest ? ' is-best' : ''}"><span>${STAT_LABELS[index]}</span><strong>${val}</strong></div>`; }).join('')}</div><div class="d2aa-compare-tags" aria-label="Change tag for ${esc(row.Name || 'item')}">${TAGS.map((tagOpt) => `<button type="button" data-compare-tag="${tagOpt.id}" class="${String(row.Tag || '') === tagOpt.id ? 'is-active' : ''}" title="${tagOpt.label}">${tagOpt.icon}</button>`).join('')}</div></article>`;
   }
 
   function openModal(row) {
-    if (!row?.Is_Dupe) return;
+    if (!row) return;
     activeGroup = row;
     const rows = groupRowsFor(row);
+    if (!rows.length) return;
     const modal = ensureModal();
     const body = document.getElementById('d2aaCompareBody');
     const title = document.getElementById('d2aaCompareTitle');
@@ -105,15 +128,16 @@
     event?.stopPropagation?.();
     event?.stopImmediatePropagation?.();
     const now = Date.now();
-    if (now - lastOpenAt < 250) return;
+    if (now - lastOpenAt < 180) return;
     lastOpenAt = now;
-    const row = rowForCard(button.closest('.grid-card'));
+    const card = button.closest('.grid-card');
+    const row = rowForCard(card);
     if (row) openModal(row);
   }
 
   function ensureCompareButtons(force = false) {
     queuedEnsure = 0;
-    const sig = (state().visible || []).map((row) => `${normId(row.Id)}:${row.Is_Dupe ? 1 : 0}:${row.Dupe_Group || ''}:${row.GroupKey || ''}`).join('|');
+    const sig = visibleRows().map((row) => `${normId(row.Id || row.InstanceId || row.ItemInstanceId)}:${row.Is_Dupe ? 1 : 0}:${row.Dupe_Group || ''}:${row.GroupKey || ''}`).join('|');
     if (!force && sig === lastButtonSig && document.querySelector('[data-grid-action="compare-group"]')) return;
     lastButtonSig = sig;
     document.querySelectorAll('.grid-card.is-dupe .grid-actions').forEach((actions) => {
@@ -153,6 +177,10 @@
     const rows = document.getElementById('rows');
     if (rows && rows.dataset.compareClickBound !== '1') {
       rows.dataset.compareClickBound = '1';
+      rows.addEventListener('pointerdown', (event) => {
+        const btn = event.target.closest?.('[data-grid-action="compare-group"], .grid-action--compare');
+        if (btn) openFromButton(btn, event);
+      }, true);
       rows.addEventListener('click', (event) => {
         const btn = event.target.closest?.('[data-grid-action="compare-group"], .grid-action--compare');
         if (btn) openFromButton(btn, event);
