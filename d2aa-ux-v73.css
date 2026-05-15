@@ -1,0 +1,191 @@
+/* D2AA UX v73: command bar cleanup + compact class overview. */
+
+/* Command bar: make the top shell feel like DIM-style controls instead of a row of equal buttons. */
+.d2aa-top-shell{
+  --cmd-h:40px;
+  grid-template-columns:minmax(190px,245px) minmax(420px,1fr) auto!important;
+  gap:12px!important;
+}
+.shell-actions{
+  gap:6px!important;
+  min-width:0!important;
+}
+.shell-view-toggle{
+  height:var(--cmd-h)!important;
+  padding:3px!important;
+  border-radius:12px!important;
+  background:rgba(255,255,255,.035)!important;
+  border:1px solid color-mix(in srgb,var(--accent) 24%,var(--border))!important;
+  flex:0 0 auto!important;
+}
+.shell-view-toggle button{
+  height:32px!important;
+  padding:0 10px!important;
+  border-radius:9px!important;
+}
+.shell-btn{
+  min-height:var(--cmd-h)!important;
+  height:var(--cmd-h)!important;
+  padding:0 10px!important;
+  border-radius:12px!important;
+  font-size:11px!important;
+}
+.shell-btn-icon{font-size:13px!important;line-height:1!important;}
+.shell-btn[data-shell-panel-btn="summary"],
+.shell-btn[data-shell-panel-btn="theme"]{display:none!important;}
+.shell-btn[data-shell-panel-btn="filters"] span:not(.shell-btn-icon){display:none!important;}
+.shell-btn[data-shell-panel-btn="filters"]{width:40px!important;padding:0!important;justify-content:center!important;}
+#shellRefreshBtn{min-width:42px!important;}
+#shellRefreshBtn span:not(.shell-btn-icon){display:none!important;}
+
+.d2aa-command-wrap{position:relative;display:inline-flex;flex:0 0 auto;}
+#d2aaCommandBtn{
+  border-color:color-mix(in srgb,var(--accent) 44%,var(--border))!important;
+  background:linear-gradient(135deg,color-mix(in srgb,var(--accent) 15%,transparent),rgba(255,255,255,.04))!important;
+}
+.d2aa-command-menu{
+  position:absolute;
+  top:calc(100% + 8px);
+  right:0;
+  width:min(420px,calc(100vw - 24px));
+  display:none;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:8px;
+  padding:10px;
+  border:1px solid color-mix(in srgb,var(--accent) 42%,var(--border));
+  border-radius:16px;
+  background:linear-gradient(145deg,color-mix(in srgb,var(--panel) 98%,black),color-mix(in srgb,var(--accent) 10%,var(--panel)));
+  box-shadow:0 24px 70px rgba(0,0,0,.52);
+  z-index:170;
+}
+.d2aa-command-wrap.is-open .d2aa-command-menu{display:grid;}
+.d2aa-command-item{
+  display:grid;
+  grid-template-columns:30px minmax(0,1fr);
+  align-items:center;
+  gap:8px;
+  min-height:42px;
+  padding:7px 8px;
+  border:1px solid color-mix(in srgb,var(--accent) 20%,var(--border));
+  border-radius:12px;
+  background:rgba(255,255,255,.04);
+  color:var(--text);
+  cursor:pointer;
+  text-align:left;
+}
+.d2aa-command-item:hover{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 13%,transparent);}
+.d2aa-command-item strong{display:block;font-size:12px;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.d2aa-command-item span:last-child{display:block;margin-top:2px;color:var(--muted);font-size:10px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.d2aa-command-icon{width:30px;height:30px;display:grid;place-items:center;border-radius:10px;background:rgba(255,255,255,.055);color:var(--accent-strong);font-weight:900;}
+.d2aa-command-item.is-wide{grid-column:1 / -1;}
+
+.shell-more-wrap{position:relative!important;}
+.shell-more-menu{
+  right:0!important;
+  left:auto!important;
+  width:190px!important;
+  border-radius:14px!important;
+  padding:7px!important;
+}
+.shell-more-menu .shell-btn{
+  display:flex!important;
+  width:100%!important;
+  justify-content:flex-start!important;
+}
+
+/* Active filters become a calm command-pill strip inside search. */
+.shell-active-filters{max-width:48%!important;gap:5px!important;}
+.shell-chip{height:22px!important;max-width:132px!important;padding:0 7px!important;border-radius:8px!important;font-size:10px!important;}
+
+/* Compact class overview: cleaner Warlock/Hunter/Titan row, less bulky and better aligned. */
+.d2aa-grid-overview{
+  display:grid!important;
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  gap:8px!important;
+  margin:8px 0 10px!important;
+  padding:0!important;
+}
+.grid-class-card{
+  min-height:42px!important;
+  display:grid!important;
+  grid-template-columns:30px minmax(0,1fr) auto!important;
+  align-items:center!important;
+  gap:8px!important;
+  padding:6px 8px!important;
+  border-radius:13px!important;
+  border:1px solid color-mix(in srgb,var(--accent) 22%,var(--border))!important;
+  background:linear-gradient(135deg,rgba(255,255,255,.045),rgba(0,0,0,.11))!important;
+  color:var(--text)!important;
+  box-shadow:none!important;
+  text-align:left!important;
+  overflow:hidden!important;
+}
+.grid-class-card:hover,.grid-class-card.is-active{
+  border-color:var(--accent)!important;
+  background:linear-gradient(135deg,color-mix(in srgb,var(--accent) 16%,transparent),rgba(255,255,255,.035))!important;
+}
+.grid-class-card.is-active{box-shadow:inset 0 -2px 0 var(--accent)!important;}
+.grid-class-icon{
+  width:22px!important;
+  height:22px!important;
+  display:block!important;
+  justify-self:center!important;
+  color:var(--accent-strong)!important;
+  background:currentColor!important;
+  opacity:.95!important;
+}
+.grid-class-title{
+  display:block!important;
+  font-size:12px!important;
+  font-weight:950!important;
+  line-height:1.05!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+}
+.grid-class-meta{
+  display:flex!important;
+  gap:5px!important;
+  margin-top:3px!important;
+  color:var(--muted)!important;
+  font-size:0!important;
+  line-height:1!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+}
+.grid-class-meta .class-pill{
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  min-height:16px!important;
+  padding:0 5px!important;
+  border-radius:999px!important;
+  border:1px solid rgba(255,255,255,.08)!important;
+  background:rgba(255,255,255,.035)!important;
+  color:var(--muted)!important;
+  font-size:9.5px!important;
+  font-weight:800!important;
+}
+.grid-class-total{
+  min-width:30px!important;
+  height:24px!important;
+  display:grid!important;
+  place-items:center!important;
+  border-radius:999px!important;
+  border:1px solid color-mix(in srgb,var(--accent) 45%,var(--border))!important;
+  color:var(--accent-strong)!important;
+  background:color-mix(in srgb,var(--accent) 12%,transparent)!important;
+  font-size:11px!important;
+  font-weight:950!important;
+}
+
+@media (max-width:1100px){
+  .d2aa-top-shell{grid-template-columns:1fr!important;}
+  .shell-actions{justify-content:flex-start!important;}
+  .d2aa-command-menu{left:0;right:auto;}
+  .d2aa-grid-overview{grid-template-columns:1fr!important;}
+}
+@media (max-width:760px){
+  .d2aa-command-menu{grid-template-columns:1fr;width:calc(100vw - 22px);}
+  #d2aaCommandBtn span:not(.shell-btn-icon){display:none!important;}
+}
