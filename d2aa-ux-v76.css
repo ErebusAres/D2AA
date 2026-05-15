@@ -1,0 +1,22 @@
+/* D2AA UX v76: rarity-aware tier display.
+   Legendary keeps a 5-slot scale. Exotic uses a 2-slot scale. */
+
+.grid-slot-tier,
+.armor-row .tier{
+  font-variant-numeric:tabular-nums!important;
+  white-space:nowrap!important;
+}
+.grid-slot-tier[data-tier-max="2"],
+.armor-row .tier[data-tier-max="2"]{
+  letter-spacing:.02em!important;
+  color:color-mix(in srgb,#f2c86b 82%,#fff)!important;
+  text-shadow:0 0 12px rgba(242,200,107,.18)!important;
+}
+.grid-slot-tier[data-tier-max="5"],
+.armor-row .tier[data-tier-max="5"]{
+  letter-spacing:-.045em!important;
+}
+.grid-slot-tier .tier-filled,
+.armor-row .tier .tier-filled{opacity:1!important;}
+.grid-slot-tier .tier-empty,
+.armor-row .tier .tier-empty{opacity:.36!important;filter:saturate(.75)!important;}
