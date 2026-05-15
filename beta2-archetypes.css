@@ -5,6 +5,31 @@ body.grid-view .grid-tag{
   right:auto;
 }
 
+body.grid-view .grid-tag,
+body.grid-view .grid-aag-badge,
+.d2aa-tag-option,
+.action-icon,
+.shell-search-help,
+.compare-close{
+  display:inline-grid !important;
+  place-items:center !important;
+  align-items:center !important;
+  justify-items:center !important;
+  line-height:1 !important;
+  text-align:center;
+  font-family:'Segoe UI Emoji','Apple Color Emoji','Noto Color Emoji',system-ui,sans-serif;
+}
+
+body.grid-view .grid-tag,
+body.grid-view .grid-aag-badge{
+  padding:0 !important;
+  overflow:hidden;
+}
+
+body.grid-view .grid-tag{
+  font-size:13px;
+}
+
 body.grid-view .grid-aag-badge{
   position:absolute;
   top:6px;
@@ -18,10 +43,7 @@ body.grid-view .grid-aag-badge{
   backdrop-filter:blur(8px);
   -webkit-backdrop-filter:blur(8px);
   box-shadow:0 6px 18px rgba(0,0,0,.32);
-  display:grid;
-  place-items:center;
   font-size:13px;
-  line-height:1;
   color:var(--text);
   cursor:help;
   opacity:.9;
