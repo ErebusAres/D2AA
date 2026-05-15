@@ -107,8 +107,48 @@ function renderRow(row, allRows) { const el = document.createElement('div'); el.
 function updateSummary(rows) { const groups = new Set(rows.filter((r) => r.Is_Dupe).map((r) => `${r.GroupKey}::${r.Dupe_Group}`)); const avg = rows.length ? Math.round(rows.reduce((sum, r) => sum + num(r['Total (Base)'], 0), 0) / rows.length) : 0; $('summaryShown').textContent = rows.length; $('summaryDupes').textContent = rows.filter((r) => r.Is_Dupe).length; $('summaryGroups').textContent = groups.size; $('summaryAvg').textContent = avg; $('resultCount').textContent = `${rows.length} shown`; }
 function render() { updateSegments(); const rows = getFiltered(); STATE.visible = rows; updateSummary(rows); $('tolOut').textContent = `±${STATE.tol}`; const host = $('rows'); host.textContent = ''; $('empty').classList.toggle('is-hidden', rows.length > 0); const fragment = document.createDocumentFragment(); for (const row of rows) fragment.appendChild(renderRow(row, rows)); host.appendChild(fragment); }
 function parseRows(data) { return data.map((row) => { const x = { ...row }; for (const key of [...STAT_COLS, 'Total (Base)', 'Tier']) x[key] = Number.isFinite(num(x[key])) ? num(x[key]) : 0; x.Id = normId(x.Id); return applyTagOverrides(x); }).filter((row) => row.Id && row.Name && row.Type && row.Equippable); }
-function loadExternalRows(rows, label = 'External import loaded') { STATE.rows = parseRows(rows || []); saveRows(); const uploadHint = $('uploadHint'); if (uploadHint) uploadHint.textContent = label; render(); }
-function bindEvents() { const file = $('file'); const uploadTrigger = $('uploadTrigger'); const uploadHint = $('uploadHint'); const defaultHint = uploadHint?.dataset.default || 'Choose DIM Armor.csv'; uploadTrigger?.addEventListener('keydown', (event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); file.click(); } }); file.addEventListener('change', (event) => { const selected = event.target.files?.[0]; if (!selected) return; Papa.parse(selected, { header: true, skipEmptyLines: true, complete: (res) => { loadExternalRows(res.data || [], `Loaded • ${selected.name}`); file.value = ''; } }); }); $('restoreBtn').addEventListener('click', () => { const rows = loadRows(); if (!Array.isArray(rows)) { alert('No saved import found in this browser. Upload a DIM CSV or use Bungie import first.'); return; } STATE.rows = parseRows(rows); uploadHint.textContent = defaultHint; render(); }); $('clearBtn').addEventListener('click', () => { STATE.rows = []; localStorage.removeItem(LS_ROWS); uploadHint.textContent = defaultHint; render(); }); $('searchBox').addEventListener('input', (event) => { STATE.search = event.target.value; render(); }); $('sortBy').addEventListener('change', (event) => { STATE.sortBy = event.target.value; render(); }); $('tol').addEventListener('input', (event) => { STATE.tol = Number(event.target.value) || 0; render(); }); $('copyVisibleBtn').addEventListener('click', async () => { const ids = STATE.visible.map((row) => `id:${normId(row.Id)}`).filter(Boolean).join(' or '); if (!ids) return; const ok = await copyText(ids); const btn = $('copyVisibleBtn'); const old = btn.querySelector('.action-title').textContent; btn.querySelector('.action-title').textContent = ok ? 'Copied visible IDs' : 'Copy failed'; setTimeout(() => { btn.querySelector('.action-title').textContent = old; }, 1200); }); }
+function loadExternalRows(rows, label = 'External import loaded') { STATE.rows = parseRows(rows || []); saveRows(); const uploadHint = $('uploadHint'); if (uploadHint) uploadHint.textContent = label; setEmptyStatus(label); render(); }
+function setEmptyStatus(message) { const status = $('emptyActionStatus'); if (status) status.textContent = message; }
+function bindEvents() {
+  const file = $('file');
+  const uploadTrigger = $('uploadTrigger');
+  const uploadHint = $('uploadHint');
+  const defaultHint = uploadHint?.dataset.default || 'Choose DIM Armor.csv';
+  const openUpload = () => file?.click();
+  const restoreRows = () => {
+    const rows = loadRows();
+    if (!Array.isArray(rows)) {
+      setEmptyStatus('No saved import found in this browser. Upload a DIM CSV or connect your Destiny account first.');
+      return false;
+    }
+    STATE.rows = parseRows(rows);
+    if (uploadHint) uploadHint.textContent = defaultHint;
+    setEmptyStatus(`Restored ${STATE.rows.length} saved armor items.`);
+    render();
+    return true;
+  };
+
+  uploadTrigger?.addEventListener('keydown', (event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openUpload(); } });
+  file?.addEventListener('change', (event) => {
+    const selected = event.target.files?.[0];
+    if (!selected) return;
+    Papa.parse(selected, { header: true, skipEmptyLines: true, complete: (res) => { loadExternalRows(res.data || [], `Loaded ${selected.name}`); file.value = ''; } });
+  });
+  $('restoreBtn')?.addEventListener('click', restoreRows);
+  $('clearBtn')?.addEventListener('click', () => { STATE.rows = []; localStorage.removeItem(LS_ROWS); if (uploadHint) uploadHint.textContent = defaultHint; setEmptyStatus('Local results cleared. Upload a DIM CSV or connect your Destiny account to start again.'); render(); });
+  $('searchBox')?.addEventListener('input', (event) => { STATE.search = event.target.value; render(); });
+  $('sortBy')?.addEventListener('change', (event) => { STATE.sortBy = event.target.value; render(); });
+  $('tol')?.addEventListener('input', (event) => { STATE.tol = Number(event.target.value) || 0; render(); });
+  $('copyVisibleBtn')?.addEventListener('click', async () => { const ids = STATE.visible.map((row) => `id:${normId(row.Id)}`).filter(Boolean).join(' or '); if (!ids) return; const ok = await copyText(ids); const btn = $('copyVisibleBtn'); const title = btn?.querySelector('.action-title'); if (!title) return; const old = title.textContent; title.textContent = ok ? 'Copied visible IDs' : 'Copy failed'; setTimeout(() => { title.textContent = old; }, 1200); });
+  document.querySelectorAll('[data-empty-action]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      try { localStorage.setItem('d2aa_launch_seen_v1', '1'); } catch (_) {}
+      if (btn.dataset.emptyAction === 'upload') openUpload();
+      if (btn.dataset.emptyAction === 'connect') $('bungieLoginBtn')?.click();
+      if (btn.dataset.emptyAction === 'restore') restoreRows();
+    });
+  });
+}
 window.D2AA = { loadRows: loadExternalRows, parseRows, render, getState: () => STATE, setTag: setRowTag, getTags: loadTagOverrides };
 makeThemeButtons(); renderSegments(); bindEvents(); const cached = loadRows(); if (Array.isArray(cached)) STATE.rows = parseRows(cached); render();
 
@@ -240,7 +280,7 @@ makeThemeButtons(); renderSegments(); bindEvents(); const cached = loadRows(); i
       </div>
       <nav class="shell-actions" aria-label="D2AA actions">
         <button class="shell-btn shell-btn--primary" data-shell-panel-btn="data" type="button"><span class="shell-btn-icon">⇧</span><span>Data</span></button>
-        <button class="shell-btn" id="shellRefreshBtn" type="button"><span class="shell-btn-icon">↻</span><span>Refresh</span></button>
+        <button class="shell-btn" id="shellRefreshBtn" type="button" title="Sync Bungie inventory or restore saved rows"><span class="shell-btn-icon">↻</span><span>Sync</span></button>
         <button class="shell-btn" data-shell-panel-btn="filters" type="button"><span class="shell-btn-icon">☰</span><span>Filters</span></button>
         <button class="shell-btn" data-shell-panel-btn="summary" type="button"><span class="shell-btn-icon">◎</span><span>Summary</span></button>
         <button class="shell-btn" data-shell-panel-btn="theme" type="button"><span class="shell-btn-icon">◐</span><span>Theme</span></button>
@@ -2737,6 +2777,7 @@ window.D2AA?.render?.();
 /* ===== d2aa-ux-v64.js ===== */
 (() => {
   const $ = (id) => document.getElementById(id);
+  const LS_LAUNCH_SEEN = 'd2aa_launch_seen_v1';
   const hasRows = () => (window.D2AA?.getState?.()?.rows?.length || 0) > 0;
 
   function enhanceCommandBar() {
@@ -2769,13 +2810,15 @@ window.D2AA?.render?.();
     layer.className = 'd2aa-launch-layer';
     layer.innerHTML = `<div class="d2aa-launch-card" role="dialog" aria-modal="true" aria-labelledby="d2aaLaunchTitle"><h2 id="d2aaLaunchTitle">Load your Destiny armor</h2><p>Connect your Bungie account for live inventory tools, or upload a DIM Armor.csv for quick duplicate review.</p><div class="d2aa-launch-actions"><button class="d2aa-launch-action" id="launchBungieBtn" type="button"><strong>Connect Destiny Account</strong><span>Bungie / Steam sign-in, vault + character armor, item movement tools.</span></button><button class="d2aa-launch-action" id="launchUploadBtn" type="button"><strong>Upload DIM CSV</strong><span>Use a local DIM armor export without signing in.</span></button></div><div class="d2aa-launch-foot"><button id="launchDismissBtn" class="d2aa-launch-close" type="button">Not now</button></div></div>`;
     document.body.appendChild(layer);
-    const close = () => { layer.classList.remove('is-open'); sessionStorage.setItem('d2aa_launch_seen_v1','1'); };
+    const close = () => { layer.classList.remove('is-open'); try { localStorage.setItem(LS_LAUNCH_SEEN, '1'); } catch (_) {} };
     $('launchDismissBtn')?.addEventListener('click', close);
     $('launchBungieBtn')?.addEventListener('click', () => { close(); $('bungieLoginBtn')?.click(); });
     $('launchUploadBtn')?.addEventListener('click', () => { close(); $('file')?.click(); });
     setTimeout(() => {
-      if (!hasRows() && sessionStorage.getItem('d2aa_launch_seen_v1') !== '1') layer.classList.add('is-open');
-    }, 650);
+      let seen = false;
+      try { seen = localStorage.getItem(LS_LAUNCH_SEEN) === '1'; } catch (_) {}
+      if (!hasRows() && !seen) layer.classList.add('is-open');
+    }, 1800);
   }
 
   function cardSelection() {

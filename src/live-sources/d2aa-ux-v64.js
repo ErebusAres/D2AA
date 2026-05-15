@@ -1,5 +1,6 @@
 (() => {
   const $ = (id) => document.getElementById(id);
+  const LS_LAUNCH_SEEN = 'd2aa_launch_seen_v1';
   const hasRows = () => (window.D2AA?.getState?.()?.rows?.length || 0) > 0;
 
   function enhanceCommandBar() {
@@ -32,13 +33,15 @@
     layer.className = 'd2aa-launch-layer';
     layer.innerHTML = `<div class="d2aa-launch-card" role="dialog" aria-modal="true" aria-labelledby="d2aaLaunchTitle"><h2 id="d2aaLaunchTitle">Load your Destiny armor</h2><p>Connect your Bungie account for live inventory tools, or upload a DIM Armor.csv for quick duplicate review.</p><div class="d2aa-launch-actions"><button class="d2aa-launch-action" id="launchBungieBtn" type="button"><strong>Connect Destiny Account</strong><span>Bungie / Steam sign-in, vault + character armor, item movement tools.</span></button><button class="d2aa-launch-action" id="launchUploadBtn" type="button"><strong>Upload DIM CSV</strong><span>Use a local DIM armor export without signing in.</span></button></div><div class="d2aa-launch-foot"><button id="launchDismissBtn" class="d2aa-launch-close" type="button">Not now</button></div></div>`;
     document.body.appendChild(layer);
-    const close = () => { layer.classList.remove('is-open'); sessionStorage.setItem('d2aa_launch_seen_v1','1'); };
+    const close = () => { layer.classList.remove('is-open'); try { localStorage.setItem(LS_LAUNCH_SEEN, '1'); } catch (_) {} };
     $('launchDismissBtn')?.addEventListener('click', close);
     $('launchBungieBtn')?.addEventListener('click', () => { close(); $('bungieLoginBtn')?.click(); });
     $('launchUploadBtn')?.addEventListener('click', () => { close(); $('file')?.click(); });
     setTimeout(() => {
-      if (!hasRows() && sessionStorage.getItem('d2aa_launch_seen_v1') !== '1') layer.classList.add('is-open');
-    }, 650);
+      let seen = false;
+      try { seen = localStorage.getItem(LS_LAUNCH_SEEN) === '1'; } catch (_) {}
+      if (!hasRows() && !seen) layer.classList.add('is-open');
+    }, 1800);
   }
 
   function cardSelection() {

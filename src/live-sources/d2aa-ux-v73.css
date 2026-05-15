@@ -9,6 +9,8 @@
 .shell-actions{
   gap:6px!important;
   min-width:0!important;
+  flex-wrap:wrap!important;
+  row-gap:6px!important;
 }
 .shell-view-toggle{
   height:var(--cmd-h)!important;
@@ -48,6 +50,8 @@
   top:calc(100% + 8px);
   right:0;
   width:min(420px,calc(100vw - 24px));
+  max-height:min(520px,calc(100vh - 92px));
+  overflow:auto;
   display:none;
   grid-template-columns:repeat(2,minmax(0,1fr));
   gap:8px;
@@ -186,6 +190,10 @@
   .d2aa-grid-overview{grid-template-columns:1fr!important;}
 }
 @media (max-width:760px){
+  .d2aa-top-shell{gap:9px!important;padding:9px 10px!important;}
+  .shell-actions{gap:5px!important;}
+  .shell-view-toggle button{padding:0 8px!important;}
+  .shell-btn{padding:0 8px!important;}
   .d2aa-command-menu{grid-template-columns:1fr;width:calc(100vw - 22px);}
   #d2aaCommandBtn span:not(.shell-btn-icon){display:none!important;}
 }

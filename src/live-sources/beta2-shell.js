@@ -124,7 +124,7 @@
       </div>
       <nav class="shell-actions" aria-label="D2AA actions">
         <button class="shell-btn shell-btn--primary" data-shell-panel-btn="data" type="button"><span class="shell-btn-icon">⇧</span><span>Data</span></button>
-        <button class="shell-btn" id="shellRefreshBtn" type="button"><span class="shell-btn-icon">↻</span><span>Refresh</span></button>
+        <button class="shell-btn" id="shellRefreshBtn" type="button" title="Sync Bungie inventory or restore saved rows"><span class="shell-btn-icon">↻</span><span>Sync</span></button>
         <button class="shell-btn" data-shell-panel-btn="filters" type="button"><span class="shell-btn-icon">☰</span><span>Filters</span></button>
         <button class="shell-btn" data-shell-panel-btn="summary" type="button"><span class="shell-btn-icon">◎</span><span>Summary</span></button>
         <button class="shell-btn" data-shell-panel-btn="theme" type="button"><span class="shell-btn-icon">◐</span><span>Theme</span></button>
