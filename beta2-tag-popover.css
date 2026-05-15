@@ -85,15 +85,26 @@ body.grid-view .grid-tag:hover{
 .d2aa-tag-option{
   width:31px;
   height:31px;
+  box-sizing:border-box;
   border-radius:999px;
   border:1px solid rgba(255,255,255,.16);
   background:rgba(255,255,255,.045);
-  display:grid;
-  place-items:center;
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
   color:var(--text);
   cursor:pointer;
   font-size:15px;
-  line-height:1;
+  line-height:1 !important;
+  padding:0 !important;
+  margin:0;
+  text-align:center;
+  vertical-align:middle;
+  font-family:'Segoe UI Emoji','Apple Color Emoji','Noto Color Emoji',system-ui,sans-serif;
+}
+
+.d2aa-tag-option:not([data-tag='']){
+  transform:translateY(0);
 }
 
 .d2aa-tag-option[data-tag='']{
@@ -106,6 +117,8 @@ body.grid-view .grid-tag:hover{
   border-radius:999px;
   border:1px solid currentColor;
   opacity:.72;
+  display:block;
+  box-sizing:border-box;
 }
 
 .d2aa-tag-option:hover,
