@@ -9,7 +9,7 @@
 
 .item-feed-card{
   display:grid !important;
-  grid-template-columns:50px minmax(0,1fr) 64px !important;
+  grid-template-columns:50px minmax(0,1fr) 72px !important;
   grid-template-areas:
     "icon main score"
     "icon stats score"
@@ -17,7 +17,7 @@
   column-gap:9px !important;
   row-gap:5px !important;
   align-items:start !important;
-  min-height:86px !important;
+  min-height:88px !important;
   padding:8px 24px 7px 8px !important;
   border-radius:12px !important;
   overflow:hidden !important;
@@ -45,23 +45,10 @@
   box-shadow:0 8px 18px rgba(0,0,0,.3), inset 0 0 0 1px rgba(255,255,255,.08) !important;
 }
 .feed-icon img{width:100% !important;height:100% !important;object-fit:cover !important;}
-.feed-power,
-.feed-power-chip{
-  position:absolute !important;
-  right:0 !important;
-  bottom:0 !important;
-  min-width:32px !important;
-  height:15px !important;
-  padding:0 4px !important;
-  border-top-left-radius:5px !important;
-  background:rgba(0,0,0,.78) !important;
-  color:#fff !important;
-  font-size:8.5px !important;
-  font-weight:950 !important;
-  line-height:15px !important;
-  text-align:center !important;
-  text-shadow:0 1px 2px #000 !important;
-  z-index:3 !important;
+/* Power is shown once in the score column. Do not duplicate it over the item icon. */
+.feed-icon .feed-power,
+.feed-icon .feed-power-chip{
+  display:none !important;
 }
 
 .feed-main{
@@ -129,10 +116,11 @@
 
 .feed-side{
   grid-area:score !important;
-  width:64px !important;
+  width:72px !important;
   min-width:0 !important;
   display:grid !important;
   grid-template-columns:1fr !important;
+  grid-auto-rows:min-content !important;
   align-content:start !important;
   justify-items:stretch !important;
   gap:4px !important;
@@ -140,23 +128,37 @@
   border-top:0 !important;
   overflow:visible !important;
 }
+.feed-power-inline,
+.feed-total-badge,
+.feed-tier-badge,
+.feed-compare-btn{
+  position:static !important;
+  width:100% !important;
+  min-width:0 !important;
+  max-width:100% !important;
+  box-sizing:border-box !important;
+}
 .feed-power-inline{
-  height:20px;
-  display:grid;
-  place-items:center;
-  border:1px solid rgba(255,255,255,.12);
-  border-radius:7px;
-  background:linear-gradient(180deg, rgba(255,255,255,.075), rgba(0,0,0,.22));
-  color:#fff;
-  font-size:11px;
-  font-weight:950;
-  line-height:1;
-  text-shadow:0 1px 2px #000;
+  height:21px !important;
+  display:grid !important;
+  place-items:center !important;
+  border:1px solid rgba(255,255,255,.12) !important;
+  border-radius:7px !important;
+  background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(0,0,0,.24)) !important;
+  color:#fff !important;
+  font-size:11px !important;
+  font-weight:950 !important;
+  line-height:1 !important;
+  text-shadow:0 1px 2px #000 !important;
+}
+.feed-power-inline::before{
+  content:'✦';
+  margin-right:3px;
+  color:var(--accent-strong);
+  font-size:8px;
 }
 .feed-total-badge{
-  min-width:0 !important;
-  width:100% !important;
-  height:22px !important;
+  height:21px !important;
   display:grid !important;
   place-items:center !important;
   padding:0 !important;
@@ -165,8 +167,14 @@
   font-size:11px !important;
   font-weight:950 !important;
 }
+.feed-total-badge::before{
+  content:'Σ';
+  margin-right:3px;
+  color:var(--muted);
+  font-size:8px;
+}
 .feed-tier-badge{
-  height:17px !important;
+  height:18px !important;
   display:grid !important;
   place-items:center !important;
   padding:0 !important;
@@ -177,10 +185,9 @@
   font-size:7.5px !important;
   line-height:1 !important;
   letter-spacing:.06em !important;
+  white-space:nowrap !important;
 }
 .feed-compare-btn{
-  width:100% !important;
-  min-width:0 !important;
   height:20px !important;
   min-height:20px !important;
   padding:0 4px !important;
@@ -245,10 +252,10 @@
 
 @media (max-width:430px){
   .item-feed-card{
-    grid-template-columns:48px minmax(0,1fr) 58px !important;
+    grid-template-columns:48px minmax(0,1fr) 66px !important;
     min-height:90px !important;
   }
   .feed-icon{width:48px !important;height:48px !important;}
-  .feed-side{width:58px !important;}
+  .feed-side{width:66px !important;}
   .feed-tag-btn{width:20px !important;height:20px !important;min-width:20px !important;}
 }
