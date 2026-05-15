@@ -80,14 +80,28 @@
     ].join('|')).join('~');
   }
 
+  function lightFromCard(card) {
+    return firstNumber(
+      card.querySelector('.grid-info-light')?.textContent,
+      card.querySelector('.grid-light')?.textContent,
+      card.querySelector('.grid-power-pill')?.textContent,
+      card.dataset.light,
+      card.dataset.power
+    );
+  }
+
   function decorateCard(card, maps) {
-    const row = rowForCard(card, maps);
-    if (!row) return;
-    const light = lightLevel(row);
-    const tag = tagEmoji(row.Tag);
     const tagBtn = card.querySelector('.grid-tag');
-    card.querySelectorAll('.grid-light,.grid-power-pill').forEach((el) => el.remove());
     if (!tagBtn) return;
+
+    const cardLight = lightFromCard(card);
+    const existingTag = tagBtn.classList.contains('is-empty') ? '' : tagBtn.textContent.trim();
+    const row = rowForCard(card, maps);
+    const light = row ? (lightLevel(row) || cardLight) : cardLight;
+    const tag = row ? tagEmoji(row.Tag) : existingTag;
+    const label = row ? tagLabel(row.Tag) : (existingTag ? 'Tagged' : 'No tag');
+
+    card.querySelectorAll('.grid-light,.grid-power-pill').forEach((el) => el.remove());
     if (!light && !tag) {
       tagBtn.className = 'grid-tag is-empty';
       tagBtn.innerHTML = '';
@@ -95,7 +109,7 @@
       return;
     }
     tagBtn.className = `grid-tag grid-info-badge${tag ? ' has-tag' : ''}`;
-    tagBtn.title = `${light ? `Light / Power ${light}` : ''}${light && tag ? ' • ' : ''}${tag ? `${tagLabel(row.Tag)} tag` : ''} — change tag`;
+    tagBtn.title = `${light ? `Light / Power ${light}` : ''}${light && tag ? ' • ' : ''}${tag ? `${label} tag` : ''} — change tag`;
     tagBtn.innerHTML = `${light ? `<span class="grid-info-light">${light}</span>` : ''}${light && tag ? '<span class="grid-info-dot">•</span>' : ''}${tag ? `<span class="grid-info-tag">${tag}</span>` : ''}`;
   }
 
