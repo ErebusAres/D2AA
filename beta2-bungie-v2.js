@@ -64,7 +64,8 @@
 
   function slotForItem(def) { const bucket = String(def.inventory?.bucketTypeHash || ''); const display = `${def.itemTypeDisplayName || ''} ${def.itemTypeAndTierDisplayName || ''}`; if (display.includes('Helmet')) return 'Helmet'; if (display.includes('Gauntlets') || display.includes('Gloves')) return 'Gauntlets'; if (display.includes('Chest Armor') || display.includes('Chest')) return 'Chest Armor'; if (display.includes('Leg Armor') || display.includes('Legs') || display.includes('Boots')) return 'Leg Armor'; if (display.includes('Class Armor') || display.includes('Class Item')) return 'Class Item'; if (bucket === '3448274439') return 'Helmet'; if (bucket === '3551918588') return 'Gauntlets'; if (bucket === '14239492') return 'Chest Armor'; if (bucket === '20886954') return 'Leg Armor'; if (bucket === '1585787867') return 'Class Item'; return null; }
   function rarityForItem(def) { return def.inventory?.tierTypeName || (String(def.itemTypeAndTierDisplayName || '').match(/^(Common|Uncommon|Rare|Legendary|Exotic)/)?.[1]) || 'Unknown'; }
-  function armorTier(total) { const n = Number(total || 0); return n >= 75 ? 5 : n >= 74 ? 4 : n >= 73 ? 3 : n >= 72 ? 2 : 1; }
+  function armorTier(total) { const n = Number(total || 0); return n >= 73 ? 5 : n >= 65 ? 4 : n >= 59 ? 3 : n >= 54 ? 2 : 1; }
+  function gearTierForItem(instanceComponent, total) { const gearTier = Number(instanceComponent?.gearTier || 0); return gearTier >= 1 && gearTier <= 5 ? gearTier : armorTier(total); }
   function buildCharacterMap(profile) { const map = {}; for (const [characterId, character] of Object.entries(profile.characters?.data || {})) { const className = CLASS_TYPE[character.classType] || 'Unknown'; map[className] = { characterId, className }; } return map; }
   function isArmorDef(def) { if (!def || def.itemType !== 2) return false; if (!CLASS_TYPE[def.classType]) return false; if (!slotForItem(def)) return false; return ['Common', 'Uncommon', 'Rare', 'Legendary', 'Exotic'].includes(rarityForItem(def)); }
 
@@ -108,17 +109,20 @@
       const socketPlugDefs = plugHashesForInstance(socketComponents[instanceId]).map((hash) => plugDefs[hash]).filter(Boolean);
       const statRow = statsForItem(def, statComponents[instanceId], socketBonusTotals(socketPlugDefs, statColumnMap), statColumnMap);
       const targetCharacterId = characterMap[equippable]?.characterId || '';
-      const light = getLightLevel(instanceComponents[instanceId], item);
-      rows.push({ Name: def.displayProperties?.name || 'Unknown Armor', Id: instanceId, Type: type, Rarity: rarity, Equippable: equippable, Tag: localTagFor(instanceId), Tier: armorTier(statRow['Total (Base)']), Light: light, Power: light, PowerLevel: light, IconUrl: bungieIconUrl(def.displayProperties?.icon), ScreenshotUrl: bungieIconUrl(def.screenshot), ...statRow, Source: 'Bungie', ItemHash: item.itemHash, BucketHash: def.inventory?.bucketTypeHash || item.bucketHash || 0, MembershipType: membership.membershipType, OwnerCharacterId: item.d2aaOwner === 'vault' ? '' : item.d2aaOwner, TargetCharacterId: targetCharacterId, IsInVault: item.location === 2 || item.bucketHash === VAULT_BUCKET_HASH || item.d2aaOwner === 'vault', IsEquipped: Boolean(item.d2aaEquipped) });
+      const instanceComponent = instanceComponents[instanceId];
+      const light = getLightLevel(instanceComponent, item);
+      const tier = gearTierForItem(instanceComponent, statRow['Total (Base)']);
+      rows.push({ Name: def.displayProperties?.name || 'Unknown Armor', Id: instanceId, Type: type, Rarity: rarity, Equippable: equippable, Tag: localTagFor(instanceId), Tier: tier, GearTier: tier, TierSource: Number(instanceComponent?.gearTier || 0) ? 'Bungie' : 'BaseStatFallback', TierMax: 5, Light: light, Power: light, PowerLevel: light, IconUrl: bungieIconUrl(def.displayProperties?.icon), ScreenshotUrl: bungieIconUrl(def.screenshot), ...statRow, Source: 'Bungie', ItemHash: item.itemHash, BucketHash: def.inventory?.bucketTypeHash || item.bucketHash || 0, MembershipType: membership.membershipType, OwnerCharacterId: item.d2aaOwner === 'vault' ? '' : item.d2aaOwner, TargetCharacterId: targetCharacterId, IsInVault: item.location === 2 || item.bucketHash === VAULT_BUCKET_HASH || item.d2aaOwner === 'vault', IsEquipped: Boolean(item.d2aaEquipped) });
       if (scanned % 100 === 0) { setStatus(`Building base-stat rows: ${scanned}/${allItems.length} scanned, ${rows.length} armor found`, false); await sleep(0); }
     }
     const zeroRows = rows.filter((row) => Number(row['Total (Base)'] || 0) === 0).length;
     const fallbackRows = rows.filter((row) => row.BaseStatFallback).length;
+    const tierFallbackRows = rows.filter((row) => row.TierSource === 'BaseStatFallback').length;
     setStatus(`Rendering ${rows.length} armor items...`, false);
     await sleep(0);
     window.D2AA?.loadRows?.(rows, `Bungie sync • ${rows.length} armor items`);
     const seconds = ((performance.now() - startedAt) / 1000).toFixed(1);
-    setStatus(`Bungie sync complete: ${rows.length} armor items in ${seconds}s. Zero rows: ${zeroRows}. Fallback rows: ${fallbackRows}.`, zeroRows === 0);
+    setStatus(`Bungie sync complete: ${rows.length} armor items in ${seconds}s. Zero rows: ${zeroRows}. Base stat fallbacks: ${fallbackRows}. Tier fallbacks: ${tierFallbackRows}.`, zeroRows === 0);
   }
   const btn = $('bungieImportV2Btn');
   if (btn) btn.addEventListener('click', (event) => { event.preventDefault(); event.stopImmediatePropagation(); importArmorV2().catch((error) => { console.error(error); setStatus(error.message || String(error), false); }); }, true);
