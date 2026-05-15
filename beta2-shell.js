@@ -7,23 +7,17 @@
   const DUPE_ALIASES = { dupes: 'Only Dupes', dupe: 'Only Dupes', duplicates: 'Only Dupes', same: 'Only Same-Name', samename: 'Only Same-Name' };
   const SORT_ALIASES = { total: 'totalDesc', rank: 'rankDesc', name: 'nameAsc', slot: 'slotAsc', default: 'default' };
   let lastPlainSearch = '';
+  let lastRawSearch = '';
 
   function normalizeToken(token) { return String(token || '').trim().toLowerCase().replace(/^[-/#]+/, '').replace(/[:=].*$/, ''); }
   function valueAfter(token) { return String(token || '').includes(':') ? String(token).split(':').slice(1).join(':') : ''; }
   function state() { return window.D2AA?.getState?.(); }
 
-  function setStatePatch(patch) {
-    const s = state();
-    if (!s) return;
-    Object.assign(s, patch);
-    window.D2AA?.render?.();
-    updateShellState();
-  }
-
   function parseSmartSearch(raw) {
     const s = state();
     if (!s) return;
-    const tokens = String(raw || '').split(/\s+/).filter(Boolean);
+    lastRawSearch = String(raw || '');
+    const tokens = lastRawSearch.split(/\s+/).filter(Boolean);
     const patch = { search: '', classFilter: s.classFilter, rarityFilter: 'All', slotFilter: 'All', locationFilter: 'All', dupesFilter: 'All', sortBy: s.sortBy };
     const plain = [];
 
@@ -59,17 +53,21 @@
     const s = state();
     if (!s) return;
     const smart = $('smartSearch');
-    if (smart && rawOverride == null && document.activeElement !== smart) smart.value = lastPlainSearch || s.search || '';
+    if (smart && rawOverride == null && document.activeElement !== smart) smart.value = lastRawSearch || lastPlainSearch || s.search || '';
     const chips = $('shellActiveFilters');
     if (chips) {
       chips.textContent = '';
-      chips.appendChild(makeChip('Class', s.classFilter));
-      if (s.rarityFilter !== 'All') chips.appendChild(makeChip('Rarity', s.rarityFilter));
-      if (s.slotFilter !== 'All') chips.appendChild(makeChip('Slot', s.slotFilter));
-      if (s.locationFilter !== 'All') chips.appendChild(makeChip('Loc', s.locationFilter));
-      if (s.dupesFilter !== 'All') chips.appendChild(makeChip('Dupes', s.dupesFilter.replace('Only ', '')));
-      if (s.search) chips.appendChild(makeChip('Search', s.search));
-      if (s.sortBy !== 'default') chips.appendChild(makeChip('Sort', s.sortBy.replace('Desc', ' ↓').replace('Asc', ' ↑')));
+      const chipData = [];
+      const explicitClass = /\b(warlock|lock|hunter|titan|class[:=])/i.test(lastRawSearch);
+      if (explicitClass && s.classFilter && s.classFilter !== 'All') chipData.push(['Class', s.classFilter]);
+      if (s.rarityFilter !== 'All') chipData.push(['Rarity', s.rarityFilter]);
+      if (s.slotFilter !== 'All') chipData.push(['Slot', s.slotFilter]);
+      if (s.locationFilter !== 'All') chipData.push(['Loc', s.locationFilter]);
+      if (s.dupesFilter !== 'All') chipData.push(['Dupes', s.dupesFilter.replace('Only ', '')]);
+      if (s.search) chipData.push(['Search', s.search]);
+      if (s.sortBy !== 'default') chipData.push(['Sort', s.sortBy.replace('Desc', ' ↓').replace('Asc', ' ↑')]);
+      for (const [label, value] of chipData.slice(0, 4)) chips.appendChild(makeChip(label, value));
+      chips.classList.toggle('is-empty', chipData.length === 0);
     }
     document.querySelectorAll('[data-shell-panel-btn]').forEach((btn) => btn.classList.toggle('is-active', btn.dataset.shellPanelBtn === $('shellDrawer')?.dataset.activePanel));
   }
@@ -88,10 +86,21 @@
 
   function closeDrawer() { $('shellDrawerLayer')?.classList.remove('is-open'); }
 
-  function moveIntoPanel(selector, panel) {
-    const target = document.querySelector(`[data-shell-panel="${panel}"]`);
+  function panel(panelName) { return document.querySelector(`[data-shell-panel="${panelName}"]`); }
+  function moveSectionByHeading(titleId, panelName, where = 'append') {
+    const target = panel(panelName);
+    const heading = $(titleId);
+    const block = heading?.closest('.card-block, .control-block, .summary-grid');
+    if (!target || !block) return;
+    if (where === 'prepend') target.prepend(block);
+    else target.appendChild(block);
+  }
+  function moveNode(selector, panelName, where = 'append') {
+    const target = panel(panelName);
     const node = document.querySelector(selector);
-    if (target && node) target.appendChild(node);
+    if (!target || !node) return;
+    if (where === 'prepend') target.prepend(node);
+    else target.appendChild(node);
   }
 
   function buildShell() {
@@ -109,9 +118,9 @@
         <div class="shell-search-row">
           <span class="shell-search-icon">⌕</span>
           <input id="smartSearch" type="search" autocomplete="off" placeholder="Search or filter: contraverse exotic warlock vault dupes sort:total tol:5" />
+          <div id="shellActiveFilters" class="shell-active-filters is-empty" aria-live="polite"></div>
           <button id="shellSearchHelpBtn" class="shell-search-help" type="button" title="Search syntax">?</button>
         </div>
-        <div id="shellActiveFilters" class="shell-active-filters" aria-live="polite"></div>
       </div>
       <nav class="shell-actions" aria-label="D2AA actions">
         <button class="shell-btn shell-btn--primary" data-shell-panel-btn="data" type="button"><span class="shell-btn-icon">⇧</span><span>Data</span></button>
@@ -151,20 +160,14 @@
     </div>`;
     document.body.appendChild(help);
 
-    moveIntoPanel('#uploadTitle', 'data');
-    const dataPanel = document.querySelector('[data-shell-panel="data"]');
-    const uploadSection = dataPanel?.querySelector('#uploadTitle')?.closest('.card-block') || document.querySelector('#uploadTitle')?.closest('.card-block');
-    if (uploadSection && dataPanel) dataPanel.prepend(uploadSection);
-    moveIntoPanel('#quickHelpTitle', 'summary');
-    const quick = document.querySelector('#quickHelpTitle')?.closest('.card-block');
-    if (quick) document.querySelector('[data-shell-panel="summary"]')?.appendChild(quick);
-    const summary = document.querySelector('.summary-grid');
-    if (summary) document.querySelector('[data-shell-panel="summary"]')?.prepend(summary);
-    moveIntoPanel('#searchTitle', 'filters');
-    moveIntoPanel('#filterTitle', 'filters');
-    moveIntoPanel('#toleranceTitle', 'filters');
-    moveIntoPanel('#actionsTitle', 'filters');
-    moveIntoPanel('#themeTitle', 'theme');
+    moveSectionByHeading('uploadTitle', 'data', 'append');
+    moveSectionByHeading('searchTitle', 'filters', 'append');
+    moveSectionByHeading('filterTitle', 'filters', 'append');
+    moveSectionByHeading('toleranceTitle', 'filters', 'append');
+    moveSectionByHeading('actionsTitle', 'filters', 'append');
+    moveNode('.summary-grid', 'summary', 'prepend');
+    moveSectionByHeading('quickHelpTitle', 'summary', 'append');
+    moveSectionByHeading('themeTitle', 'theme', 'append');
 
     $('smartSearch')?.addEventListener('input', (event) => parseSmartSearch(event.target.value));
     $('shellRefreshBtn')?.addEventListener('click', () => $('bungieImportV2Btn')?.click() || $('restoreBtn')?.click());
