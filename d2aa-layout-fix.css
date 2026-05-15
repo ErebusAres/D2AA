@@ -244,6 +244,7 @@ body.grid-view .grid-actions{
   bottom:0!important;
   display:grid!important;
   grid-template-columns:1fr auto!important;
+  grid-auto-rows:30px!important;
   gap:7px!important;
   padding:36px 10px 10px!important;
   margin:0!important;
@@ -256,6 +257,10 @@ body.grid-view .grid-actions{
   background:linear-gradient(180deg,rgba(8,7,14,0),rgba(3,3,8,.72) 48%,rgba(2,2,5,.92) 100%)!important;
   border-radius:0 0 16px 16px!important;
   transition:opacity .16s ease,transform .16s ease!important;
+}
+
+body.grid-view .grid-card.is-dupe .grid-actions{
+  grid-template-columns:1fr auto!important;
 }
 
 body.grid-view .grid-card:hover .grid-actions,
@@ -302,6 +307,13 @@ body.grid-view .grid-action--group .grid-action-slot-icon{
 body.grid-view .grid-action--group span{
   color:#fff!important;
   text-shadow:0 0 10px color-mix(in srgb,var(--group-glow,var(--accent)) 58%,transparent)!important;
+}
+
+body.grid-view .grid-action--compare{
+  grid-column:1 / -1!important;
+  width:100%!important;
+  font-weight:900!important;
+  letter-spacing:.01em!important;
 }
 
 body.grid-view .grid-action:hover,
