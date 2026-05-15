@@ -2,7 +2,9 @@
   const LS_SEEN = 'd2aa_bungie_seen_item_ids_v1';
   const LS_FEED = 'd2aa_bungie_item_feed_v1';
   const LS_OPEN = 'd2aa_item_feed_open_v1';
+  const LS_DISMISSED = 'd2aa_item_feed_dismissed_ids_v1';
   const MAX_FEED = 25;
+  const FEED_SEED_COUNT = 10;
   const STAT_KEYS = ['Health (Base)', 'Melee (Base)', 'Grenade (Base)', 'Super (Base)', 'Class (Base)', 'Weapons (Base)'];
   const STAT_ICONS = ['♥', '✊', '💣', '✦', '◆', '⚔'];
   const TAGS = [
@@ -19,12 +21,15 @@
   const readJson = (key, fallback) => { try { return JSON.parse(localStorage.getItem(key) || JSON.stringify(fallback)); } catch (_) { return fallback; } };
   const writeJson = (key, value) => { try { localStorage.setItem(key, JSON.stringify(value)); } catch (_) {} };
   const normId = (value) => String(value || '').trim();
+  const dismissedSet = () => new Set(readJson(LS_DISMISSED, []).map(normId).filter(Boolean));
+  const saveDismissedSet = (set) => writeJson(LS_DISMISSED, [...set].slice(-250));
   const isBungieRows = (rows, label) => /bungie/i.test(String(label || '')) || (rows || []).some((row) => row?.Source === 'Bungie');
   const esc = (value) => String(value ?? '').replace(/[&<>'"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[c]));
 
   function normalizeFeed(items) {
+    const dismissed = dismissedSet();
     return (items || [])
-      .filter((item) => normId(item?.id) && !item.dismissed)
+      .filter((item) => normId(item?.id) && !item.dismissed && !dismissed.has(normId(item.id)))
       .sort((a, b) => String(b.foundAt || '').localeCompare(String(a.foundAt || '')))
       .slice(0, MAX_FEED);
   }
@@ -38,8 +43,9 @@
   function locationIcon(row) { return row?.IsInVault ? '🏦' : row?.IsEquipped ? '⚔️' : '🎒'; }
   function normalizeTag(tag) { const value = String(tag || '').trim().toLowerCase(); return TAGS.some(([t]) => t === value) ? value : ''; }
   function slotGlyph(type) { const t = String(type || '').toLowerCase(); if (t.includes('helmet')) return '◉'; if (t.includes('gauntlet')) return '▣'; if (t.includes('chest')) return '⬟'; if (t.includes('leg')) return '▰'; return '◇'; }
+  function idSortValue(row) { const id = normId(row?.Id); return id.length ? id.padStart(24, '0') : ''; }
 
-  function buildFeedEntry(row) {
+  function buildFeedEntry(row, options = {}) {
     const stats = Object.fromEntries(STAT_KEYS.map((key) => [key, Number(row[key] || 0)]));
     return {
       id: normId(row.Id),
@@ -55,20 +61,36 @@
       itemIcon: row.IconUrl || row.Icon || row.DisplayIcon || '',
       stats,
       tag: normalizeTag(row.Tag),
-      foundAt: new Date().toISOString(),
+      foundAt: options.foundAt || new Date().toISOString(),
+      seeded: Boolean(options.seeded),
       dismissed: false
     };
   }
 
   function mergeFeedEntries(newRows) {
     const existing = getFeed();
+    const dismissed = dismissedSet();
     const byId = new Map(existing.map((item) => [item.id, item]));
     for (const row of newRows) {
+      const id = normId(row.Id);
+      if (!id || dismissed.has(id)) continue;
       const entry = buildFeedEntry(row);
       const old = byId.get(entry.id);
       byId.set(entry.id, { ...old, ...entry, tag: old?.tag || entry.tag, dismissed: false });
     }
     saveFeed([...byId.values()]);
+  }
+
+  function seedFeedFromCurrentRows(rows) {
+    if (getFeed().length) return;
+    const dismissed = dismissedSet();
+    const seedRows = [...(rows || [])]
+      .filter((row) => normId(row?.Id) && !dismissed.has(normId(row.Id)))
+      .sort((a, b) => idSortValue(b).localeCompare(idSortValue(a)))
+      .slice(0, FEED_SEED_COUNT);
+    if (!seedRows.length) return;
+    const now = Date.now();
+    saveFeed(seedRows.map((row, index) => buildFeedEntry(row, { seeded: true, foundAt: new Date(now - index * 1000).toISOString() })));
   }
 
   function decorateIncomingRows(rows, label) {
@@ -78,6 +100,7 @@
     const newRows = firstSnapshot ? [] : rows.filter((row) => normId(row.Id) && !previous.has(normId(row.Id)));
     const newIds = new Set(newRows.map((row) => normId(row.Id)));
     if (newRows.length) { mergeFeedEntries(newRows); setDrawerOpen(true); }
+    else seedFeedFromCurrentRows(rows);
     saveSeen(rows);
     return rows.map((row) => ({ ...row, RecentlyFound: newIds.has(normId(row.Id)) }));
   }
@@ -111,8 +134,25 @@
     window.D2AA?.render?.();
   }
 
-  function dismissFeedItem(id) { saveFeed(getFeed().filter((item) => item.id !== id)); renderFeed(); window.D2AA?.render?.(); }
-  function dismissAllFeedItems() { saveFeed([]); feedOnly = false; if ($('showRecentBtn')) $('showRecentBtn').textContent = 'Show recent'; renderFeed(); window.D2AA?.render?.(); }
+  function dismissFeedItem(id) {
+    const dismissed = dismissedSet();
+    dismissed.add(normId(id));
+    saveDismissedSet(dismissed);
+    saveFeed(getFeed().filter((item) => item.id !== id));
+    renderFeed();
+    window.D2AA?.render?.();
+  }
+
+  function dismissAllFeedItems() {
+    const dismissed = dismissedSet();
+    for (const item of getFeed()) dismissed.add(normId(item.id));
+    saveDismissedSet(dismissed);
+    saveFeed([]);
+    feedOnly = false;
+    if ($('showRecentBtn')) $('showRecentBtn').textContent = 'Show recent';
+    renderFeed();
+    window.D2AA?.render?.();
+  }
 
   function renderStats(item) {
     const stats = item.stats || {};
@@ -138,11 +178,12 @@
       card.className = `item-feed-card ${rarityClass(item.rarity)}`;
       const when = item.foundAt ? new Date(item.foundAt).toLocaleString([], { hour: 'numeric', minute: '2-digit' }) : 'recently';
       const iconHtml = item.itemIcon ? `<img src="${esc(item.itemIcon)}" alt="" loading="lazy" />` : `<span>${slotGlyph(item.type)}</span>`;
+      const verb = item.seeded ? 'Latest' : 'Received';
       card.innerHTML = `
         <button class="feed-dismiss" type="button" title="Dismiss from feed" aria-label="Dismiss ${esc(item.name)}">×</button>
         <div class="feed-icon">${iconHtml}<span class="feed-type-glyph">${slotGlyph(item.type)}</span></div>
         <div class="feed-main">
-          <div class="feed-kicker">Received ${esc(when)} • ${esc(item.icon || '')} ${esc(item.location || 'Unknown')}</div>
+          <div class="feed-kicker">${verb} ${esc(when)} • ${esc(item.icon || '')} ${esc(item.location || 'Unknown')}</div>
           <div class="feed-title" title="${esc(item.name)}">${esc(item.name)}</div>
           <div class="feed-meta">${esc(item.rarity || 'Unknown')} • ${esc(item.type || 'Armor')} • ${esc(item.equippable || '')}</div>
         </div>
