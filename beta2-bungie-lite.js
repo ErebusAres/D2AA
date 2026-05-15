@@ -251,7 +251,7 @@
     setStatus(`Bungie sync complete: ${rows.length} armor items in ${seconds}s.`, true);
   }
 
-  const btn = $('bungieImportBtn');
+  const btn = $('bungieImportLiteBtn');
   if (btn) {
     btn.addEventListener('click', (event) => {
       event.preventDefault();
