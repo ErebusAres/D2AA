@@ -1,0 +1,12 @@
+/* D2AA core styles bundle.
+   Temporary compatibility bundle: imports the current stable beta2-era base files in load order while the repo is being consolidated into friendlier filenames. */
+@import url("./beta2.css");
+@import url("./beta2-themes.css");
+@import url("./beta2-shell.css");
+@import url("./beta2-grid-view.css");
+@import url("./beta2-grid-cleanup.css");
+@import url("./beta2-ui-polish.css");
+@import url("./beta2-workflow.css");
+@import url("./beta2-open-grid.css");
+@import url("./beta2-startup-stability.css");
+@import url("./beta2-refresh-key.css");
