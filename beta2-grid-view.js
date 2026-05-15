@@ -25,12 +25,13 @@
   const locationIcon = (row) => row.IsInVault ? '🏦' : row.IsEquipped ? '⚔️' : row.Source === 'Bungie' ? '🎒' : '⧉';
   const itemIcon = (row) => row.IconUrl || row.Icon || row.DisplayIcon || row.ScreenshotUrl || '';
   const tierDiamonds = (row) => { const t = Math.max(0, Math.min(5, num(row.Tier))); return `${'◆'.repeat(t)}${'◇'.repeat(5 - t)}`; };
+  const lightLevel = (row) => num(row.Light || row.Power || row['Power Level'] || row['Light Level'] || row.PowerLevel || row.PrimaryStat || row['Primary Stat']);
   const escapeHtml = (value) => String(value ?? '').replace(/[&<>'"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[c]));
   const mask = (url, label, cls = 'grid-mask-icon') => `<span class="${cls}" title="${escapeHtml(label)}" style="mask-image:url('${url}');-webkit-mask-image:url('${url}')"></span>`;
   const img = (url, label, cls = 'grid-mini-icon') => url ? `<img class="${cls}" src="${url}" alt="${escapeHtml(label)}" title="${escapeHtml(label)}" loading="lazy">` : '';
 
-  function viewMode() { return localStorage.getItem(LS_VIEW) || 'table'; }
-  function setViewMode(mode) { localStorage.setItem(LS_VIEW, mode === 'grid' ? 'grid' : 'table'); document.body.classList.toggle('grid-view', mode === 'grid'); updateViewToggle(); window.D2AA?.render?.(); }
+  function viewMode() { return localStorage.getItem(LS_VIEW) || 'grid'; }
+  function setViewMode(mode) { localStorage.setItem(LS_VIEW, mode === 'table' ? 'table' : 'grid'); document.body.classList.toggle('grid-view', mode !== 'table'); updateViewToggle(); window.D2AA?.render?.(); }
   function state() { return window.D2AA?.getState?.(); }
   function groupColor(row) {
     if (!row?.Is_Dupe) return '';
@@ -76,6 +77,14 @@
     return row.IsInVault ? 'Pull' : 'Vault';
   }
 
+  function renderGroupButton(row, slot) {
+    if (!row.Is_Dupe) return '';
+    const label = `${slot} ${row.Dupe_Group}`;
+    return `<button class="grid-action grid-action--group" type="button" data-grid-action="group" title="${row.Source === 'Bungie' ? 'Pull/copy this duplicate group' : 'Copy all DIM IDs in this duplicate group'}">
+      ${mask(SLOT_ICONS[slot], label, 'grid-action-slot-icon')}<span>${escapeHtml(row.Dupe_Group)}</span>
+    </button>`;
+  }
+
   function renderGridCard(row) {
     const icon = itemIcon(row);
     const fallback = slotLabel(row.Type).slice(0, 1).toUpperCase();
@@ -83,10 +92,11 @@
     const style = gColor ? ` style="--group-glow:${gColor}"` : '';
     const slot = slotLabel(row.Type);
     const actionDisabled = row.Source === 'Bungie' && row.IsEquipped ? ' disabled' : '';
-    const groupText = row.Is_Dupe ? `⚠ ${slot} • ${row.Dupe_Group}` : `${row.Rarity || 'Unknown'} • Solo`;
+    const groupText = row.Is_Dupe ? `${row.Dupe_Group}` : `${row.Rarity || 'Unknown'}`;
+    const light = lightLevel(row);
     return `<article class="grid-card ${rarityClass(row.Rarity)}${row.Is_Dupe ? ' is-dupe' : ''}" data-grid-id="${escapeHtml(normId(row.Id))}"${style}>
       <div class="grid-card-top">
-        <div class="grid-item-icon">${icon ? `<img src="${escapeHtml(icon)}" alt="" loading="lazy">` : `<span>${fallback}</span>`}</div>
+        <div class="grid-item-icon">${icon ? `<img src="${escapeHtml(icon)}" alt="" loading="lazy">` : `<span>${fallback}</span>`}${light ? `<span class="grid-light" title="Light / Power level">${light}</span>` : ''}</div>
         <div class="grid-item-title">
           <div class="grid-item-name" title="${escapeHtml(row.Name)}">${escapeHtml(row.Name || '(Unnamed item)')}</div>
           <div class="grid-icon-row">
@@ -101,11 +111,11 @@
       <div class="grid-body">
         <div class="grid-primary-row"><span class="grid-total" title="Base stat total">${num(row['Total (Base)'])}</span><span class="grid-tier" title="Tier ${num(row.Tier)}">${tierDiamonds(row)}</span><span class="grid-rank" title="Rank">${escapeHtml(row.Rank || '')}</span></div>
         ${renderStats(row)}
-        <div class="grid-group-row"><span class="grid-group" title="${escapeHtml(groupText)}">${escapeHtml(groupText)}</span><span class="grid-id" title="${escapeHtml(normId(row.Id))}">${escapeHtml(normId(row.Id))}</span></div>
+        <div class="grid-group-row"><span class="grid-group" title="${escapeHtml(row.Is_Dupe ? `${slot} duplicate group ${row.Dupe_Group}` : `${row.Rarity || 'Unknown'} solo item`)}">${row.Is_Dupe ? `${mask(SLOT_ICONS[slot], slot, 'grid-group-slot-icon')}` : ''}<span>${escapeHtml(groupText)}</span></span>${light ? `<span class="grid-power-pill" title="Light / Power level">✦ ${light}</span>` : ''}</div>
       </div>
-      <div class="grid-actions">
+      <div class="grid-actions${row.Is_Dupe ? '' : ' grid-actions--single'}">
         <button class="grid-action" type="button" data-grid-action="primary"${actionDisabled}>${buttonText(row)}</button>
-        <button class="grid-action" type="button" data-grid-action="group" ${row.Is_Dupe ? '' : 'disabled'}>${row.Source === 'Bungie' ? 'Group' : 'IDs'}</button>
+        ${renderGroupButton(row, slot)}
       </div>
     </article>`;
   }
@@ -127,8 +137,8 @@
     if (!row.Is_Dupe) return;
     const rows = state()?.visible || [];
     const groupIds = rows.filter((item) => item.GroupKey === row.GroupKey && item.Dupe_Group === row.Dupe_Group).map((item) => `id:${normId(item.Id)}`).join(' or ');
-    try { await navigator.clipboard.writeText(groupIds); btn.textContent = 'Copied'; } catch (_) { btn.textContent = 'Failed'; }
-    setTimeout(() => { btn.textContent = row.Source === 'Bungie' ? 'Group' : 'IDs'; }, 900);
+    try { await navigator.clipboard.writeText(groupIds); btn.classList.add('is-success'); } catch (_) { btn.classList.add('is-error'); }
+    setTimeout(() => { btn.classList.remove('is-success', 'is-error'); }, 900);
   }
 
   function renderGridIfNeeded() {
