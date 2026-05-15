@@ -30,10 +30,7 @@
   <link rel="stylesheet" href="beta2-startup-stability.css" />
   <link rel="stylesheet" href="beta2-refresh-key.css" />
   <link rel="stylesheet" href="beta2-feed-drawer.css" />
-  <link rel="stylesheet" href="beta2-feed-redesign.css" />
-  <link rel="stylesheet" href="beta2-feed-v53.css" />
-  <link rel="stylesheet" href="beta2-feed-v57.css" />
-  <link rel="stylesheet" href="beta2-feed-v58.css" />
+  <link rel="stylesheet" href="beta2-feed-clean.css" />
 </head>
 <body data-theme="calus" class="d2aa-booting grid-view shell-enhanced">
   <div class="app-shell">
@@ -66,114 +63,35 @@
 
         <div class="source-divider"><span>or</span></div>
 
-        <button class="action-card action-card--bungie" id="bungieSetupBtn" type="button">
-          <span class="action-icon" aria-hidden="true">⚙</span>
-          <span><span class="action-title">Bungie Dev Config</span><span class="action-sub">Optional override for embedded public app config</span></span>
-        </button>
-        <button class="action-card action-card--bungie" id="bungieLoginBtn" type="button">
-          <span class="action-icon" aria-hidden="true">◇</span>
-          <span><span class="action-title">Connect Destiny Account</span><span class="action-sub">Bungie / Steam sign-in</span></span>
-        </button>
-        <button class="action-card action-card--bungie" id="bungieImportV2Btn" type="button">
-          <span class="action-icon" aria-hidden="true">↓</span>
-          <span><span class="action-title">Sync from Bungie</span><span class="action-sub">Fetch vault + character armor</span></span>
-        </button>
+        <button class="action-card action-card--bungie" id="bungieSetupBtn" type="button"><span class="action-icon" aria-hidden="true">⚙</span><span><span class="action-title">Bungie Dev Config</span><span class="action-sub">Optional override for embedded public app config</span></span></button>
+        <button class="action-card action-card--bungie" id="bungieLoginBtn" type="button"><span class="action-icon" aria-hidden="true">◇</span><span><span class="action-title">Connect Destiny Account</span><span class="action-sub">Bungie / Steam sign-in</span></span></button>
+        <button class="action-card action-card--bungie" id="bungieImportV2Btn" type="button"><span class="action-icon" aria-hidden="true">↓</span><span><span class="action-title">Sync from Bungie</span><span class="action-sub">Fetch vault + character armor</span></span></button>
         <div id="bungieStatus" class="source-status is-missing" aria-live="polite">Ready to connect your Destiny account.</div>
 
-        <button class="action-card" id="restoreBtn" type="button">
-          <span class="action-icon" aria-hidden="true">↻</span>
-          <span><span class="action-title">Restore last</span><span class="action-sub">Load recent browser upload/import</span></span>
-        </button>
-        <button class="action-card action-card--danger" id="clearBtn" type="button">
-          <span class="action-icon" aria-hidden="true">×</span>
-          <span><span class="action-title">Clear</span><span class="action-sub">Remove local results</span></span>
-        </button>
+        <button class="action-card" id="restoreBtn" type="button"><span class="action-icon" aria-hidden="true">↻</span><span><span class="action-title">Restore last</span><span class="action-sub">Load recent browser upload/import</span></span></button>
+        <button class="action-card action-card--danger" id="clearBtn" type="button"><span class="action-icon" aria-hidden="true">×</span><span><span class="action-title">Clear</span><span class="action-sub">Remove local results</span></span></button>
       </section>
 
-      <section class="card-block" aria-labelledby="themeTitle">
-        <h2 id="themeTitle">Theme</h2>
-        <div class="theme-grid" id="themeToggle" role="group" aria-label="Select display theme"></div>
-      </section>
+      <section class="card-block" aria-labelledby="themeTitle"><h2 id="themeTitle">Theme</h2><div class="theme-grid" id="themeToggle" role="group" aria-label="Select display theme"></div></section>
     </aside>
 
     <main class="table-stage" aria-label="Armor results">
       <section class="panel table-panel">
-        <div class="table-topbar">
-          <div>
-            <p class="eyebrow">Results</p>
-            <h2>Armor Table</h2>
-          </div>
-          <div class="table-count" id="resultCount">0 shown</div>
-        </div>
-
+        <div class="table-topbar"><div><p class="eyebrow">Results</p><h2>Armor Table</h2></div><div class="table-count" id="resultCount">0 shown</div></div>
         <div class="table-wrap">
-          <div class="armor-grid armor-grid--header" role="row">
-            <div class="center">Tag</div>
-            <div>Item</div>
-            <div class="center">Tier</div>
-            <div>Base Stats</div>
-            <div class="center">Total</div>
-            <div class="center">Group</div>
-            <div class="center">Rank</div>
-            <div class="right">Action</div>
-          </div>
+          <div class="armor-grid armor-grid--header" role="row"><div class="center">Tag</div><div>Item</div><div class="center">Tier</div><div>Base Stats</div><div class="center">Total</div><div class="center">Group</div><div class="center">Rank</div><div class="right">Action</div></div>
           <div id="rows"></div>
-          <div id="empty" class="empty-state">
-            <p>No items yet — upload a DIM CSV, restore your last import, or connect your Destiny account.</p>
-            <p class="muted">DIM path: Organizer → select any class → Armor.csv button → upload the downloaded file here.</p>
-          </div>
+          <div id="empty" class="empty-state"><p>No items yet — upload a DIM CSV, restore your last import, or connect your Destiny account.</p><p class="muted">DIM path: Organizer → select any class → Armor.csv button → upload the downloaded file here.</p></div>
         </div>
       </section>
     </main>
 
     <aside class="panel right-rail" aria-label="Analyzer controls">
-      <section class="summary-grid" aria-label="Summary">
-        <div class="summary-card"><span class="summary-label">Shown</span><strong id="summaryShown">0</strong></div>
-        <div class="summary-card"><span class="summary-label">Dupes</span><strong id="summaryDupes">0</strong></div>
-        <div class="summary-card"><span class="summary-label">Groups</span><strong id="summaryGroups">0</strong></div>
-        <div class="summary-card"><span class="summary-label">Avg Total</span><strong id="summaryAvg">0</strong></div>
-      </section>
-
-      <section class="control-block" aria-labelledby="searchTitle">
-        <h2 id="searchTitle">Search & Sort</h2>
-        <label class="field-label" for="searchBox">Search name or ID</label>
-        <input id="searchBox" class="text-field" type="search" placeholder="Contraverse, 12345, helmet..." autocomplete="off" />
-        <label class="field-label" for="sortBy">Sort results</label>
-        <select id="sortBy" class="select-field select-field--themed">
-          <option value="default">Default analyzer order</option>
-          <option value="totalDesc">Total: high to low</option>
-          <option value="rankDesc">Rank: high to low</option>
-          <option value="nameAsc">Name: A to Z</option>
-          <option value="slotAsc">Slot order</option>
-        </select>
-      </section>
-
-      <section class="control-block" aria-labelledby="filterTitle">
-        <h2 id="filterTitle">Filters</h2>
-        <div class="filter-group"><span class="field-label">Class</span><div id="classSeg" class="segmented"></div></div>
-        <div class="filter-group"><span class="field-label">Rarity</span><div id="raritySeg" class="segmented"></div></div>
-        <div class="filter-group"><span class="field-label">Slot</span><div id="slotSeg" class="segmented"></div></div>
-        <div class="filter-group"><span class="field-label">Location</span><div id="locationSeg" class="segmented"></div></div>
-        <div class="filter-group"><span class="field-label">Dupes</span><div id="dupesSeg" class="segmented"></div></div>
-      </section>
-
-      <section class="control-block" aria-labelledby="toleranceTitle">
-        <h2 id="toleranceTitle">Dupe Tolerance</h2>
-        <label class="field-label" for="tol">Top-3 stat tolerance</label>
-        <div class="range-row">
-          <input id="tol" type="range" min="0" max="20" value="5" />
-          <output id="tolOut" for="tol">±5</output>
-        </div>
-        <p class="muted compact">Lower values are stricter. Higher values catch more possible duplicates.</p>
-      </section>
-
-      <section class="control-block" aria-labelledby="actionsTitle">
-        <h2 id="actionsTitle">Actions</h2>
-        <button id="copyVisibleBtn" class="action-card" type="button">
-          <span class="action-icon" aria-hidden="true">⧉</span>
-          <span><span class="action-title">Copy visible IDs</span><span class="action-sub">DIM filter: id:... or id:...</span></span>
-        </button>
-      </section>
+      <section class="summary-grid" aria-label="Summary"><div class="summary-card"><span class="summary-label">Shown</span><strong id="summaryShown">0</strong></div><div class="summary-card"><span class="summary-label">Dupes</span><strong id="summaryDupes">0</strong></div><div class="summary-card"><span class="summary-label">Groups</span><strong id="summaryGroups">0</strong></div><div class="summary-card"><span class="summary-label">Avg Total</span><strong id="summaryAvg">0</strong></div></section>
+      <section class="control-block" aria-labelledby="searchTitle"><h2 id="searchTitle">Search & Sort</h2><label class="field-label" for="searchBox">Search name or ID</label><input id="searchBox" class="text-field" type="search" placeholder="Contraverse, 12345, helmet..." autocomplete="off" /><label class="field-label" for="sortBy">Sort results</label><select id="sortBy" class="select-field select-field--themed"><option value="default">Default analyzer order</option><option value="totalDesc">Total: high to low</option><option value="rankDesc">Rank: high to low</option><option value="nameAsc">Name: A to Z</option><option value="slotAsc">Slot order</option></select></section>
+      <section class="control-block" aria-labelledby="filterTitle"><h2 id="filterTitle">Filters</h2><div class="filter-group"><span class="field-label">Class</span><div id="classSeg" class="segmented"></div></div><div class="filter-group"><span class="field-label">Rarity</span><div id="raritySeg" class="segmented"></div></div><div class="filter-group"><span class="field-label">Slot</span><div id="slotSeg" class="segmented"></div></div><div class="filter-group"><span class="field-label">Location</span><div id="locationSeg" class="segmented"></div></div><div class="filter-group"><span class="field-label">Dupes</span><div id="dupesSeg" class="segmented"></div></div></section>
+      <section class="control-block" aria-labelledby="toleranceTitle"><h2 id="toleranceTitle">Dupe Tolerance</h2><label class="field-label" for="tol">Top-3 stat tolerance</label><div class="range-row"><input id="tol" type="range" min="0" max="20" value="5" /><output id="tolOut" for="tol">±5</output></div><p class="muted compact">Lower values are stricter. Higher values catch more possible duplicates.</p></section>
+      <section class="control-block" aria-labelledby="actionsTitle"><h2 id="actionsTitle">Actions</h2><button id="copyVisibleBtn" class="action-card" type="button"><span class="action-icon" aria-hidden="true">⧉</span><span><span class="action-title">Copy visible IDs</span><span class="action-sub">DIM filter: id:... or id:...</span></span></button></section>
     </aside>
   </div>
 
@@ -185,6 +103,7 @@
   <script src="beta2-item-feed-icons.js"></script>
   <script src="beta2-item-feed-tier-diamonds.js"></script>
   <script src="beta2-feed-drawer.js"></script>
+  <script src="beta2-feed-redesign.js"></script>
   <script src="beta2-feed-redesign.js"></script>
   <script src="beta2-feed-v53.js"></script>
   <script src="beta2-feed-tag-menu.js"></script>
