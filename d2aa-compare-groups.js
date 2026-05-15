@@ -12,22 +12,36 @@
   const normId = (v) => String(v || '').trim();
   const num = (v) => Number(v || 0);
   const esc = (v) => String(v ?? '').replace(/[&<>'"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[c]));
-  const state = () => window.D2AA?.getState?.();
+  const state = () => window.D2AA?.getState?.() || {};
+  const allRows = () => [...(state().visible || []), ...(state().rows || [])];
   const itemIcon = (row) => row.IconUrl || row.Icon || row.DisplayIcon || row.ScreenshotUrl || '';
   const slotLabel = (type) => ['Warlock Bond', 'Hunter Cloak', 'Titan Mark'].includes(type) ? 'Class Item' : (type || 'Armor');
   const tagIcon = (tag) => ({ favorite: '❤️', keep: '🏷️', junk: '🚫', infuse: '⚡', archive: '📦', feed: '✨' }[String(tag || '').toLowerCase()] || '');
   const tier = (row) => Math.max(0, Math.min(5, num(row.GearTier || row.Tier)));
   const diamonds = (row) => `${'◆'.repeat(tier(row))}${'◇'.repeat(5 - tier(row))}`;
   let activeGroup = null;
+  let lastOpenAt = 0;
 
   function groupRowsFor(row) {
-    const rows = state()?.visible || [];
-    return rows.filter((item) => item.Is_Dupe && item.GroupKey === row.GroupKey && item.Dupe_Group === row.Dupe_Group);
+    const rows = state().visible || state().rows || [];
+    const matches = rows.filter((item) => item.Is_Dupe && item.GroupKey === row.GroupKey && item.Dupe_Group === row.Dupe_Group);
+    return matches.length ? matches : allRows().filter((item) => item.Is_Dupe && item.GroupKey === row.GroupKey && item.Dupe_Group === row.Dupe_Group);
   }
 
   function rowForCard(card) {
-    const id = card?.dataset?.gridId;
-    return (state()?.visible || []).find((row) => normId(row.Id) === id);
+    if (!card) return null;
+    const id = normId(card.dataset.gridId || card.getAttribute('data-grid-id'));
+    const rows = allRows();
+    if (id) {
+      const byId = rows.find((row) => normId(row.Id) === id || normId(row.InstanceId) === id || normId(row.ItemInstanceId) === id);
+      if (byId) return byId;
+    }
+    const group = normId(card.querySelector('.grid-group-badge')?.textContent);
+    const name = card.querySelector('.grid-item-name')?.textContent?.trim();
+    if (group && name) {
+      return rows.find((row) => row.Is_Dupe && normId(row.Dupe_Group) === group && String(row.Name || '').trim() === name) || null;
+    }
+    return null;
   }
 
   function ensureModal() {
@@ -50,7 +64,7 @@
       const tagBtn = event.target.closest('[data-compare-tag]');
       if (tagBtn) {
         const id = tagBtn.closest('[data-compare-id]')?.dataset.compareId;
-        const row = (state()?.visible || []).find((item) => normId(item.Id) === id);
+        const row = allRows().find((item) => normId(item.Id) === id);
         if (!row) return;
         window.D2AA?.setTag?.(row, tagBtn.dataset.compareTag);
         window.D2AA?.render?.();
@@ -121,9 +135,15 @@
     event?.preventDefault?.();
     event?.stopPropagation?.();
     event?.stopImmediatePropagation?.();
-    const card = button.closest('.grid-card');
-    const row = rowForCard(card);
+    const now = Date.now();
+    if (now - lastOpenAt < 250) return;
+    lastOpenAt = now;
+    const row = rowForCard(button.closest('.grid-card'));
     if (row) openModal(row);
+  }
+
+  function compareButtonsIn(actions) {
+    return [...actions.querySelectorAll('button')].filter((btn) => btn.dataset.gridAction === 'compare-group' || btn.classList.contains('grid-action--compare') || btn.textContent.trim().toLowerCase() === 'compare group');
   }
 
   function ensureCompareButtons() {
@@ -132,21 +152,21 @@
       if (!groupBtn) return;
       groupBtn.title = 'Group action';
       groupBtn.dataset.compareGroupId = groupBtn.textContent.trim();
-      let compareBtn = actions.querySelector('[data-grid-action="compare-group"]');
+
+      let buttons = compareButtonsIn(actions);
+      let compareBtn = buttons[0];
+      buttons.slice(1).forEach((btn) => btn.remove());
       if (!compareBtn) {
         compareBtn = document.createElement('button');
-        compareBtn.type = 'button';
-        compareBtn.className = 'grid-action grid-action--compare';
-        compareBtn.dataset.gridAction = 'compare-group';
-        compareBtn.title = 'Compare duplicate group';
-        compareBtn.textContent = 'Compare group';
         actions.appendChild(compareBtn);
       }
-      if (compareBtn.dataset.compareBound !== '1') {
-        compareBtn.dataset.compareBound = '1';
-        compareBtn.addEventListener('click', (event) => openFromButton(compareBtn, event), true);
-        compareBtn.addEventListener('pointerup', (event) => openFromButton(compareBtn, event), true);
-      }
+      compareBtn.type = 'button';
+      compareBtn.className = 'grid-action grid-action--compare';
+      compareBtn.dataset.gridAction = 'compare-group';
+      compareBtn.title = 'Compare duplicate group';
+      compareBtn.textContent = 'Compare group';
+      compareBtn.onclick = (event) => openFromButton(compareBtn, event);
+      compareBtn.onpointerdown = (event) => openFromButton(compareBtn, event);
     });
   }
 
@@ -162,8 +182,12 @@
     ensureModal();
     patchRender();
     ensureCompareButtons();
+    document.addEventListener('pointerdown', (event) => {
+      const btn = event.target.closest?.('[data-grid-action="compare-group"], .grid-action--compare');
+      if (btn) openFromButton(btn, event);
+    }, true);
     document.addEventListener('click', (event) => {
-      const btn = event.target.closest?.('[data-grid-action="compare-group"]');
+      const btn = event.target.closest?.('[data-grid-action="compare-group"], .grid-action--compare');
       if (btn) openFromButton(btn, event);
     }, true);
     const rows = document.getElementById('rows');
