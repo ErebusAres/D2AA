@@ -1,9 +1,18 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="d2aa-preboot">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>D2 Armor Analyzer Beta 2 - By ErebusAres</title>
+  <script>
+    (function(){
+      try {
+        var view = localStorage.getItem('d2aa_beta2_view_mode_v1') || 'grid';
+        document.documentElement.classList.add('d2aa-preboot');
+        document.documentElement.classList.toggle('grid-view', view !== 'table');
+      } catch(e) { document.documentElement.classList.add('d2aa-preboot','grid-view'); }
+    })();
+  </script>
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
   <link rel="stylesheet" href="beta2.css" />
   <link rel="stylesheet" href="beta2-themes.css" />
@@ -18,8 +27,10 @@
   <link rel="stylesheet" href="beta2-open-grid.css" />
   <link rel="stylesheet" href="beta2-tag-popover.css" />
   <link rel="stylesheet" href="beta2-archetypes.css" />
+  <link rel="stylesheet" href="beta2-startup-stability.css" />
+  <link rel="stylesheet" href="beta2-refresh-key.css" />
 </head>
-<body data-theme="calus">
+<body data-theme="calus" class="d2aa-booting grid-view shell-enhanced">
   <div class="app-shell">
     <aside class="panel left-rail" aria-label="Analyzer actions">
       <div class="brand-block">
@@ -177,5 +188,7 @@
   <script src="beta2-workflow.js"></script>
   <script src="beta2-tag-popover.js"></script>
   <script src="beta2-archetypes.js"></script>
+  <script src="beta2-startup-stability.js"></script>
+  <script src="beta2-refresh-key.js"></script>
 </body>
 </html>
