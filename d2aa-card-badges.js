@@ -13,31 +13,75 @@
     row.Light,
     row.Power,
     row.PowerLevel,
+    row.Power_Level,
     row['Power Level'],
     row['Light Level'],
     row.PrimaryStat,
     row['Primary Stat'],
     row.Level,
     row['Item Level'],
+    row.__raw?.Light,
     row.__raw?.Power,
+    row.__raw?.PowerLevel,
+    row.__raw?.Power_Level,
     row.__raw?.['Power Level'],
     row.__raw?.['Light Level'],
+    row.__raw?.PrimaryStat,
+    row.__raw?.['Primary Stat'],
     row.__raw?.Level
   );
   const state = () => window.D2AA?.getState?.() || {};
+  const visibleRows = () => state().visible || state().filtered || state().rows || [];
+  const allRows = () => {
+    const seen = new Set();
+    return [...(state().visible || []), ...(state().filtered || []), ...(state().rows || [])].filter((row) => {
+      const key = normId(row.Id || row.InstanceId || row.ItemInstanceId) || `${row.Name}|${row.Dupe_Group}|${row.GroupKey}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  };
   let queued = 0;
   let lastSig = '';
 
-  function rowMap() {
-    return new Map((state().visible || []).map((row) => [normId(row.Id), row]));
+  function rowMaps() {
+    const byId = new Map();
+    const rows = allRows();
+    rows.forEach((row) => {
+      [row.Id, row.InstanceId, row.ItemInstanceId, row.ItemHash].map(normId).filter(Boolean).forEach((id) => byId.set(id, row));
+    });
+    return { byId, rows };
+  }
+
+  function rowForCard(card, maps) {
+    if (!card) return null;
+    const id = normId(card.dataset.gridId || card.getAttribute('data-grid-id') || card.dataset.id || card.getAttribute('data-id'));
+    if (id && maps.byId.has(id)) return maps.byId.get(id);
+
+    const group = normId(card.querySelector('.grid-group-badge')?.textContent || card.querySelector('[data-grid-action="group"]')?.textContent);
+    const name = card.querySelector('.grid-item-name')?.textContent?.trim();
+    if (group && name) {
+      const byGroupName = maps.rows.find((row) => row.Is_Dupe && normId(row.Dupe_Group) === group && String(row.Name || '').trim() === name);
+      if (byGroupName) return byGroupName;
+    }
+    if (name) return maps.rows.find((row) => String(row.Name || '').trim() === name) || null;
+    if (group) return maps.rows.find((row) => normId(row.Dupe_Group) === group) || null;
+    return null;
   }
 
   function signature() {
-    return (state().visible || []).map((row) => [normId(row.Id), row.Tag || '', row.Light || row.Power || row.PowerLevel || row['Power Level'] || row['Light Level'] || '', row.PrimaryStat || row['Primary Stat'] || ''].join('|')).join('~');
+    return visibleRows().map((row) => [
+      normId(row.Id || row.InstanceId || row.ItemInstanceId),
+      row.Tag || '',
+      lightLevel(row) || '',
+      row.Name || '',
+      row.Dupe_Group || '',
+      row.GroupKey || ''
+    ].join('|')).join('~');
   }
 
-  function decorateCard(card, rowsById) {
-    const row = rowsById.get(normId(card?.dataset?.gridId));
+  function decorateCard(card, maps) {
+    const row = rowForCard(card, maps);
     if (!row) return;
     const light = lightLevel(row);
     const tag = tagEmoji(row.Tag);
@@ -62,8 +106,8 @@
     if (!force && sig === lastSig && host?.dataset.badgesDecorated === '1') return;
     lastSig = sig;
     if (host) host.dataset.badgesDecorated = '1';
-    const rowsById = rowMap();
-    document.querySelectorAll('.grid-card').forEach((card) => decorateCard(card, rowsById));
+    const maps = rowMaps();
+    document.querySelectorAll('.grid-card').forEach((card) => decorateCard(card, maps));
   }
 
   function schedule(force = false) {
