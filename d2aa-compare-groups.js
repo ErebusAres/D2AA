@@ -117,20 +117,36 @@
     activeGroup = null;
   }
 
+  function openFromButton(button, event) {
+    event?.preventDefault?.();
+    event?.stopPropagation?.();
+    event?.stopImmediatePropagation?.();
+    const card = button.closest('.grid-card');
+    const row = rowForCard(card);
+    if (row) openModal(row);
+  }
+
   function ensureCompareButtons() {
     document.querySelectorAll('.grid-card.is-dupe .grid-actions').forEach((actions) => {
       const groupBtn = actions.querySelector('[data-grid-action="group"]');
       if (!groupBtn) return;
       groupBtn.title = 'Group action';
       groupBtn.dataset.compareGroupId = groupBtn.textContent.trim();
-      if (actions.querySelector('[data-grid-action="compare-group"]')) return;
-      const compareBtn = document.createElement('button');
-      compareBtn.type = 'button';
-      compareBtn.className = 'grid-action grid-action--compare';
-      compareBtn.dataset.gridAction = 'compare-group';
-      compareBtn.title = 'Compare duplicate group';
-      compareBtn.textContent = 'Compare group';
-      actions.appendChild(compareBtn);
+      let compareBtn = actions.querySelector('[data-grid-action="compare-group"]');
+      if (!compareBtn) {
+        compareBtn = document.createElement('button');
+        compareBtn.type = 'button';
+        compareBtn.className = 'grid-action grid-action--compare';
+        compareBtn.dataset.gridAction = 'compare-group';
+        compareBtn.title = 'Compare duplicate group';
+        compareBtn.textContent = 'Compare group';
+        actions.appendChild(compareBtn);
+      }
+      if (compareBtn.dataset.compareBound !== '1') {
+        compareBtn.dataset.compareBound = '1';
+        compareBtn.addEventListener('click', (event) => openFromButton(compareBtn, event), true);
+        compareBtn.addEventListener('pointerup', (event) => openFromButton(compareBtn, event), true);
+      }
     });
   }
 
@@ -148,14 +164,7 @@
     ensureCompareButtons();
     document.addEventListener('click', (event) => {
       const btn = event.target.closest?.('[data-grid-action="compare-group"]');
-      if (!btn) return;
-      const card = btn.closest('.grid-card');
-      const row = rowForCard(card);
-      if (!row) return;
-      event.preventDefault();
-      event.stopPropagation();
-      event.stopImmediatePropagation();
-      openModal(row);
+      if (btn) openFromButton(btn, event);
     }, true);
     const rows = document.getElementById('rows');
     if (rows && rows.dataset.compareGroupsObserved !== '1') {
