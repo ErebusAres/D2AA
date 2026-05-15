@@ -13,6 +13,13 @@
   const writeJson = (key, value) => { try { localStorage.setItem(key, JSON.stringify(value)); return true; } catch (_) { return false; } };
   const normId = (value) => String(value || '').trim();
   const itemIconFromRow = (row) => row?.IconUrl || row?.Icon || row?.DisplayIcon || row?.ScreenshotUrl || '';
+  const statClass = (value) => {
+    const n = Number(value || 0);
+    if (n >= 30) return 'stat-cyan';
+    if (n >= 24) return 'stat-green';
+    if (n >= 15) return 'stat-yellow';
+    return 'stat-red';
+  };
 
   function injectStyle() {
     if (document.getElementById('d2aaFeedIconPatchStyles')) return;
@@ -21,13 +28,21 @@
     style.textContent = `
       .feed-stat-icon-img{width:11px;height:11px;object-fit:contain;opacity:.92;display:block;flex:0 0 auto;}
       .feed-icon img{background:rgba(0,0,0,.18);}
+      .feed-stat.stat-cyan{color:#76e9ff;border-color:rgba(118,233,255,.32);background:rgba(118,233,255,.06);}
+      .feed-stat.stat-green{color:#91ffbf;border-color:rgba(145,255,191,.28);background:rgba(145,255,191,.055);}
+      .feed-stat.stat-yellow{color:#ffe187;border-color:rgba(255,225,135,.28);background:rgba(255,225,135,.055);}
+      .feed-stat.stat-red{color:#ff8da0;border-color:rgba(255,141,160,.28);background:rgba(255,141,160,.05);}
     `;
     document.head.appendChild(style);
   }
 
-  function patchStatIcons(root = document) {
+  function patchStatChips(root = document) {
     root.querySelectorAll('.item-feed-card').forEach((card) => {
       card.querySelectorAll('.feed-stat').forEach((stat, index) => {
+        const value = Number(stat.querySelector('strong')?.textContent || 0);
+        stat.classList.remove('stat-cyan', 'stat-green', 'stat-yellow', 'stat-red');
+        stat.classList.add(statClass(value));
+
         if (stat.querySelector('.feed-stat-icon-img')) return;
         const icon = STAT_ORDER[index];
         if (!icon) return;
@@ -69,13 +84,13 @@
 
   function run() {
     injectStyle();
-    patchStatIcons();
+    patchStatChips();
     setTimeout(hydrateFeedItemImages, 200);
     setTimeout(hydrateFeedItemImages, 1500);
     const target = document.getElementById('itemFeedList') || document.body;
     new MutationObserver((mutations) => {
       if (!mutations.some((m) => m.addedNodes.length)) return;
-      patchStatIcons(target);
+      patchStatChips(target);
       hydrateFeedItemImages();
     }).observe(target, { childList: true, subtree: true });
   }
