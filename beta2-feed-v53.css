@@ -9,7 +9,7 @@
 
 .item-feed-card{
   display:grid !important;
-  grid-template-columns:50px minmax(0,1fr) 72px !important;
+  grid-template-columns:50px minmax(0,1fr) 76px !important;
   grid-template-areas:
     "icon main score"
     "icon stats score"
@@ -116,7 +116,7 @@
 
 .feed-side{
   grid-area:score !important;
-  width:72px !important;
+  width:76px !important;
   min-width:0 !important;
   display:grid !important;
   grid-template-columns:1fr !important;
@@ -140,8 +140,10 @@
 }
 .feed-power-inline{
   height:21px !important;
-  display:grid !important;
-  place-items:center !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  gap:3px !important;
   border:1px solid rgba(255,255,255,.12) !important;
   border-radius:7px !important;
   background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(0,0,0,.24)) !important;
@@ -149,34 +151,46 @@
   font-size:11px !important;
   font-weight:950 !important;
   line-height:1 !important;
+  white-space:nowrap !important;
   text-shadow:0 1px 2px #000 !important;
 }
 .feed-power-inline::before{
   content:'✦';
-  margin-right:3px;
+  display:inline-block !important;
+  flex:0 0 auto !important;
+  margin:0 !important;
   color:var(--accent-strong);
   font-size:8px;
+  line-height:1 !important;
 }
 .feed-total-badge{
   height:21px !important;
-  display:grid !important;
-  place-items:center !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  gap:3px !important;
   padding:0 !important;
   border-radius:7px !important;
   color:var(--accent-strong) !important;
   font-size:11px !important;
   font-weight:950 !important;
+  line-height:1 !important;
+  white-space:nowrap !important;
 }
 .feed-total-badge::before{
   content:'Σ';
-  margin-right:3px;
+  display:inline-block !important;
+  flex:0 0 auto !important;
+  margin:0 !important;
   color:var(--muted);
   font-size:8px;
+  line-height:1 !important;
 }
 .feed-tier-badge{
   height:18px !important;
-  display:grid !important;
-  place-items:center !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
   padding:0 !important;
   border:1px solid rgba(255,255,255,.075) !important;
   border-radius:6px !important;
@@ -184,8 +198,9 @@
   color:var(--muted) !important;
   font-size:7.5px !important;
   line-height:1 !important;
-  letter-spacing:.06em !important;
+  letter-spacing:.04em !important;
   white-space:nowrap !important;
+  overflow:hidden !important;
 }
 .feed-compare-btn{
   height:20px !important;
@@ -252,10 +267,10 @@
 
 @media (max-width:430px){
   .item-feed-card{
-    grid-template-columns:48px minmax(0,1fr) 66px !important;
+    grid-template-columns:48px minmax(0,1fr) 70px !important;
     min-height:90px !important;
   }
   .feed-icon{width:48px !important;height:48px !important;}
-  .feed-side{width:66px !important;}
+  .feed-side{width:70px !important;}
   .feed-tag-btn{width:20px !important;height:20px !important;min-width:20px !important;}
 }
