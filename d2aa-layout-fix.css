@@ -285,6 +285,25 @@ body.grid-view .grid-action{
   transition:transform .14s ease,border-color .14s ease,background .14s ease,box-shadow .14s ease,color .14s ease!important;
 }
 
+body.grid-view .grid-action--group{
+  border-color:color-mix(in srgb,var(--group-glow,var(--accent)) 64%,rgba(255,255,255,.16))!important;
+  background:
+    linear-gradient(180deg,color-mix(in srgb,var(--group-glow,var(--accent)) 26%,rgba(255,255,255,.075)),rgba(255,255,255,.025)),
+    color-mix(in srgb,var(--group-glow,var(--accent)) 12%,rgba(0,0,0,.44))!important;
+  color:#fff!important;
+  box-shadow:0 8px 18px rgba(0,0,0,.24),0 0 16px color-mix(in srgb,var(--group-glow,var(--accent)) 22%,transparent)!important;
+}
+
+body.grid-view .grid-action--group .grid-action-slot-icon{
+  background:color-mix(in srgb,var(--group-glow,var(--accent)) 72%,#fff)!important;
+  opacity:1!important;
+}
+
+body.grid-view .grid-action--group span{
+  color:#fff!important;
+  text-shadow:0 0 10px color-mix(in srgb,var(--group-glow,var(--accent)) 58%,transparent)!important;
+}
+
 body.grid-view .grid-action:hover,
 body.grid-view .grid-action:focus-visible{
   transform:translateY(-1px)!important;
@@ -292,6 +311,15 @@ body.grid-view .grid-action:focus-visible{
   background:linear-gradient(180deg,color-mix(in srgb,var(--group-glow,var(--accent)) 20%,rgba(255,255,255,.10)),rgba(255,255,255,.035))!important;
   box-shadow:0 10px 22px rgba(0,0,0,.28),0 0 14px color-mix(in srgb,var(--group-glow,var(--accent)) 18%,transparent)!important;
   color:var(--accent-strong)!important;
+}
+
+body.grid-view .grid-action--group:hover,
+body.grid-view .grid-action--group:focus-visible{
+  border-color:color-mix(in srgb,var(--group-glow,var(--accent)) 82%,rgba(255,255,255,.26))!important;
+  background:
+    linear-gradient(180deg,color-mix(in srgb,var(--group-glow,var(--accent)) 42%,rgba(255,255,255,.12)),color-mix(in srgb,var(--group-glow,var(--accent)) 16%,rgba(0,0,0,.58)))!important;
+  box-shadow:0 11px 24px rgba(0,0,0,.32),0 0 20px color-mix(in srgb,var(--group-glow,var(--accent)) 36%,transparent)!important;
+  color:#fff!important;
 }
 
 body.grid-view .grid-action:disabled{
