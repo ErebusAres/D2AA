@@ -11,8 +11,7 @@
     config: 'd2aa_bungie_public_config_v1',
     token: 'd2aa_bungie_token_v1',
     state: 'd2aa_bungie_oauth_state_v1',
-    manifest: 'd2aa_bungie_manifest_v1',
-    entityCache: 'd2aa_bungie_entity_cache_v2'
+    entityCache: 'd2aa_bungie_entity_cache_v3'
   };
 
   const DEF_MEMORY = {};
@@ -23,8 +22,15 @@
   const CLASS_TYPE = { 0: 'Titan', 1: 'Hunter', 2: 'Warlock' };
   const CLASS_ITEM_BY_CLASS = { Warlock: 'Warlock Bond', Hunter: 'Hunter Cloak', Titan: 'Titan Mark' };
   const SLOT_BY_NAME = { Helmet: 'Helmet', Gauntlets: 'Gauntlets', Gloves: 'Gauntlets', 'Chest Armor': 'Chest Armor', Chest: 'Chest Armor', 'Leg Armor': 'Leg Armor', Legs: 'Leg Armor', Boots: 'Leg Armor', 'Class Armor': 'Class Item', 'Class Item': 'Class Item' };
-  const STAT_NAME_MAP = { health: 'Health (Base)', melee: 'Melee (Base)', grenade: 'Grenade (Base)', super: 'Super (Base)', class: 'Class (Base)', weapons: 'Weapons (Base)' };
-  const ARMOR_STAT_KEYS = Object.values(STAT_NAME_MAP);
+  const ARMOR_STAT_HASH_TO_COLUMN = {
+    392767087: 'Health (Base)',
+    4244567218: 'Melee (Base)',
+    1735777505: 'Grenade (Base)',
+    144602215: 'Super (Base)',
+    1943323491: 'Class (Base)',
+    2996146975: 'Weapons (Base)'
+  };
+  const ARMOR_STAT_KEYS = ['Health (Base)', 'Melee (Base)', 'Grenade (Base)', 'Super (Base)', 'Class (Base)', 'Weapons (Base)'];
   const $ = (id) => document.getElementById(id);
 
   function readJson(key, fallback = {}) { try { return JSON.parse(localStorage.getItem(key) || JSON.stringify(fallback)); } catch (_) { return fallback; } }
@@ -148,7 +154,6 @@
     if (++cacheWrites % 25 === 0) writeJson(STORAGE.entityCache, entityCache);
     return def;
   }
-
   async function mapLimit(items, limit, worker, progress) {
     const out = new Array(items.length);
     let next = 0;
@@ -173,22 +178,16 @@
     return out;
   }
   function emptyArmorStats() { return ARMOR_STAT_KEYS.reduce((acc, key) => ({ ...acc, [key]: 0 }), {}); }
-  function statColumnForName(name) { return STAT_NAME_MAP[String(name || '').trim().toLowerCase()] || null; }
   function statValue(stat) { return Number(stat?.base ?? stat?.statValue ?? stat?.value ?? stat?.minimum ?? 0); }
-  async function statColumnForHash(hash) {
-    const def = await getEntityDef('DestinyStatDefinition', hash);
-    return statColumnForName(def?.displayProperties?.name);
-  }
-  async function statsForItem(def, statComponent) {
+  function statsForItem(def, statComponent) {
     const liveSource = statComponent?.stats || {};
     const manifestSource = def.stats?.stats || {};
     const source = Object.keys(liveSource).length ? liveSource : manifestSource;
     const rowStats = emptyArmorStats();
-    const hashes = Object.keys(source);
-    for (const hash of hashes) {
-      const column = await statColumnForHash(hash);
+    for (const [hash, stat] of Object.entries(source)) {
+      const column = ARMOR_STAT_HASH_TO_COLUMN[Number(hash)];
       if (!column) continue;
-      rowStats[column] = statValue(source[hash]);
+      rowStats[column] = statValue(stat);
     }
     rowStats['Total (Base)'] = ARMOR_STAT_KEYS.reduce((sum, key) => sum + Number(rowStats[key] || 0), 0);
     return rowStats;
@@ -230,6 +229,7 @@
       const instanceId = item.itemInstanceId;
       if (!instanceId || seen.has(instanceId)) continue;
       seen.add(instanceId);
+      processed++;
       const def = itemDefs[item.itemHash];
       if (!def || def.itemType !== 2) continue;
       const slot = slotForItem(def);
@@ -239,11 +239,13 @@
       const rarity = rarityForItem(def);
       if (!['Common', 'Uncommon', 'Rare', 'Legendary', 'Exotic'].includes(rarity)) continue;
       const type = slot === 'Class Item' ? CLASS_ITEM_BY_CLASS[equippable] : slot;
-      const statRow = await statsForItem(def, statComponents[instanceId]);
+      const statRow = statsForItem(def, statComponents[instanceId]);
       const targetCharacterId = characterMap[equippable]?.characterId || '';
       rows.push({ Name: def.displayProperties?.name || 'Unknown Armor', Id: instanceId, Type: type, Rarity: rarity, Equippable: equippable, Tag: localTagFor(instanceId), Tier: armorTier(statRow['Total (Base)']), ...statRow, Source: 'Bungie', ItemHash: item.itemHash, BucketHash: def.inventory?.bucketTypeHash || item.bucketHash || 0, MembershipType: membership.membershipType, OwnerCharacterId: item.d2aaOwner === 'vault' ? '' : item.d2aaOwner, TargetCharacterId: targetCharacterId, IsInVault: item.location === 2 || item.bucketHash === VAULT_BUCKET_HASH || item.d2aaOwner === 'vault', IsEquipped: Boolean(item.d2aaEquipped) });
-      if (++processed % 25 === 0) { setStatus(`Building armor rows: ${rows.length} found`, false); await sleep(0); }
+      if (processed % 50 === 0) { setStatus(`Building rows: ${processed}/${allItems.length} scanned, ${rows.length} armor found`, false); await sleep(0); }
     }
+    setStatus(`Rendering ${rows.length} armor items...`, false);
+    await sleep(0);
     return rows;
   }
   async function importArmor() {
