@@ -1,0 +1,9 @@
+/* D2AA feature styles bundle.
+   Groups armor analyzer feature-specific CSS behind clearer names while preserving current source files. */
+@import url("./beta2-bungie.css");
+@import url("./beta2-groups.css");
+@import url("./beta2-tags.css");
+@import url("./beta2-tag-popover.css");
+@import url("./beta2-archetypes.css");
+@import url("./beta2-feed-drawer.css");
+@import url("./beta2-feed-clean.css");
