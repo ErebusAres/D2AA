@@ -1005,17 +1005,18 @@ makeThemeButtons(); renderSegments(); bindEvents(); const cached = loadRows(); i
     if ($('itemFeedDrawer')) return;
     const launcher = document.createElement('button');
     launcher.id = 'itemFeedLauncher';
-    launcher.className = 'item-feed-launcher';
+    launcher.className = 'item-feed-launcher shell-btn';
     launcher.type = 'button';
     launcher.setAttribute('aria-controls', 'itemFeedDrawer');
-    launcher.innerHTML = `<span>Item Feed</span><span id="itemFeedCount" class="item-feed-count">0</span>`;
+    launcher.innerHTML = `<span class="shell-btn-icon">☰</span><span>Feed</span><span id="itemFeedCount" class="item-feed-count">0</span>`;
     launcher.addEventListener('click', () => setDrawerOpen(!$('itemFeedDrawer')?.classList.contains('is-open')));
     const drawer = document.createElement('aside');
     drawer.id = 'itemFeedDrawer';
     drawer.className = 'item-feed-drawer';
     drawer.setAttribute('aria-label', 'Item Feed');
     drawer.innerHTML = `<div class="item-feed-head"><button id="clearFeedBtn" class="mini-feed-btn" type="button" title="Dismiss all feed items">Dismiss all</button><button id="itemFeedClose" class="item-feed-close" type="button" aria-label="Close item feed">×</button></div><div id="itemFeedList" class="item-feed-list" aria-live="polite"></div>`;
-    document.body.append(drawer, launcher);
+    document.body.appendChild(drawer);
+    (document.querySelector('.shell-actions') || document.body).appendChild(launcher);
     $('itemFeedClose')?.addEventListener('click', () => setDrawerOpen(false));
     $('clearFeedBtn')?.addEventListener('click', dismissAllFeedItems);
     setDrawerOpen(localStorage.getItem(LS_OPEN) === '1');
@@ -3026,7 +3027,8 @@ window.D2AA?.render?.();
     const style = document.createElement('style');
     style.id = 'd2aaGridDomHotfixV92Css';
     style.textContent = `
-      body.grid-view .grid-card > .grid-info-badge{position:absolute!important;top:0!important;left:0!important;right:auto!important;bottom:auto!important;z-index:40!important;min-width:24px!important;height:19px!important;width:auto!important;padding:0 6px!important;border-radius:16px 0 8px 0!important;border:0!important;border-right:1px solid rgba(255,210,111,.42)!important;border-bottom:1px solid rgba(255,210,111,.42)!important;background:linear-gradient(135deg,rgba(0,0,0,.94),rgba(20,16,8,.88))!important;box-shadow:0 0 12px rgba(255,190,80,.20)!important;color:#ffd76f!important;text-shadow:0 1px 0 rgba(0,0,0,.75)!important;font-size:10px!important;font-weight:950!important;line-height:1!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;gap:4px!important;white-space:nowrap!important;transform:none!important;cursor:pointer!important;opacity:1!important;visibility:visible!important;pointer-events:auto!important;}
+      body.grid-view .grid-card > .grid-info-badge{position:absolute!important;top:0!important;left:0!important;right:auto!important;bottom:auto!important;z-index:40!important;min-width:24px!important;height:19px!important;width:auto!important;padding:0 6px!important;border-radius:16px 0 8px 0!important;border:0!important;border-right:1px solid rgba(255,210,111,.42)!important;border-bottom:1px solid rgba(255,210,111,.42)!important;background:linear-gradient(135deg,rgba(0,0,0,.94),rgba(20,16,8,.88))!important;box-shadow:0 0 12px rgba(255,190,80,.20)!important;color:#ffd76f!important;text-shadow:0 1px 0 rgba(0,0,0,.75)!important;font-size:10px!important;font-weight:950!important;line-height:1!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;gap:4px!important;white-space:nowrap!important;transform:none!important;cursor:pointer!important;opacity:0!important;visibility:hidden!important;pointer-events:none!important;}
+      body.grid-view .grid-card:hover > .grid-info-badge,body.grid-view .grid-card:focus-within > .grid-info-badge,body.grid-view .grid-card.is-selected > .grid-info-badge{opacity:1!important;visibility:visible!important;pointer-events:auto!important;}
       body.grid-view .grid-card > .grid-info-badge .grid-info-light{color:#ffd76f!important;font-variant-numeric:tabular-nums!important;}
       body.grid-view .grid-card > .grid-info-badge .grid-info-dot{color:rgba(255,215,111,.68)!important;font-size:10px!important;line-height:1!important;}
       body.grid-view .grid-card > .grid-info-badge .grid-info-tag{font-size:12px!important;line-height:1!important;}

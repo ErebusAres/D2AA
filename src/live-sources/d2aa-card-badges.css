@@ -102,39 +102,6 @@ body.grid-view .grid-power-pill{
   display:none!important;
 }
 
-/* Final density guard: keep the grid readable at first load. */
-body.grid-view #rows{
-  grid-template-columns:repeat(auto-fill,minmax(280px,1fr))!important;
-  gap:14px!important;
-  padding:14px!important;
-}
-
-body.grid-view .grid-card{
-  min-height:220px!important;
-  max-width:100%!important;
-}
-
-body.grid-view .grid-card-top{
-  grid-template-columns:56px minmax(0,1fr)!important;
-  min-height:74px!important;
-  padding:10px 10px 6px!important;
-}
-
-body.grid-view .grid-item-name{
-  font-size:14px!important;
-  line-height:1.15!important;
-  min-height:32px!important;
-}
-
-body.grid-view .grid-icon-row{
-  max-width:100%!important;
-}
-
-body.grid-view .grid-body[data-slot-grid="1"]{
-  grid-template-rows:repeat(3,34px)!important;
-  padding:0 10px 12px!important;
-}
-
 body.grid-view .grid-card > .grid-info-badge,
 body.grid-view .grid-tag.grid-info-badge{
   opacity:0!important;
@@ -156,13 +123,4 @@ body.grid-view .grid-card.is-selected .grid-tag.grid-info-badge{
 
 body.grid-view .grid-class-card.is-empty{
   display:none!important;
-}
-
-@media (max-width:1180px){
-  body.grid-view #rows{grid-template-columns:repeat(auto-fill,minmax(240px,1fr))!important;}
-}
-
-@media (max-width:760px){
-  body.grid-view #rows{grid-template-columns:1fr!important;padding:10px!important;}
-  body.grid-view .grid-card{min-height:216px!important;}
 }
