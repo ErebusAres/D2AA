@@ -1,0 +1,6 @@
+/* D2AA UX v68: remove reserved bottom gap from grid cards. Actions overlay on hover instead of reserving permanent space. */
+.grid-card{min-height:184px!important;}
+.grid-body{padding-bottom:8px!important;}
+.grid-card:hover .grid-body,.grid-card.is-selected .grid-body,.grid-card:focus-within .grid-body{padding-bottom:8px!important;}
+.grid-actions{inset:auto 7px 7px 7px!important;}
+@media (hover:none){.grid-card{min-height:196px!important}.grid-body{padding-bottom:8px!important}}
