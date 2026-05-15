@@ -1,0 +1,49 @@
+/* Grid archetype badge: old top-right control spot now shows armor role/archetype.
+   Floating user tag indicator moves to top-left. */
+body.grid-view .grid-tag{
+  left:6px;
+  right:auto;
+}
+
+body.grid-view .grid-aag-badge{
+  position:absolute;
+  top:6px;
+  right:6px;
+  z-index:4;
+  width:25px;
+  height:25px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.22);
+  background:rgba(0,0,0,.42);
+  backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(8px);
+  box-shadow:0 6px 18px rgba(0,0,0,.32);
+  display:grid;
+  place-items:center;
+  font-size:13px;
+  line-height:1;
+  color:var(--text);
+  cursor:help;
+  opacity:.9;
+}
+
+body.grid-view .grid-aag-badge:hover{
+  opacity:1;
+  transform:scale(1.05);
+  border-color:color-mix(in srgb,var(--accent) 60%,white);
+  background:color-mix(in srgb,var(--accent) 18%,rgba(0,0,0,.42));
+  color:var(--accent-strong);
+}
+
+body.grid-view .grid-aag-badge[data-aag='bulwark']{color:#91ffbf;}
+body.grid-view .grid-aag-badge[data-aag='specialist']{color:#76e9ff;}
+body.grid-view .grid-aag-badge[data-aag='gunner']{color:#ffe187;}
+body.grid-view .grid-aag-badge[data-aag='brawler']{color:#ffad7a;}
+body.grid-view .grid-aag-badge[data-aag='grenadier']{color:#ff8da0;}
+body.grid-view .grid-aag-badge[data-aag='paragon']{color:#c9a7ff;}
+body.grid-view .grid-aag-badge[data-aag='balanced']{color:var(--muted);}
+
+body.grid-view .grid-card-top{
+  padding-left:8px;
+  padding-right:8px;
+}
