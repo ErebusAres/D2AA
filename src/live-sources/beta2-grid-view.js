@@ -217,6 +217,7 @@
     updateViewToggle();
     window.D2AA.render?.();
     renderGrid(true);
+    setTimeout(() => { if (viewMode() === 'grid') setViewMode('grid'); }, 250);
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run);
   else run();

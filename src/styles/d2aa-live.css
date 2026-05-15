@@ -3194,25 +3194,6 @@ body.grid-view .grid-power-pill{
   display:none!important;
 }
 
-body.grid-view .grid-card > .grid-info-badge,
-body.grid-view .grid-tag.grid-info-badge{
-  opacity:0!important;
-  visibility:hidden!important;
-  pointer-events:none!important;
-  transition:opacity .14s ease!important;
-}
-
-body.grid-view .grid-card:hover > .grid-info-badge,
-body.grid-view .grid-card:focus-within > .grid-info-badge,
-body.grid-view .grid-card.is-selected > .grid-info-badge,
-body.grid-view .grid-card:hover .grid-tag.grid-info-badge,
-body.grid-view .grid-card:focus-within .grid-tag.grid-info-badge,
-body.grid-view .grid-card.is-selected .grid-tag.grid-info-badge{
-  opacity:1!important;
-  visibility:visible!important;
-  pointer-events:auto!important;
-}
-
 body.grid-view .grid-class-card.is-empty{
   display:none!important;
 }
