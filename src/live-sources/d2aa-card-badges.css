@@ -124,3 +124,17 @@ body.grid-view .grid-card.is-selected .grid-tag.grid-info-badge{
 body.grid-view .grid-class-card.is-empty{
   display:none!important;
 }
+
+body.grid-view .grid-actions{
+  opacity:0!important;
+  visibility:hidden!important;
+  pointer-events:none!important;
+}
+
+body.grid-view .grid-card:hover .grid-actions,
+body.grid-view .grid-card:focus-within .grid-actions,
+body.grid-view .grid-card.is-selected .grid-actions{
+  opacity:1!important;
+  visibility:visible!important;
+  pointer-events:auto!important;
+}
