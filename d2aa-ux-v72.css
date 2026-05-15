@@ -1,0 +1,94 @@
+/* D2AA UX v72: restore corner group tip and fix archetype slot centering. */
+
+/* v71 rebuilt the body and hid the original group badge when it lived inside the old body.
+   Force the regenerated corner badge to stay attached to the card, not the 3x3 grid. */
+.grid-card > .grid-group-badge{
+  display:flex!important;
+  position:absolute!important;
+  top:0!important;
+  right:0!important;
+  z-index:12!important;
+  align-items:center!important;
+  justify-content:center!important;
+  height:18px!important;
+  min-width:28px!important;
+  max-width:40px!important;
+  padding:0 5px!important;
+  border:0!important;
+  border-radius:0 12px 0 8px!important;
+  color:color-mix(in srgb,var(--group-glow,var(--accent)) 76%,#fff)!important;
+  background:color-mix(in srgb,var(--group-glow,var(--accent)) 28%,rgba(8,6,12,.62))!important;
+  box-shadow:0 3px 10px rgba(0,0,0,.22)!important;
+  font-size:9px!important;
+  font-weight:950!important;
+  line-height:1!important;
+  text-align:center!important;
+  backdrop-filter:blur(4px)!important;
+  -webkit-backdrop-filter:blur(4px)!important;
+}
+.grid-card:not(.is-dupe) > .grid-group-badge{display:none!important;}
+.grid-card > .grid-group-badge .grid-group-badge-icon{display:none!important;}
+
+/* The archetype cell should be one normal 3x3 slot, not a nested oversized pill. */
+.grid-slot-aag{
+  overflow:hidden!important;
+  padding:0!important;
+  border-radius:8px!important;
+  background:rgba(0,0,0,.22)!important;
+  border:1px solid color-mix(in srgb,var(--accent) 22%,rgba(255,255,255,.10))!important;
+}
+.grid-slot-aag .grid-aag-badge,
+body.grid-view .grid-slot-aag .grid-aag-badge{
+  position:static!important;
+  inset:auto!important;
+  width:100%!important;
+  height:100%!important;
+  min-width:0!important;
+  min-height:0!important;
+  max-width:none!important;
+  max-height:none!important;
+  margin:0!important;
+  padding:0!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  opacity:1!important;
+  transform:none!important;
+  line-height:1!important;
+}
+.grid-slot-aag .grid-aag-badge:hover,
+body.grid-view .grid-slot-aag .grid-aag-badge:hover{
+  transform:none!important;
+  border:0!important;
+}
+.grid-slot-aag .grid-aag-icon,
+body.grid-view .grid-slot-aag .grid-aag-icon{
+  width:16px!important;
+  height:16px!important;
+  max-width:16px!important;
+  max-height:16px!important;
+  display:block!important;
+  object-fit:contain!important;
+  margin:0!important;
+}
+.grid-slot-aag .grid-aag-emoji,
+body.grid-view .grid-slot-aag .grid-aag-emoji{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  width:100%!important;
+  height:100%!important;
+  font-size:15px!important;
+  line-height:1!important;
+}
+
+/* Keep all 3x3 cells exactly centered and same box model. */
+.grid-slot-total,.grid-slot-tier,.grid-slot-aag,.grid-slot-stat{
+  align-self:stretch!important;
+  justify-self:stretch!important;
+  place-self:stretch!important;
+}
