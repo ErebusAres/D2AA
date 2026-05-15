@@ -1,0 +1,259 @@
+/* D2AA final layout repair overrides.
+   Loaded after legacy UX files to stabilize the current grid/card markup. */
+
+html.grid-view body,
+body.grid-view{
+  overflow-x:hidden;
+}
+
+body.grid-view .table-stage,
+body.grid-view .table-panel,
+body.grid-view .table-wrap{
+  min-width:0;
+}
+
+body.grid-view #rows{
+  display:grid!important;
+  grid-template-columns:repeat(auto-fill,minmax(220px,1fr))!important;
+  gap:14px!important;
+  padding:14px!important;
+  align-content:start!important;
+}
+
+body.grid-view .grid-card{
+  position:relative!important;
+  min-height:260px!important;
+  display:grid!important;
+  grid-template-rows:auto 1fr auto!important;
+  overflow:visible!important;
+  border-radius:16px!important;
+}
+
+body.grid-view .grid-card::before{
+  display:none!important;
+}
+
+body.grid-view .grid-card::after{
+  pointer-events:none!important;
+  border-radius:0 0 16px 16px!important;
+}
+
+body.grid-view .grid-card-top{
+  display:grid!important;
+  grid-template-columns:58px minmax(0,1fr)!important;
+  grid-template-rows:auto auto!important;
+  gap:8px 10px!important;
+  align-items:center!important;
+  padding:10px!important;
+  min-width:0!important;
+}
+
+body.grid-view .grid-item-icon{
+  grid-row:1 / span 2!important;
+  grid-column:1!important;
+  width:58px!important;
+  height:58px!important;
+}
+
+body.grid-view .grid-item-title{
+  grid-column:2!important;
+  min-width:0!important;
+}
+
+body.grid-view .grid-item-name{
+  min-height:24px!important;
+  font-size:12px!important;
+  line-height:1.1!important;
+}
+
+body.grid-view .grid-icon-row{
+  gap:6px!important;
+  min-height:18px!important;
+  overflow:hidden!important;
+}
+
+body.grid-view .grid-tag{
+  position:absolute!important;
+  top:6px!important;
+  left:6px!important;
+  z-index:12!important;
+  width:auto!important;
+  min-width:0!important;
+  height:auto!important;
+  padding:0!important;
+  border:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  font-size:16px!important;
+  line-height:1!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  transform:none!important;
+}
+
+body.grid-view .grid-tag.is-empty{
+  display:none!important;
+}
+
+body.grid-view .grid-group-badge{
+  position:absolute!important;
+  top:-7px!important;
+  right:-7px!important;
+  z-index:15!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  width:auto!important;
+  min-width:28px!important;
+  max-width:none!important;
+  height:22px!important;
+  padding:0 7px!important;
+  border-radius:999px!important;
+  font-size:10px!important;
+  font-weight:950!important;
+  line-height:1!important;
+  color:#fff!important;
+  border:1px solid color-mix(in srgb,var(--group-glow,var(--accent)) 68%,rgba(255,255,255,.18))!important;
+  background:linear-gradient(135deg,color-mix(in srgb,var(--group-glow,var(--accent)) 62%,rgba(0,0,0,.50)),rgba(0,0,0,.72))!important;
+  box-shadow:0 0 16px color-mix(in srgb,var(--group-glow,var(--accent)) 48%,transparent),0 8px 18px rgba(0,0,0,.35)!important;
+  text-transform:uppercase!important;
+}
+
+body.grid-view .grid-card:not(.is-dupe) .grid-group-badge{
+  display:none!important;
+}
+
+body.grid-view .grid-body[data-slot-grid="1"]{
+  display:grid!important;
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  grid-template-rows:repeat(3,34px)!important;
+  gap:6px!important;
+  padding:0 10px 10px!important;
+  align-items:stretch!important;
+  justify-items:stretch!important;
+}
+
+body.grid-view .grid-body[data-slot-grid="1"] > *{
+  min-width:0!important;
+  width:100%!important;
+  height:100%!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  margin:0!important;
+  position:static!important;
+  transform:none!important;
+}
+
+body.grid-view .grid-slot-total,
+body.grid-view .grid-slot-tier,
+body.grid-view .grid-slot-aag,
+body.grid-view .grid-slot-stat{
+  border-radius:10px!important;
+}
+
+body.grid-view .grid-slot-total{
+  min-width:0!important;
+  font-size:17px!important;
+}
+
+body.grid-view .grid-slot-tier{
+  min-width:0!important;
+  font-size:12px!important;
+  letter-spacing:-.05em!important;
+  white-space:nowrap!important;
+}
+
+body.grid-view .grid-slot-aag .grid-aag-badge{
+  position:static!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  width:100%!important;
+  height:100%!important;
+  min-width:0!important;
+  border-radius:10px!important;
+  border:1px solid rgba(255,255,255,.10)!important;
+  background:rgba(0,0,0,.16)!important;
+  box-shadow:none!important;
+  opacity:1!important;
+  padding:0!important;
+}
+
+body.grid-view .grid-slot-aag .grid-aag-icon{
+  width:18px!important;
+  height:18px!important;
+  max-width:18px!important;
+  max-height:18px!important;
+}
+
+body.grid-view .grid-slot-aag .grid-aag-emoji{
+  font-size:16px!important;
+  line-height:1!important;
+}
+
+body.grid-view .grid-card-top .grid-aag-badge,
+body.grid-view .grid-primary-row,
+body.grid-view .grid-stats,
+body.grid-view .grid-body > .grid-aag-badge,
+body.grid-view .grid-card > .grid-aag-badge{
+  display:none!important;
+}
+
+body.grid-view .grid-slot-stat.grid-stat{
+  height:100%!important;
+  gap:5px!important;
+  font-size:12px!important;
+  font-weight:950!important;
+}
+
+body.grid-view .grid-slot-stat.grid-stat img{
+  width:15px!important;
+  height:15px!important;
+}
+
+body.grid-view .grid-actions{
+  display:grid!important;
+  grid-template-columns:1fr auto!important;
+  gap:7px!important;
+  padding:0 10px 10px!important;
+  z-index:8!important;
+}
+
+body.grid-view .grid-actions--single{
+  grid-template-columns:1fr!important;
+}
+
+body.grid-view .grid-action{
+  height:30px!important;
+  border-radius:10px!important;
+}
+
+body.grid-view .grid-card:hover .grid-slot-stat,
+body.grid-view .grid-card.is-selected .grid-slot-stat,
+body.grid-view .grid-card:focus-within .grid-slot-stat{
+  filter:none!important;
+  opacity:1!important;
+}
+
+body.grid-view .d2aa-grid-overview{
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  gap:10px!important;
+  padding:12px 14px 0!important;
+}
+
+body.grid-view .grid-class-card{
+  min-height:44px!important;
+  padding:7px 9px!important;
+}
+
+body.grid-view .class-pill{
+  display:inline-flex!important;
+  margin-right:4px!important;
+}
+
+@media (max-width:900px){
+  body.grid-view #rows{grid-template-columns:repeat(auto-fill,minmax(190px,1fr))!important;}
+  body.grid-view .d2aa-grid-overview{grid-template-columns:1fr!important;}
+}
