@@ -1,13 +1,21 @@
 (() => {
   const STAT_COLS = ['Health (Base)', 'Melee (Base)', 'Grenade (Base)', 'Super (Base)', 'Class (Base)', 'Weapons (Base)'];
+  const STAT_ICONS = {
+    'Health (Base)': 'https://www.bungie.net/common/destiny2_content/icons/717b8b218cc14325a54869bef21d2964.png',
+    'Melee (Base)': 'https://www.bungie.net/common/destiny2_content/icons/fa534aca76d7f2d7e7b4ba4df4271b42.png',
+    'Grenade (Base)': 'https://www.bungie.net/common/destiny2_content/icons/065cdaabef560e5808e821cefaeaa22c.png',
+    'Super (Base)': 'https://www.bungie.net/common/destiny2_content/icons/585ae4ede9c3da96b34086fccccdc8cd.png',
+    'Class (Base)': 'https://www.bungie.net/common/destiny2_content/icons/7eb845acb5b3a4a9b7e0b2f05f5c43f1.png',
+    'Weapons (Base)': 'https://www.bungie.net/common/destiny2_content/icons/bc69675acdae9e6b9a68a02fb4d62e07.png'
+  };
   const ARCHETYPES = {
-    bulwark: { icon: '🛡️', label: 'Bulwark', desc: 'Health-focused armor roll' },
-    brawler: { icon: '✊', label: 'Brawler', desc: 'Melee-focused armor roll' },
-    grenadier: { icon: '💣', label: 'Grenadier', desc: 'Grenade-focused armor roll' },
-    specialist: { icon: '✨', label: 'Specialist', desc: 'Super-focused armor roll' },
-    paragon: { icon: '◇', label: 'Paragon', desc: 'Class ability-focused armor roll' },
-    gunner: { icon: '🎯', label: 'Gunner', desc: 'Weapons-focused armor roll' },
-    balanced: { icon: '⚖️', label: 'Balanced', desc: 'Evenly distributed armor roll' }
+    bulwark: { stat: 'Health (Base)', fallback: '🛡️', label: 'Bulwark', desc: 'Health-focused armor roll' },
+    brawler: { stat: 'Melee (Base)', fallback: '✊', label: 'Brawler', desc: 'Melee-focused armor roll' },
+    grenadier: { stat: 'Grenade (Base)', fallback: '💣', label: 'Grenadier', desc: 'Grenade-focused armor roll' },
+    specialist: { stat: 'Super (Base)', fallback: '✨', label: 'Specialist', desc: 'Super-focused armor roll' },
+    paragon: { stat: 'Class (Base)', fallback: '◇', label: 'Paragon', desc: 'Class ability-focused armor roll' },
+    gunner: { stat: 'Weapons (Base)', fallback: '🎯', label: 'Gunner', desc: 'Weapons-focused armor roll' },
+    balanced: { stat: '', fallback: '⚖️', label: 'Balanced', desc: 'Evenly distributed armor roll' }
   };
   const STAT_TO_ARCHETYPE = {
     'Health (Base)': 'bulwark',
@@ -63,6 +71,12 @@
     return (getState()?.visible || []).find((row) => normId(row.Id) === card?.dataset?.gridId);
   }
 
+  function iconMarkup(key, data) {
+    const icon = STAT_ICONS[data.stat];
+    if (icon) return `<img class="grid-aag-icon" src="${icon}" alt="" loading="lazy">`;
+    return `<span class="grid-aag-emoji">${data.fallback}</span>`;
+  }
+
   function renderBadges() {
     document.querySelectorAll('body.grid-view .grid-card').forEach((card) => {
       const row = rowForCard(card);
@@ -79,7 +93,7 @@
       const data = ARCHETYPES[key] || ARCHETYPES.balanced;
       const topStats = STAT_COLS.map((stat) => `${stat.replace(' (Base)', '')}: ${num(row[stat])}`).join('\n');
       badge.dataset.aag = key;
-      badge.textContent = data.icon;
+      badge.innerHTML = iconMarkup(key, data);
       badge.title = `${data.label}\n${data.desc}\n\n${topStats}`;
       badge.setAttribute('aria-label', `${data.label} archetype`);
     });
