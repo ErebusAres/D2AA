@@ -24,13 +24,20 @@
     row.__raw?.['Light Level'],
     row.__raw?.Level
   );
-  function state() { return window.D2AA?.getState?.(); }
-  function rowForCard(card) {
-    const id = card?.dataset?.gridId;
-    return (state()?.visible || []).find((row) => normId(row.Id) === id);
+  const state = () => window.D2AA?.getState?.() || {};
+  let queued = 0;
+  let lastSig = '';
+
+  function rowMap() {
+    return new Map((state().visible || []).map((row) => [normId(row.Id), row]));
   }
-  function decorateCard(card) {
-    const row = rowForCard(card);
+
+  function signature() {
+    return (state().visible || []).map((row) => [normId(row.Id), row.Tag || '', row.Light || row.Power || row.PowerLevel || row['Power Level'] || row['Light Level'] || '', row.PrimaryStat || row['Primary Stat'] || ''].join('|')).join('~');
+  }
+
+  function decorateCard(card, rowsById) {
+    const row = rowsById.get(normId(card?.dataset?.gridId));
     if (!row) return;
     const light = lightLevel(row);
     const tag = tagEmoji(row.Tag);
@@ -38,38 +45,48 @@
     card.querySelectorAll('.grid-light,.grid-power-pill').forEach((el) => el.remove());
     if (!tagBtn) return;
     if (!light && !tag) {
-      tagBtn.classList.add('is-empty');
+      tagBtn.className = 'grid-tag is-empty';
       tagBtn.innerHTML = '';
       tagBtn.title = 'No tag — change tag';
       return;
     }
-    tagBtn.classList.remove('is-empty');
-    tagBtn.classList.add('grid-info-badge');
+    tagBtn.className = `grid-tag grid-info-badge${tag ? ' has-tag' : ''}`;
     tagBtn.title = `${light ? `Light / Power ${light}` : ''}${light && tag ? ' • ' : ''}${tag ? `${tagLabel(row.Tag)} tag` : ''} — change tag`;
     tagBtn.innerHTML = `${light ? `<span class="grid-info-light">${light}</span>` : ''}${light && tag ? '<span class="grid-info-dot">•</span>' : ''}${tag ? `<span class="grid-info-tag">${tag}</span>` : ''}`;
   }
-  function decorateAll() {
-    document.querySelectorAll('.grid-card').forEach(decorateCard);
+
+  function decorateAll(force = false) {
+    queued = 0;
+    const sig = signature();
+    const host = document.getElementById('rows');
+    if (!force && sig === lastSig && host?.dataset.badgesDecorated === '1') return;
+    lastSig = sig;
+    if (host) host.dataset.badgesDecorated = '1';
+    const rowsById = rowMap();
+    document.querySelectorAll('.grid-card').forEach((card) => decorateCard(card, rowsById));
   }
+
+  function schedule(force = false) {
+    if (queued) return;
+    queued = requestAnimationFrame(() => decorateAll(force));
+  }
+
   function patchRender() {
     if (!window.D2AA || window.D2AA.__cardBadgesPatched) return;
     const original = window.D2AA.render;
     window.D2AA.render = () => {
       original();
-      requestAnimationFrame(decorateAll);
+      schedule(true);
     };
     window.D2AA.__cardBadgesPatched = true;
   }
+
   function run() {
     if (!window.D2AA) { setTimeout(run, 50); return; }
     patchRender();
-    decorateAll();
-    const rows = document.getElementById('rows');
-    if (rows && rows.dataset.cardBadgesObserved !== '1') {
-      rows.dataset.cardBadgesObserved = '1';
-      new MutationObserver(() => requestAnimationFrame(decorateAll)).observe(rows, { childList: true, subtree: true });
-    }
+    schedule(true);
   }
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run);
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run, { once: true });
   else run();
 })();
