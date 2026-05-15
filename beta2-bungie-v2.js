@@ -39,6 +39,7 @@
   function emptyArmorStats() { return Object.fromEntries(ARMOR_STAT_KEYS.map((key) => [key, 0])); }
   function totalOf(row) { return ARMOR_STAT_KEYS.reduce((sum, key) => sum + Number(row[key] || 0), 0); }
   function getStatNumericValue(stat) { return Number(stat?.value ?? stat?.statValue ?? stat?.base ?? stat?.minimum ?? 0); }
+  function getLightLevel(instanceComponent, item) { return Number(instanceComponent?.primaryStat?.value ?? instanceComponent?.quality ?? item?.primaryStat?.value ?? item?.power ?? item?.light ?? 0) || 0; }
   function normalizeName(name) { return String(name || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, ' '); }
   function columnFromStatName(name) { const n = normalizeName(name); if (!n) return null; if (n.includes('health') || n.includes('resilience')) return 'Health (Base)'; if (n.includes('melee') || n.includes('strength')) return 'Melee (Base)'; if (n.includes('grenade') || n.includes('discipline')) return 'Grenade (Base)'; if (n.includes('super') || n.includes('intellect')) return 'Super (Base)'; if (n.includes('class') || n.includes('mobility')) return 'Class (Base)'; if (n.includes('weapon') || n.includes('recovery')) return 'Weapons (Base)'; return null; }
   async function resolveStatColumn(hash) { const signed = toSigned32(hash); const unsigned = toUint32(hash); if (HASH_TO_COLUMN[signed]) return HASH_TO_COLUMN[signed]; if (HASH_TO_COLUMN[unsigned]) return HASH_TO_COLUMN[unsigned]; if (STAT_CACHE.has(unsigned)) return STAT_CACHE.get(unsigned); const def = await getDef('DestinyStatDefinition', unsigned).catch(() => null); const col = columnFromStatName(def?.displayProperties?.name || def?.statName || ''); STAT_CACHE.set(unsigned, col || null); if (col) { HASH_TO_COLUMN[unsigned] = col; HASH_TO_COLUMN[signed] = col; } return col; }
@@ -75,6 +76,7 @@
     const profile = await bungieFetch(`/Destiny2/${membership.membershipType}/Profile/${membership.membershipId}/?components=${PROFILE_COMPONENTS}`, true);
     const allItems = collectItems(profile);
     const statComponents = profile.itemComponents?.stats?.data || {};
+    const instanceComponents = profile.itemComponents?.instances?.data || {};
     const socketComponents = profile.itemComponents?.sockets?.data || {};
     const characterMap = buildCharacterMap(profile);
     const uniqueItemHashes = [...new Set(allItems.map((item) => toUint32(item.itemHash)).filter(Boolean))];
@@ -106,7 +108,8 @@
       const socketPlugDefs = plugHashesForInstance(socketComponents[instanceId]).map((hash) => plugDefs[hash]).filter(Boolean);
       const statRow = statsForItem(def, statComponents[instanceId], socketBonusTotals(socketPlugDefs, statColumnMap), statColumnMap);
       const targetCharacterId = characterMap[equippable]?.characterId || '';
-      rows.push({ Name: def.displayProperties?.name || 'Unknown Armor', Id: instanceId, Type: type, Rarity: rarity, Equippable: equippable, Tag: localTagFor(instanceId), Tier: armorTier(statRow['Total (Base)']), IconUrl: bungieIconUrl(def.displayProperties?.icon), ScreenshotUrl: bungieIconUrl(def.screenshot), ...statRow, Source: 'Bungie', ItemHash: item.itemHash, BucketHash: def.inventory?.bucketTypeHash || item.bucketHash || 0, MembershipType: membership.membershipType, OwnerCharacterId: item.d2aaOwner === 'vault' ? '' : item.d2aaOwner, TargetCharacterId: targetCharacterId, IsInVault: item.location === 2 || item.bucketHash === VAULT_BUCKET_HASH || item.d2aaOwner === 'vault', IsEquipped: Boolean(item.d2aaEquipped) });
+      const light = getLightLevel(instanceComponents[instanceId], item);
+      rows.push({ Name: def.displayProperties?.name || 'Unknown Armor', Id: instanceId, Type: type, Rarity: rarity, Equippable: equippable, Tag: localTagFor(instanceId), Tier: armorTier(statRow['Total (Base)']), Light: light, Power: light, PowerLevel: light, IconUrl: bungieIconUrl(def.displayProperties?.icon), ScreenshotUrl: bungieIconUrl(def.screenshot), ...statRow, Source: 'Bungie', ItemHash: item.itemHash, BucketHash: def.inventory?.bucketTypeHash || item.bucketHash || 0, MembershipType: membership.membershipType, OwnerCharacterId: item.d2aaOwner === 'vault' ? '' : item.d2aaOwner, TargetCharacterId: targetCharacterId, IsInVault: item.location === 2 || item.bucketHash === VAULT_BUCKET_HASH || item.d2aaOwner === 'vault', IsEquipped: Boolean(item.d2aaEquipped) });
       if (scanned % 100 === 0) { setStatus(`Building base-stat rows: ${scanned}/${allItems.length} scanned, ${rows.length} armor found`, false); await sleep(0); }
     }
     const zeroRows = rows.filter((row) => Number(row['Total (Base)'] || 0) === 0).length;
