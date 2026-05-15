@@ -1,0 +1,20 @@
+/* Final grid-card cleanup overrides.
+   Keep light/power on the item-icon overlay only.
+   Keep duplicate group identity on the group action button only. */
+body.grid-view .grid-power-pill,
+body.grid-view .grid-group-row,
+body.grid-view .grid-group{
+  display:none !important;
+}
+
+body.grid-view .grid-icon-row{
+  padding-right:2px;
+}
+
+body.grid-view .grid-card{
+  min-height:210px;
+}
+
+@media (max-width:900px){
+  body.grid-view .grid-card{min-height:210px;}
+}
