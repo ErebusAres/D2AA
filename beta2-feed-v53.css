@@ -9,7 +9,7 @@
 
 .item-feed-card{
   display:grid !important;
-  grid-template-columns:50px minmax(0,1fr) 76px !important;
+  grid-template-columns:50px minmax(0,1fr) 58px !important;
   grid-template-areas:
     "icon main score"
     "icon stats score"
@@ -38,6 +38,7 @@
 
 .feed-icon{
   grid-area:icon !important;
+  position:relative !important;
   width:50px !important;
   height:50px !important;
   border-radius:7px !important;
@@ -45,10 +46,27 @@
   box-shadow:0 8px 18px rgba(0,0,0,.3), inset 0 0 0 1px rgba(255,255,255,.08) !important;
 }
 .feed-icon img{width:100% !important;height:100% !important;object-fit:cover !important;}
-/* Power is shown once in the score column. Do not duplicate it over the item icon. */
+/* Power/light lives on the item image only, like the grid item card. */
 .feed-icon .feed-power,
 .feed-icon .feed-power-chip{
-  display:none !important;
+  position:absolute !important;
+  right:0 !important;
+  bottom:0 !important;
+  min-width:31px !important;
+  height:15px !important;
+  display:grid !important;
+  place-items:center !important;
+  padding:0 4px !important;
+  border-top-left-radius:5px !important;
+  background:rgba(0,0,0,.78) !important;
+  color:#fff !important;
+  font-size:8.5px !important;
+  font-weight:950 !important;
+  line-height:1 !important;
+  text-align:center !important;
+  text-shadow:0 1px 2px #000 !important;
+  z-index:3 !important;
+  box-sizing:border-box !important;
 }
 
 .feed-main{
@@ -116,7 +134,7 @@
 
 .feed-side{
   grid-area:score !important;
-  width:76px !important;
+  width:58px !important;
   min-width:0 !important;
   display:grid !important;
   grid-template-columns:1fr !important;
@@ -128,7 +146,10 @@
   border-top:0 !important;
   overflow:visible !important;
 }
-.feed-power-inline,
+/* The inline power chip was the duplicate one and caused score/tier stacking. Hide it. */
+.feed-side .feed-power-inline{
+  display:none !important;
+}
 .feed-total-badge,
 .feed-tier-badge,
 .feed-compare-btn{
@@ -138,33 +159,8 @@
   max-width:100% !important;
   box-sizing:border-box !important;
 }
-.feed-power-inline{
-  height:21px !important;
-  display:flex !important;
-  align-items:center !important;
-  justify-content:center !important;
-  gap:3px !important;
-  border:1px solid rgba(255,255,255,.12) !important;
-  border-radius:7px !important;
-  background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(0,0,0,.24)) !important;
-  color:#fff !important;
-  font-size:11px !important;
-  font-weight:950 !important;
-  line-height:1 !important;
-  white-space:nowrap !important;
-  text-shadow:0 1px 2px #000 !important;
-}
-.feed-power-inline::before{
-  content:'✦';
-  display:inline-block !important;
-  flex:0 0 auto !important;
-  margin:0 !important;
-  color:var(--accent-strong);
-  font-size:8px;
-  line-height:1 !important;
-}
 .feed-total-badge{
-  height:21px !important;
+  height:22px !important;
   display:flex !important;
   align-items:center !important;
   justify-content:center !important;
@@ -267,10 +263,10 @@
 
 @media (max-width:430px){
   .item-feed-card{
-    grid-template-columns:48px minmax(0,1fr) 70px !important;
+    grid-template-columns:48px minmax(0,1fr) 54px !important;
     min-height:90px !important;
   }
   .feed-icon{width:48px !important;height:48px !important;}
-  .feed-side{width:70px !important;}
+  .feed-side{width:54px !important;}
   .feed-tag-btn{width:20px !important;height:20px !important;min-width:20px !important;}
 }
