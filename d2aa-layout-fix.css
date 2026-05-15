@@ -22,11 +22,12 @@ body.grid-view #rows{
 
 body.grid-view .grid-card{
   position:relative!important;
-  min-height:260px!important;
+  min-height:0!important;
   display:grid!important;
-  grid-template-rows:auto 1fr auto!important;
+  grid-template-rows:auto auto auto!important;
   overflow:visible!important;
   border-radius:16px!important;
+  align-content:start!important;
 }
 
 body.grid-view .grid-card::before{
@@ -96,27 +97,29 @@ body.grid-view .grid-tag.is-empty{
   display:none!important;
 }
 
+/* Duplicate group corner marker: small corner tab, not a rounded pill. */
 body.grid-view .grid-group-badge{
   position:absolute!important;
-  top:-7px!important;
-  right:-7px!important;
+  top:0!important;
+  right:0!important;
   z-index:15!important;
   display:inline-flex!important;
   align-items:center!important;
   justify-content:center!important;
   width:auto!important;
-  min-width:28px!important;
-  max-width:none!important;
-  height:22px!important;
-  padding:0 7px!important;
-  border-radius:999px!important;
+  min-width:24px!important;
+  height:19px!important;
+  padding:0 6px!important;
+  border-radius:0 16px 0 8px!important;
   font-size:10px!important;
   font-weight:950!important;
   line-height:1!important;
   color:#fff!important;
-  border:1px solid color-mix(in srgb,var(--group-glow,var(--accent)) 68%,rgba(255,255,255,.18))!important;
-  background:linear-gradient(135deg,color-mix(in srgb,var(--group-glow,var(--accent)) 62%,rgba(0,0,0,.50)),rgba(0,0,0,.72))!important;
-  box-shadow:0 0 16px color-mix(in srgb,var(--group-glow,var(--accent)) 48%,transparent),0 8px 18px rgba(0,0,0,.35)!important;
+  border:0!important;
+  border-left:1px solid color-mix(in srgb,var(--group-glow,var(--accent)) 60%,rgba(255,255,255,.18))!important;
+  border-bottom:1px solid color-mix(in srgb,var(--group-glow,var(--accent)) 60%,rgba(255,255,255,.18))!important;
+  background:linear-gradient(135deg,color-mix(in srgb,var(--group-glow,var(--accent)) 72%,rgba(0,0,0,.34)),rgba(0,0,0,.72))!important;
+  box-shadow:0 0 12px color-mix(in srgb,var(--group-glow,var(--accent)) 38%,transparent)!important;
   text-transform:uppercase!important;
 }
 
@@ -129,7 +132,7 @@ body.grid-view .grid-body[data-slot-grid="1"]{
   grid-template-columns:repeat(3,minmax(0,1fr))!important;
   grid-template-rows:repeat(3,34px)!important;
   gap:6px!important;
-  padding:0 10px 10px!important;
+  padding:0 10px 8px!important;
   align-items:stretch!important;
   justify-items:stretch!important;
 }
@@ -218,7 +221,9 @@ body.grid-view .grid-actions{
   grid-template-columns:1fr auto!important;
   gap:7px!important;
   padding:0 10px 10px!important;
+  margin:0!important;
   z-index:8!important;
+  align-self:start!important;
 }
 
 body.grid-view .grid-actions--single{
