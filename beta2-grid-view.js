@@ -31,12 +31,24 @@
   const mask = (url, label, cls = 'grid-mask-icon') => `<span class="${cls}" title="${escapeHtml(label)}" style="mask-image:url('${url}');-webkit-mask-image:url('${url}')"></span>`;
   const img = (url, label, cls = 'grid-mini-icon') => url ? `<img class="${cls}" src="${url}" alt="${escapeHtml(label)}" title="${escapeHtml(label)}" loading="lazy">` : '';
   let renderingGrid = false;
+  let pendingEnsure = 0;
+  let lastGridSignature = '';
+  let lastOverviewSignature = '';
+  let rowById = new Map();
 
   function viewMode() { return localStorage.getItem(LS_VIEW) || 'grid'; }
-  function setViewMode(mode) { localStorage.setItem(LS_VIEW, mode === 'table' ? 'table' : 'grid'); document.body.classList.toggle('grid-view', mode !== 'table'); updateViewToggle(); window.D2AA?.render?.(); ensureGridRendered(); }
+  function setViewMode(mode) {
+    localStorage.setItem(LS_VIEW, mode === 'table' ? 'table' : 'grid');
+    document.body.classList.toggle('grid-view', mode !== 'table');
+    lastGridSignature = '';
+    updateViewToggle();
+    window.D2AA?.render?.();
+    scheduleEnsureGridRendered();
+  }
   function state() { return window.D2AA?.getState?.(); }
   function groupColor(row) { if (!row?.Is_Dupe) return ''; const key = `${row.GroupKey || ''}:${row.Dupe_Group || ''}`; let hash = 0; for (let i = 0; i < key.length; i++) hash = ((hash << 5) - hash + key.charCodeAt(i)) | 0; return GROUP_COLORS[Math.abs(hash) % GROUP_COLORS.length]; }
   function renderStats(row) { return `<div class="grid-stats">${STAT_COLS.map((stat) => `<div class="grid-stat ${statClass(row[stat])}" title="${escapeHtml(stat.replace(' (Base)', ''))}: ${num(row[stat])}">${img(STAT_ICONS[stat], stat.replace(' (Base)', ''))}<span>${num(row[stat])}</span></div>`).join('')}</div>`; }
+  function gridSignature(rows) { return rows.map((row) => [normId(row.Id), row.Tag || '', row.Tier || '', row.Rank || '', row.Is_Dupe ? 1 : 0, row.Dupe_Group || '', row.GroupKey || '', row.Source || '', row.IsInVault ? 1 : 0, row.IsEquipped ? 1 : 0, row['Total (Base)'] || ''].join('|')).join('~'); }
 
   function renderClassOverview() {
     let host = $('gridOverview');
@@ -45,14 +57,32 @@
     if (!host) { host = document.createElement('div'); host.id = 'gridOverview'; host.className = 'd2aa-grid-overview'; tablePanel.querySelector('.table-topbar')?.after(host); }
     const s = state();
     const rows = s?.rows || [];
+    const visible = s?.visible || [];
+    const stats = {
+      Warlock: { total: 0, sum: 0, visible: 0, dupes: 0 },
+      Hunter: { total: 0, sum: 0, visible: 0, dupes: 0 },
+      Titan: { total: 0, sum: 0, visible: 0, dupes: 0 }
+    };
+    for (const row of rows) {
+      const bucket = stats[row.Equippable];
+      if (!bucket) continue;
+      bucket.total += 1;
+      bucket.sum += num(row['Total (Base)']);
+    }
+    for (const row of visible) {
+      const bucket = stats[row.Equippable];
+      if (!bucket) continue;
+      bucket.visible += 1;
+      if (row.Is_Dupe) bucket.dupes += 1;
+    }
+    const sig = ['Warlock', 'Hunter', 'Titan'].map((cls) => `${cls}:${stats[cls].total}:${stats[cls].visible}:${stats[cls].dupes}:${stats[cls].sum}:${s?.classFilter === cls ? 1 : 0}`).join('|');
+    if (sig === lastOverviewSignature && host.children.length) return;
+    lastOverviewSignature = sig;
     host.innerHTML = ['Warlock', 'Hunter', 'Titan'].map((cls) => {
-      const classRows = rows.filter((row) => row.Equippable === cls);
-      const visibleRows = (s?.visible || []).filter((row) => row.Equippable === cls);
-      const avg = classRows.length ? Math.round(classRows.reduce((sum, row) => sum + num(row['Total (Base)']), 0) / classRows.length) : 0;
-      const dupes = visibleRows.filter((row) => row.Is_Dupe).length;
-      return `<button class="grid-class-card${s?.classFilter === cls ? ' is-active' : ''}" type="button" data-grid-class="${cls}">${mask(CLASS_ICONS[cls], cls, 'grid-class-icon')}<span><span class="grid-class-title">${cls}</span><span class="grid-class-meta">${classRows.length} armor • ${dupes} shown dupes • avg ${avg}</span></span><span class="grid-class-total">${visibleRows.length}</span></button>`;
+      const info = stats[cls];
+      const avg = info.total ? Math.round(info.sum / info.total) : 0;
+      return `<button class="grid-class-card${s?.classFilter === cls ? ' is-active' : ''}" type="button" data-grid-class="${cls}">${mask(CLASS_ICONS[cls], cls, 'grid-class-icon')}<span><span class="grid-class-title">${cls}</span><span class="grid-class-meta">${info.total} armor • ${info.dupes} shown dupes • avg ${avg}</span></span><span class="grid-class-total">${info.visible}</span></button>`;
     }).join('');
-    host.querySelectorAll('[data-grid-class]').forEach((btn) => btn.addEventListener('click', () => { const s2 = state(); if (!s2) return; s2.classFilter = btn.dataset.gridClass; window.D2AA?.render?.(); ensureGridRendered(); }));
   }
   function buttonText(row) { if (row.Source !== 'Bungie') return 'Copy'; if (row.IsEquipped) return 'Equipped'; return row.IsInVault ? 'Pull' : 'Vault'; }
   function renderGroupButton(row, slot) { if (!row.Is_Dupe) return ''; const label = `${slot} ${row.Dupe_Group}`; return `<button class="grid-action grid-action--group" type="button" data-grid-action="group" title="${row.Source === 'Bungie' ? 'Pull/copy this duplicate group' : 'Copy all DIM IDs in this duplicate group'}">${mask(SLOT_ICONS[slot], label, 'grid-action-slot-icon')}<span>${escapeHtml(row.Dupe_Group)}</span></button>`; }
@@ -60,17 +90,38 @@
     const icon = itemIcon(row); const fallback = slotLabel(row.Type).slice(0, 1).toUpperCase(); const gColor = groupColor(row); const style = gColor ? ` style="--group-glow:${gColor}"` : ''; const slot = slotLabel(row.Type); const actionDisabled = row.Source === 'Bungie' && row.IsEquipped ? ' disabled' : ''; const light = lightLevel(row); const tag = tagEmoji(row.Tag);
     return `<article class="grid-card ${rarityClass(row.Rarity)}${row.Is_Dupe ? ' is-dupe' : ''}" data-grid-id="${escapeHtml(normId(row.Id))}"${style}><div class="grid-card-top"><div class="grid-item-icon">${icon ? `<img src="${escapeHtml(icon)}" alt="" loading="lazy">` : `<span>${fallback}</span>`}${light ? `<span class="grid-light" title="Light / Power level">${light}</span>` : ''}</div><div class="grid-item-title"><div class="grid-item-name" title="${escapeHtml(row.Name)}">${escapeHtml(row.Name || '(Unnamed item)')}</div><div class="grid-icon-row">${img(RARITY_ICONS[row.Rarity], row.Rarity || 'Rarity')}${mask(SLOT_ICONS[slot], slot)}${mask(CLASS_ICONS[row.Equippable], row.Equippable)}<span class="grid-location" title="${escapeHtml(locationLabel(row))}">${locationIcon(row)}</span>${light ? `<span class="grid-power-pill" title="Light / Power level">✦ ${light}</span>` : ''}</div></div><button class="grid-tag${tag ? ' has-tag' : ' is-empty'}" type="button" data-grid-action="tag" title="${escapeHtml(tagLabel(row.Tag))} — change tag">${tag}</button></div><div class="grid-body"><div class="grid-primary-row"><span class="grid-total" title="Base stat total">${num(row['Total (Base)'])}</span><span class="grid-tier" title="Tier ${num(row.Tier)}">${tierDiamonds(row)}</span><span class="grid-rank" title="Rank">${escapeHtml(row.Rank || '')}</span></div>${renderStats(row)}</div><div class="grid-actions${row.Is_Dupe ? '' : ' grid-actions--single'}"><button class="grid-action" type="button" data-grid-action="primary"${actionDisabled}>${buttonText(row)}</button>${renderGroupButton(row, slot)}</div></article>`;
   }
-  function primaryClick(row, btn) { const tableRow = [...document.querySelectorAll('.armor-row')].find((el, index) => state()?.visible?.[index]?.Id === row.Id); const tableBtn = tableRow?.querySelector('.action-stack button'); if (tableBtn) { tableBtn.click(); btn.textContent = '...'; setTimeout(() => window.D2AA?.render?.(), 900); return; } navigator.clipboard?.writeText(`id:${normId(row.Id)}`); }
-  function tagClick(row) { const tableRow = [...document.querySelectorAll('.armor-row')].find((el, index) => state()?.visible?.[index]?.Id === row.Id); const tagBtn = tableRow?.querySelector('.tag-btn'); if (tagBtn) tagBtn.click(); }
+  function tableRowFor(row) { return [...document.querySelectorAll('.armor-row')].find((el, index) => state()?.visible?.[index]?.Id === row.Id); }
+  function primaryClick(row, btn) { const tableBtn = tableRowFor(row)?.querySelector('.action-stack button'); if (tableBtn) { tableBtn.click(); btn.textContent = '...'; setTimeout(() => window.D2AA?.render?.(), 900); return; } navigator.clipboard?.writeText(`id:${normId(row.Id)}`); }
+  function tagClick(row) { const tagBtn = tableRowFor(row)?.querySelector('.tag-btn'); if (tagBtn) tagBtn.click(); }
   async function groupClick(row, btn) { if (!row.Is_Dupe) return; const rows = state()?.visible || []; const groupIds = rows.filter((item) => item.GroupKey === row.GroupKey && item.Dupe_Group === row.Dupe_Group).map((item) => `id:${normId(item.Id)}`).join(' or '); try { await navigator.clipboard.writeText(groupIds); btn.classList.add('is-success'); } catch (_) { btn.classList.add('is-error'); } setTimeout(() => { btn.classList.remove('is-success', 'is-error'); }, 900); }
 
-  function renderGridIfNeeded() {
+  function bindGridActions(host) {
+    if (!host || host.dataset.gridActionsBound === '1') return;
+    host.dataset.gridActionsBound = '1';
+    host.addEventListener('click', (event) => {
+      const action = event.target.closest('[data-grid-action]');
+      const card = event.target.closest('.grid-card');
+      if (!action || !card || !host.contains(card)) return;
+      const row = rowById.get(card.dataset.gridId);
+      if (!row) return;
+      if (action.dataset.gridAction === 'tag') tagClick(row);
+      if (action.dataset.gridAction === 'primary') primaryClick(row, action);
+      if (action.dataset.gridAction === 'group') groupClick(row, action);
+    });
+  }
+
+  function renderGridIfNeeded(force = false) {
     renderClassOverview();
     if (viewMode() !== 'grid') return;
     const host = $('rows'); const rows = state()?.visible || []; if (!host) return;
+    const sig = gridSignature(rows);
+    const mustReplaceTable = Boolean(host.querySelector('.armor-row'));
+    if (!force && sig === lastGridSignature && host.querySelector('.grid-card') && !mustReplaceTable) return;
+    lastGridSignature = sig;
+    rowById = new Map(rows.map((row) => [normId(row.Id), row]));
+    bindGridActions(host);
     renderingGrid = true;
     host.innerHTML = rows.map(renderGridCard).join('');
-    host.querySelectorAll('.grid-card').forEach((card) => { const row = rows.find((item) => normId(item.Id) === card.dataset.gridId); if (!row) return; card.querySelector('[data-grid-action="tag"]')?.addEventListener('click', () => tagClick(row)); card.querySelector('[data-grid-action="primary"]')?.addEventListener('click', (event) => primaryClick(row, event.currentTarget)); card.querySelector('[data-grid-action="group"]')?.addEventListener('click', (event) => groupClick(row, event.currentTarget)); });
     requestAnimationFrame(() => { renderingGrid = false; });
   }
   function updateViewToggle() { document.body.classList.toggle('grid-view', viewMode() === 'grid'); document.querySelectorAll('[data-view-mode]').forEach((btn) => btn.classList.toggle('is-active', btn.dataset.viewMode === viewMode())); }
@@ -82,19 +133,24 @@
     const hasTableRows = Boolean(host.querySelector('.armor-row'));
     const hasGridCards = Boolean(host.querySelector('.grid-card'));
     const visibleCount = state()?.visible?.length || 0;
-    if (hasTableRows || (visibleCount > 0 && !hasGridCards)) renderGridIfNeeded();
+    if (hasTableRows || (visibleCount > 0 && !hasGridCards)) renderGridIfNeeded(hasTableRows);
+  }
+  function scheduleEnsureGridRendered() {
+    if (pendingEnsure) return;
+    pendingEnsure = requestAnimationFrame(() => {
+      pendingEnsure = 0;
+      ensureGridRendered();
+    });
   }
   function injectToggle() { if ($('viewToggle')) return; const nav = document.querySelector('.shell-actions'); const toggle = document.createElement('div'); toggle.id = 'viewToggle'; toggle.className = 'shell-view-toggle'; toggle.innerHTML = `<button type="button" data-view-mode="table" title="Table view">Table</button><button type="button" data-view-mode="grid" title="Grid view">Grid</button>`; toggle.querySelectorAll('[data-view-mode]').forEach((btn) => btn.addEventListener('click', () => setViewMode(btn.dataset.viewMode))); nav?.prepend(toggle); updateViewToggle(); }
   function patchRender() { if (!window.D2AA || window.D2AA.__gridViewPatched) return; const originalRender = window.D2AA.render; window.D2AA.render = () => { originalRender(); renderGridIfNeeded(); updateViewToggle(); }; window.D2AA.__gridViewPatched = true; }
-  function observeRows() { const host = $('rows'); if (!host || host.dataset.gridObserved === '1') return; host.dataset.gridObserved = '1'; new MutationObserver(() => setTimeout(ensureGridRendered, 0)).observe(host, { childList: true }); }
+  function observeRows() { const host = $('rows'); if (!host || host.dataset.gridObserved === '1') return; host.dataset.gridObserved = '1'; new MutationObserver(scheduleEnsureGridRendered).observe(host, { childList: true }); }
   function run() {
     if (!window.D2AA) { setTimeout(run, 50); return; }
     if (!localStorage.getItem(LS_VIEW)) localStorage.setItem(LS_VIEW, 'grid');
     injectToggle(); patchRender(); observeRows(); updateViewToggle();
     window.D2AA.render?.();
-    setTimeout(ensureGridRendered, 0);
-    setTimeout(ensureGridRendered, 100);
-    setTimeout(ensureGridRendered, 500);
+    scheduleEnsureGridRendered();
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run);
   else run();
