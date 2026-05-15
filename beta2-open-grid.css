@@ -1,0 +1,70 @@
+/* Open grid stage: reduce the boxed-in feeling while keeping the table mode framed. */
+body.grid-view.shell-enhanced .app-shell{
+  padding-left:8px;
+  padding-right:8px;
+}
+
+body.grid-view .table-stage{
+  min-width:0;
+}
+
+body.grid-view .table-panel{
+  border-color:transparent;
+  background:transparent;
+  box-shadow:none;
+  overflow:visible;
+}
+
+body.grid-view .table-topbar{
+  margin:0 2px 8px;
+  border:1px solid color-mix(in srgb,var(--accent) 18%,var(--border));
+  border-radius:16px;
+  background:linear-gradient(135deg,rgba(255,255,255,.055),rgba(255,255,255,.018));
+  box-shadow:0 12px 36px rgba(0,0,0,.22);
+}
+
+body.grid-view .d2aa-mode-bar,
+body.grid-view .d2aa-grid-overview{
+  padding-left:2px;
+  padding-right:2px;
+}
+
+body.grid-view .table-wrap{
+  border:0;
+  border-radius:0;
+  background:transparent;
+  box-shadow:none;
+  overflow-y:auto;
+  overflow-x:hidden;
+  padding-right:2px;
+}
+
+body.grid-view #rows{
+  padding:8px 2px 16px;
+  grid-template-columns:repeat(auto-fill,minmax(170px,1fr));
+}
+
+body.grid-view .empty-state{
+  margin:10px 2px;
+  border:1px solid color-mix(in srgb,var(--accent) 18%,var(--border));
+  border-radius:16px;
+  background:linear-gradient(135deg,rgba(255,255,255,.05),rgba(255,255,255,.018));
+}
+
+body.grid-view .grid-card{
+  backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(8px);
+}
+
+body.grid-view .grid-card-top{
+  padding-top:8px;
+}
+
+@media (min-width:1500px){
+  body.grid-view.shell-enhanced .app-shell{padding-left:12px;padding-right:12px;}
+  body.grid-view #rows{grid-template-columns:repeat(auto-fill,minmax(176px,1fr));}
+}
+
+@media (max-width:900px){
+  body.grid-view #rows{grid-template-columns:repeat(auto-fill,minmax(158px,1fr));}
+}
