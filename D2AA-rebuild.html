@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>D2AA Rebuild</title>
+  <link rel="stylesheet" href="src/styles/base.css" />
+  <link rel="stylesheet" href="src/styles/layout.css" />
+  <link rel="stylesheet" href="src/styles/cards.css" />
+  <link rel="stylesheet" href="src/styles/table.css" />
+  <link rel="stylesheet" href="src/styles/item-feed.css" />
+</head>
+<body>
+  <header class="app-header">
+    <div>
+      <p class="eyebrow">Destiny 2 Armor Analyzer</p>
+      <h1>D2AA Rebuild</h1>
+    </div>
+    <div class="command-bar" aria-label="Main controls">
+      <div class="view-toggle" role="group" aria-label="View mode">
+        <button id="gridViewBtn" type="button" class="is-active">Grid</button>
+        <button id="tableViewBtn" type="button">Table</button>
+      </div>
+      <button id="restoreBtn" type="button">Restore</button>
+      <button id="clearBtn" type="button">Clear</button>
+      <label class="file-button">
+        <input id="fileInput" type="file" accept=".csv,text/csv" />
+        DIM CSV
+      </label>
+      <input id="searchBox" type="search" placeholder="Search armor…" autocomplete="off" />
+    </div>
+  </header>
+
+  <main class="app-shell">
+    <section class="overview-row" aria-label="Class overview">
+      <button class="class-card is-active" type="button" data-class="Warlock">Warlock <span id="warlockCount">0</span></button>
+      <button class="class-card" type="button" data-class="Hunter">Hunter <span id="hunterCount">0</span></button>
+      <button class="class-card" type="button" data-class="Titan">Titan <span id="titanCount">0</span></button>
+    </section>
+
+    <section class="toolbar-row" aria-label="Filters">
+      <select id="slotFilter" aria-label="Slot filter">
+        <option>All</option><option>Helmet</option><option>Gauntlets</option><option>Chest Armor</option><option>Leg Armor</option><option>Class Item</option>
+      </select>
+      <select id="rarityFilter" aria-label="Rarity filter">
+        <option>All</option><option>Rare</option><option>Legendary</option><option>Exotic</option>
+      </select>
+      <select id="dupeFilter" aria-label="Duplicate filter">
+        <option>All</option><option>Only Dupes</option><option>Only Same-Name</option>
+      </select>
+      <span id="statusText" class="status-text">Ready for DIM CSV import.</span>
+    </section>
+
+    <section id="gridHost" class="grid-host" aria-live="polite"></section>
+    <section id="tableHost" class="table-host is-hidden" aria-live="polite"></section>
+  </main>
+
+  <aside id="itemFeedDrawer" class="item-feed-drawer" aria-label="Item Feed">
+    <header><strong>Item Feed</strong><button id="closeFeedBtn" type="button">×</button></header>
+    <div id="itemFeedList" class="item-feed-list"></div>
+  </aside>
+  <button id="itemFeedTab" class="item-feed-tab" type="button" aria-controls="itemFeedDrawer">Item Feed <span id="itemFeedCount">0</span></button>
+
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <script src="src/constants.js"></script>
+  <script src="src/state.js"></script>
+  <script src="src/data/armor-normalize.js"></script>
+  <script src="src/data/duplicate-groups.js"></script>
+  <script src="src/render/grid.js"></script>
+  <script src="src/render/table.js"></script>
+  <script src="src/render/item-feed.js"></script>
+  <script src="src/app.js"></script>
+</body>
+</html>
