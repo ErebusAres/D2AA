@@ -41,7 +41,13 @@
   const itemIcon = (row) => row.IconUrl || row.Icon || row.DisplayIcon || row.ScreenshotUrl || '';
   const firstNumber = (...values) => { for (const value of values) { const match = String(value ?? '').match(/\d{1,5}/); if (match) return Number(match[0]); } return 0; };
   const lightLevel = (row) => firstNumber(row.Light, row.Power, row.PowerLevel, row.Power_Level, row['Power Level'], row['Light Level'], row.PrimaryStat, row['Primary Stat'], row.Level, row['Item Level'], row.__raw?.Light, row.__raw?.Power, row.__raw?.PowerLevel, row.__raw?.Power_Level, row.__raw?.['Power Level'], row.__raw?.['Light Level'], row.__raw?.PrimaryStat, row.__raw?.['Primary Stat'], row.__raw?.Level);
-  const tierFor = (row) => Math.max(0, Math.min(5, num(row.GearTier || row.Tier || 0)));
+  const tierFor = (row) => {
+    if (row?.TierSource === 'BaseStatFallback') return 0;
+    const explicit = num(row?.GearTier);
+    const legacy = num(row?.Tier);
+    const tier = explicit || legacy;
+    return Math.max(0, Math.min(5, tier));
+  };
   const tierDiamonds = (row) => `<span class="tier-filled">${'◆'.repeat(tierFor(row))}</span><span class="tier-empty">${'◇'.repeat(5 - tierFor(row))}</span>`;
   let lastGridSignature = '';
   let lastOverviewSignature = '';

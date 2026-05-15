@@ -38,12 +38,16 @@
   function normalizeTag(tag) { const value = String(tag || '').trim().toLowerCase(); return TAGS.some(([t]) => t === value) ? value : ''; }
   function slotGlyph(type) { const t = String(type || '').toLowerCase(); if (t.includes('helmet')) return '◉'; if (t.includes('gauntlet')) return '▣'; if (t.includes('chest')) return '⬟'; if (t.includes('leg')) return '▰'; return '◇'; }
   function idSortValue(row) { const id = normId(row?.Id); return id.length ? id.padStart(24, '0') : ''; }
+  function gearTier(row) {
+    if (row?.TierSource === 'BaseStatFallback') return 0;
+    return Number(row?.GearTier || row?.Tier || 0);
+  }
 
   function buildFeedEntry(row, options = {}) {
     const stats = Object.fromEntries(STAT_KEYS.map((key) => [key, Number(row[key] || 0)]));
     return {
       id: normId(row.Id), name: row.Name || 'Unknown Armor', type: row.Type || 'Armor', rarity: row.Rarity || 'Unknown', equippable: row.Equippable || '',
-      total: Number(row['Total (Base)'] || 0), tier: Number(row.Tier || 0), rank: Number(row.Rank || 0), light: lightLevel(row), location: locationLabel(row), icon: locationIcon(row),
+      total: Number(row['Total (Base)'] || 0), tier: gearTier(row), rank: Number(row.Rank || 0), light: lightLevel(row), location: locationLabel(row), icon: locationIcon(row),
       itemIcon: row.IconUrl || row.Icon || row.DisplayIcon || '', stats, tag: normalizeTag(row.Tag), foundAt: options.foundAt || new Date().toISOString(), seeded: Boolean(options.seeded), dismissed: false
     };
   }
