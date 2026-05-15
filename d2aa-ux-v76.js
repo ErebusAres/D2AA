@@ -1,15 +1,11 @@
 (() => {
-  const ARMOR_STAT_KEYS = ['Health (Base)', 'Melee (Base)', 'Grenade (Base)', 'Super (Base)', 'Class (Base)', 'Weapons (Base)'];
   const num = (v) => Number(v || 0);
   const id = (v) => String(v || '').trim();
-  const totalOf = (row) => ARMOR_STAT_KEYS.reduce((sum, key) => sum + num(row?.[key]), 0);
-  const maxTierFor = (row) => String(row?.Rarity || '').trim().toLowerCase() === 'exotic' ? 2 : 5;
   const tierFor = (row) => {
-    const total = num(row?.['Total (Base)']) || totalOf(row);
-    if (String(row?.Rarity || '').trim().toLowerCase() === 'exotic') return total >= 63 ? 2 : 1;
-    return total >= 75 ? 5 : total >= 74 ? 4 : total >= 73 ? 3 : total >= 72 ? 2 : 1;
+    const explicit = num(row?.GearTier || row?.Tier);
+    return explicit >= 1 && explicit <= 5 ? explicit : 1;
   };
-  const tierHtml = (tier, max) => `<span class="tier-filled">${'◆'.repeat(Math.max(0, Math.min(max, tier)))}</span><span class="tier-empty">${'◇'.repeat(Math.max(0, max - tier))}</span>`;
+  const tierHtml = (tier, max = 5) => `<span class="tier-filled">${'◆'.repeat(Math.max(0, Math.min(max, tier)))}</span><span class="tier-empty">${'◇'.repeat(Math.max(0, max - tier))}</span>`;
   const state = () => window.D2AA?.getState?.();
   const rowForCard = (card) => (state()?.visible || []).find(row => id(row.Id) === card.dataset.gridId);
 
@@ -18,10 +14,10 @@
     const cell = card.querySelector('.grid-slot-tier');
     if (!row || !cell) return;
     const tier = tierFor(row);
-    const max = maxTierFor(row);
+    const max = num(row.TierMax) || 5;
     cell.dataset.visualTier = String(tier);
     cell.dataset.tierMax = String(max);
-    cell.title = `${row.Rarity || 'Armor'} tier ${tier}/${max} from base total ${num(row['Total (Base)']) || totalOf(row)}`;
+    cell.title = `${row.Rarity || 'Armor'} gear tier ${tier}/${max}${row.TierSource ? ` • ${row.TierSource}` : ''}`;
     cell.innerHTML = tierHtml(tier, max);
   }
 
@@ -31,10 +27,10 @@
     const cell = rowEl.querySelector('.tier');
     if (!row || !cell) return;
     const tier = tierFor(row);
-    const max = maxTierFor(row);
+    const max = num(row.TierMax) || 5;
     cell.dataset.visualTier = String(tier);
     cell.dataset.tierMax = String(max);
-    cell.title = `${row.Rarity || 'Armor'} tier ${tier}/${max} from base total ${num(row['Total (Base)']) || totalOf(row)}`;
+    cell.title = `${row.Rarity || 'Armor'} gear tier ${tier}/${max}${row.TierSource ? ` • ${row.TierSource}` : ''}`;
     cell.innerHTML = tierHtml(tier, max);
   }
 
@@ -43,35 +39,33 @@
     document.querySelectorAll('.armor-row:not(.grid-card)').forEach(patchTableRow);
   }
 
-  function patchDataRows() {
+  function normalizeCachedRows() {
     const s = state();
     if (!s?.rows) return;
-    let changed = false;
     s.rows.forEach((row) => {
       const tier = tierFor(row);
-      if (num(row.Tier) !== tier) { row.Tier = tier; changed = true; }
-      row.TierMax = maxTierFor(row);
+      row.Tier = tier;
+      row.GearTier = tier;
+      row.TierMax = 5;
+      if (!row.TierSource) row.TierSource = row.Source === 'Bungie' ? 'BungieOrLegacyCache' : 'CSV';
     });
-    if (changed) {
-      try { localStorage.setItem('d2aa_beta2_rows_v1', JSON.stringify(s.rows)); } catch (_) {}
-    }
   }
 
   function run() {
-    patchDataRows();
+    normalizeCachedRows();
     patchRows();
     const rows = document.getElementById('rows');
     if (rows && rows.dataset.tierRarityObserver !== '1') {
       rows.dataset.tierRarityObserver = '1';
-      new MutationObserver(() => requestAnimationFrame(() => { patchDataRows(); patchRows(); })).observe(rows, { childList: true, subtree: true });
+      new MutationObserver(() => requestAnimationFrame(() => { normalizeCachedRows(); patchRows(); })).observe(rows, { childList: true, subtree: true });
     }
     const original = window.D2AA?.render;
     if (original && !window.D2AA.__tierRarityPatch) {
-      window.D2AA.render = () => { patchDataRows(); original(); requestAnimationFrame(patchRows); };
+      window.D2AA.render = () => { normalizeCachedRows(); original(); requestAnimationFrame(patchRows); };
       window.D2AA.__tierRarityPatch = true;
     }
-    setTimeout(() => { patchDataRows(); patchRows(); }, 150);
-    setTimeout(() => { patchDataRows(); patchRows(); }, 800);
+    setTimeout(() => { normalizeCachedRows(); patchRows(); }, 150);
+    setTimeout(() => { normalizeCachedRows(); patchRows(); }, 800);
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run);
