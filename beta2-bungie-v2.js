@@ -1,6 +1,7 @@
 (() => {
   const API_ROOT = 'https://www.bungie.net/Platform';
   const TOKEN_URL = 'https://www.bungie.net/Platform/App/OAuth/Token/';
+  const BUNGIE_ORIGIN = 'https://www.bungie.net';
   const PUBLIC_CONFIG = { apiKey: '96e154014bdd44c0a537e482709b7473', clientId: '50794', redirectUri: 'https://erebusares.github.io/D2AA/beta2.html' };
   const STORAGE = { config: 'd2aa_bungie_public_config_v1', token: 'd2aa_bungie_token_v1' };
   const PROFILE_COMPONENTS = [100, 102, 200, 201, 205, 300, 304, 305].join(',');
@@ -27,6 +28,7 @@
 
   function setStatus(message, ready = false) { const el = $('bungieStatus'); if (!el) return; el.textContent = message; el.classList.toggle('is-ready', ready); el.classList.toggle('is-missing', !ready); }
   function saveToken(token) { const now = Math.floor(Date.now() / 1000); const saved = { ...token, saved_at: now, expires_at: token.expires_in ? now + Number(token.expires_in) : token.expires_at, refresh_expires_at: token.refresh_expires_in ? now + Number(token.refresh_expires_in) : token.refresh_expires_at }; writeJson(STORAGE.token, saved); return saved; }
+  function bungieIconUrl(path) { const p = String(path || '').trim(); if (!p) return ''; return p.startsWith('http') ? p : `${BUNGIE_ORIGIN}${p}`; }
   async function refreshToken() { const cfg = getConfig(); const token = getToken(); if (!token.refresh_token) throw new Error('No refresh token found. Connect your Destiny account again.'); const body = new URLSearchParams(); body.set('grant_type', 'refresh_token'); body.set('refresh_token', token.refresh_token); body.set('client_id', cfg.clientId); const res = await fetch(TOKEN_URL, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-API-Key': cfg.apiKey }, body }); const json = await res.json().catch(() => ({})); if (!res.ok) throw new Error(json.error_description || json.Message || `OAuth refresh failed (${res.status}).`); return saveToken(json); }
   async function bungieFetch(path, auth = false, options = {}) { const cfg = getConfig(); const headers = { 'X-API-Key': cfg.apiKey, ...(options.headers || {}) }; if (auth) { let token = getToken(); if (!tokenIsValid(token)) token = await refreshToken(); headers.Authorization = `Bearer ${token.access_token}`; } const res = await fetch(`${API_ROOT}${path}`, { ...options, headers }); const json = await res.json().catch(() => ({})); if (!res.ok || (json.ErrorCode && json.ErrorCode !== 1)) throw new Error(json.Message || `Bungie request failed (${res.status}).`); return json.Response; }
   async function getMembership() { const data = await bungieFetch('/User/GetMembershipsForCurrentUser/', true); const memberships = data.destinyMemberships || []; const primary = memberships.find((m) => m.membershipId === data.primaryMembershipId) || memberships[0]; if (!primary) throw new Error('No Destiny membership found for this Bungie account.'); return primary; }
@@ -104,7 +106,7 @@
       const socketPlugDefs = plugHashesForInstance(socketComponents[instanceId]).map((hash) => plugDefs[hash]).filter(Boolean);
       const statRow = statsForItem(def, statComponents[instanceId], socketBonusTotals(socketPlugDefs, statColumnMap), statColumnMap);
       const targetCharacterId = characterMap[equippable]?.characterId || '';
-      rows.push({ Name: def.displayProperties?.name || 'Unknown Armor', Id: instanceId, Type: type, Rarity: rarity, Equippable: equippable, Tag: localTagFor(instanceId), Tier: armorTier(statRow['Total (Base)']), ...statRow, Source: 'Bungie', ItemHash: item.itemHash, BucketHash: def.inventory?.bucketTypeHash || item.bucketHash || 0, MembershipType: membership.membershipType, OwnerCharacterId: item.d2aaOwner === 'vault' ? '' : item.d2aaOwner, TargetCharacterId: targetCharacterId, IsInVault: item.location === 2 || item.bucketHash === VAULT_BUCKET_HASH || item.d2aaOwner === 'vault', IsEquipped: Boolean(item.d2aaEquipped) });
+      rows.push({ Name: def.displayProperties?.name || 'Unknown Armor', Id: instanceId, Type: type, Rarity: rarity, Equippable: equippable, Tag: localTagFor(instanceId), Tier: armorTier(statRow['Total (Base)']), IconUrl: bungieIconUrl(def.displayProperties?.icon), ScreenshotUrl: bungieIconUrl(def.screenshot), ...statRow, Source: 'Bungie', ItemHash: item.itemHash, BucketHash: def.inventory?.bucketTypeHash || item.bucketHash || 0, MembershipType: membership.membershipType, OwnerCharacterId: item.d2aaOwner === 'vault' ? '' : item.d2aaOwner, TargetCharacterId: targetCharacterId, IsInVault: item.location === 2 || item.bucketHash === VAULT_BUCKET_HASH || item.d2aaOwner === 'vault', IsEquipped: Boolean(item.d2aaEquipped) });
       if (scanned % 100 === 0) { setStatus(`Building base-stat rows: ${scanned}/${allItems.length} scanned, ${rows.length} armor found`, false); await sleep(0); }
     }
     const zeroRows = rows.filter((row) => Number(row['Total (Base)'] || 0) === 0).length;
