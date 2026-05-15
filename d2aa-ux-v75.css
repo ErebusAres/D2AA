@@ -1,0 +1,10 @@
+/* D2AA UX v75: archetype only belongs in the lower 3x3 grid cell. */
+.grid-card-top .grid-aag-badge,
+.grid-card > .grid-aag-badge,
+.grid-primary-row .grid-aag-badge,
+.grid-body > .grid-aag-badge{
+  display:none!important;
+}
+.grid-slot-aag .grid-aag-badge{
+  display:flex!important;
+}
