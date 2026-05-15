@@ -49,6 +49,22 @@ body.grid-view .grid-aag-badge{
   opacity:.9;
 }
 
+body.grid-view .grid-aag-icon{
+  width:16px;
+  height:16px;
+  object-fit:contain;
+  display:block;
+  filter:drop-shadow(0 1px 2px rgba(0,0,0,.45));
+}
+
+body.grid-view .grid-aag-emoji{
+  display:grid;
+  place-items:center;
+  width:100%;
+  height:100%;
+  line-height:1;
+}
+
 body.grid-view .grid-aag-badge:hover{
   opacity:1;
   transform:scale(1.05);
@@ -57,12 +73,12 @@ body.grid-view .grid-aag-badge:hover{
   color:var(--accent-strong);
 }
 
-body.grid-view .grid-aag-badge[data-aag='bulwark']{color:#91ffbf;}
-body.grid-view .grid-aag-badge[data-aag='specialist']{color:#76e9ff;}
-body.grid-view .grid-aag-badge[data-aag='gunner']{color:#ffe187;}
-body.grid-view .grid-aag-badge[data-aag='brawler']{color:#ffad7a;}
-body.grid-view .grid-aag-badge[data-aag='grenadier']{color:#ff8da0;}
-body.grid-view .grid-aag-badge[data-aag='paragon']{color:#c9a7ff;}
+body.grid-view .grid-aag-badge[data-aag='bulwark']{border-color:rgba(145,255,191,.32);}
+body.grid-view .grid-aag-badge[data-aag='specialist']{border-color:rgba(118,233,255,.32);}
+body.grid-view .grid-aag-badge[data-aag='gunner']{border-color:rgba(255,225,135,.32);}
+body.grid-view .grid-aag-badge[data-aag='brawler']{border-color:rgba(255,173,122,.32);}
+body.grid-view .grid-aag-badge[data-aag='grenadier']{border-color:rgba(255,141,160,.32);}
+body.grid-view .grid-aag-badge[data-aag='paragon']{border-color:rgba(201,167,255,.32);}
 body.grid-view .grid-aag-badge[data-aag='balanced']{color:var(--muted);}
 
 body.grid-view .grid-card-top{
