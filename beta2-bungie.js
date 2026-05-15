@@ -191,10 +191,7 @@
     return rowStats;
   }
 
-  function armorTier(total) {
-    const n = Number(total || 0);
-    return Math.max(0, Math.floor(n / 10));
-  }
+  function armorTier(total) { return Math.max(0, Math.floor(Number(total || 0) / 10)); }
 
   function buildCharacterMap(profile) {
     const map = {};
@@ -260,6 +257,15 @@
     return 'Pulled';
   }
 
+  async function vaultItem(row) {
+    if (!row || row.Source !== 'Bungie') throw new Error('This action requires a Bungie-synced item.');
+    if (row.IsInVault) return 'Already in vault';
+    if (row.IsEquipped) throw new Error('Equipped items must be unequipped before they can be moved to the vault.');
+    if (!row.OwnerCharacterId) throw new Error('Missing source character for this item. Sync from Bungie again.');
+    await bungiePost('/Destiny2/Actions/Items/TransferItem/', { itemReferenceHash: Number(row.ItemHash), stackSize: 1, transferToVault: true, itemId: row.Id, characterId: row.OwnerCharacterId, membershipType: Number(row.MembershipType) });
+    return 'Vaulted';
+  }
+
   async function pullItems(rows) {
     const bungieRows = (rows || []).filter((row) => row?.Source === 'Bungie');
     if (!bungieRows.length) throw new Error('No Bungie-synced items selected.');
@@ -271,7 +277,7 @@
     setStatus(`Pulled ${bungieRows.length} item${bungieRows.length === 1 ? '' : 's'} to matching character inventory.`, true);
   }
 
-  window.D2AA_BUNGIE = { pullItem, pullItems, importArmor, isConnected: () => tokenIsValid(), getLastContext: () => LAST_CONTEXT };
+  window.D2AA_BUNGIE = { pullItem, pullItems, vaultItem, importArmor, isConnected: () => tokenIsValid(), getLastContext: () => LAST_CONTEXT };
 
   $('bungieSetupBtn')?.addEventListener('click', setupConfig);
   $('bungieLoginBtn')?.addEventListener('click', login);
