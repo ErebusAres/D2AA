@@ -3,9 +3,57 @@
   const C = window.D2AA_CONSTANTS;
   const S = window.D2AA_STATE;
   let renderLocked = false;
-  function setStatus(message) { const el = $('statusText'); if (el) el.textContent = message; }
-  function updateOverview(state) { for (const cls of C.CLASSES) { const el = $(`${cls.toLowerCase()}Count`); if (el) el.textContent = String(state.rows.filter((row) => row.Equippable === cls).length); document.querySelector(`[data-class="${cls}"]`)?.classList.toggle('is-active', state.classFilter === cls); } document.querySelectorAll('[data-class]').forEach((btn) => { if (btn.dataset.class === 'All') btn.classList.toggle('is-active', state.classFilter === 'All'); }); }
-  function renderAll(state) { if (renderLocked) return; renderLocked = true; requestAnimationFrame(() => { renderLocked = false; document.body.dataset.view = state.view; $('gridHost')?.classList.toggle('is-hidden', state.view !== 'grid'); $('tableHost')?.classList.toggle('is-hidden', state.view !== 'table'); $('gridViewBtn')?.classList.toggle('is-active', state.view === 'grid'); $('tableViewBtn')?.classList.toggle('is-active', state.view === 'table'); updateOverview(state); window.D2AA_GRID?.renderGrid(state); window.D2AA_TABLE?.renderTable(state); window.D2AA_FEED?.renderFeed(); }); }
+  let pendingState = null;
+  const overviewTotals = new Map();
+
+  function setStatus(message) {
+    const el = $('statusText');
+    if (el && el.textContent !== message) el.textContent = message;
+  }
+
+  function updateOverview(state) {
+    if (!overviewTotals.size || overviewTotals.get('__rows') !== state.rows) {
+      overviewTotals.clear();
+      overviewTotals.set('__rows', state.rows);
+      for (const cls of C.CLASSES) overviewTotals.set(cls, 0);
+      for (const row of state.rows) {
+        if (overviewTotals.has(row.Equippable)) overviewTotals.set(row.Equippable, overviewTotals.get(row.Equippable) + 1);
+      }
+    }
+
+    for (const cls of C.CLASSES) {
+      const el = $(`${cls.toLowerCase()}Count`);
+      const count = String(overviewTotals.get(cls) || 0);
+      if (el && el.textContent !== count) el.textContent = count;
+      document.querySelector(`[data-class="${cls}"]`)?.classList.toggle('is-active', state.classFilter === cls);
+    }
+
+    document.querySelectorAll('[data-class]').forEach((btn) => {
+      if (btn.dataset.class === 'All') btn.classList.toggle('is-active', state.classFilter === 'All');
+    });
+  }
+
+  function renderAll(state) {
+    pendingState = state;
+    if (renderLocked) return;
+    renderLocked = true;
+    requestAnimationFrame(() => {
+      const nextState = pendingState;
+      pendingState = null;
+      renderLocked = false;
+
+      document.body.dataset.view = nextState.view;
+      $('gridHost')?.classList.toggle('is-hidden', nextState.view !== 'grid');
+      $('tableHost')?.classList.toggle('is-hidden', nextState.view !== 'table');
+      $('gridViewBtn')?.classList.toggle('is-active', nextState.view === 'grid');
+      $('tableViewBtn')?.classList.toggle('is-active', nextState.view === 'table');
+      updateOverview(nextState);
+
+      if (nextState.view === 'table') window.D2AA_TABLE?.renderTable(nextState);
+      else window.D2AA_GRID?.renderGrid(nextState);
+      window.D2AA_FEED?.renderFeed();
+    });
+  }
   window.D2AA_RENDER = { renderAll, setStatus };
   function importCsv(file) { if (!file) return; setStatus(`Parsing ${file.name}...`); Papa.parse(file, { header:true, skipEmptyLines:true, complete: (results) => { const normalized = window.D2AA_NORMALIZE.normalizeRows(results.data); const grouped = window.D2AA_GROUPS.groupRows(normalized); S.setRows(grouped, `Imported ${grouped.length} armor rows from ${file.name}`); window.D2AA_FEED?.seed(grouped); setStatus(`Imported ${grouped.length} armor rows from ${file.name}`); }, error: (error) => setStatus(error.message || 'CSV import failed') }); }
   function openTagPicker(id, anchor) { const state = S.getState(); const row = state.rows.find((item) => String(item.Id) === String(id)); if (!row) return; const existing = document.getElementById('tagPicker'); existing?.remove(); const pop = document.createElement('div'); pop.id = 'tagPicker'; pop.style.cssText = 'position:fixed;z-index:1000;display:flex;gap:6px;padding:8px;border:1px solid var(--border);border-radius:14px;background:rgba(10,8,14,.96);box-shadow:0 18px 44px rgba(0,0,0,.45)'; pop.innerHTML = C.TAGS.map((tag) => `<button type="button" data-tag="${tag.id}" title="${tag.label}" style="display:grid;place-items:center;width:34px;height:34px;padding:0">${tag.emoji || '×'}</button>`).join(''); const rect = anchor.getBoundingClientRect(); pop.style.left = `${Math.min(window.innerWidth - 250, Math.max(10, rect.left))}px`; pop.style.top = `${Math.max(10, rect.bottom + 6)}px`; pop.addEventListener('click', (event) => { const btn = event.target.closest('[data-tag]'); if (!btn) return; S.setTag(id, btn.dataset.tag); pop.remove(); }); document.body.appendChild(pop); setTimeout(() => document.addEventListener('click', function close(event) { if (!event.target.closest('#tagPicker') && !event.target.closest('[data-action="tag"]')) { pop.remove(); document.removeEventListener('click', close); } }), 0); }
