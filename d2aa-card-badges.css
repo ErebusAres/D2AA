@@ -30,8 +30,8 @@ body.grid-view .grid-card:hover{
   box-shadow:0 18px 40px rgba(0,0,0,.36),0 0 22px color-mix(in srgb,var(--group-glow,var(--accent)) 18%,transparent)!important;
 }
 
-/* Keep normal card content above the hover wash, but do not pull corner badges into layout flow. */
-body.grid-view .grid-card > :not(.grid-group-badge):not(.grid-tag){
+/* Keep normal card content above the hover wash, but do not pull overlays into layout flow. */
+body.grid-view .grid-card > :not(.grid-group-badge):not(.grid-tag):not(.grid-actions){
   position:relative!important;
   z-index:2!important;
 }
