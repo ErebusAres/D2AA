@@ -1,0 +1,41 @@
+/* D2AA UX v71: normalize the lower card into explicit grid slots. */
+.grid-body{
+  display:grid!important;
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  grid-template-rows:34px 34px 34px!important;
+  gap:5px!important;
+  padding:4px 8px 8px!important;
+  align-items:stretch!important;
+}
+.grid-body>.grid-primary-row,.grid-body>.grid-stats{display:none!important;}
+.grid-slot-total,.grid-slot-tier,.grid-slot-aag,.grid-slot-stat{
+  position:relative!important;
+  z-index:2!important;
+  width:100%!important;
+  height:100%!important;
+  min-width:0!important;
+  min-height:0!important;
+  box-sizing:border-box!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  margin:0!important;
+}
+.grid-slot-total{grid-column:1;grid-row:1;border-radius:999px!important;}
+.grid-slot-tier{grid-column:2;grid-row:1;min-width:0!important;text-align:center!important;letter-spacing:-.055em!important;}
+.grid-slot-aag{grid-column:3;grid-row:1;border-radius:9px!important;background:rgba(0,0,0,.20)!important;border:1px solid color-mix(in srgb,var(--accent) 24%,rgba(255,255,255,.10))!important;}
+.grid-slot-stat:nth-of-type(4){grid-column:1;grid-row:2;}
+.grid-slot-stat:nth-of-type(5){grid-column:2;grid-row:2;}
+.grid-slot-stat:nth-of-type(6){grid-column:3;grid-row:2;}
+.grid-slot-stat:nth-of-type(7){grid-column:1;grid-row:3;}
+.grid-slot-stat:nth-of-type(8){grid-column:2;grid-row:3;}
+.grid-slot-stat:nth-of-type(9){grid-column:3;grid-row:3;}
+.grid-slot-stat{height:100%!important;border-radius:8px!important;gap:5px!important;font-size:12px!important;font-weight:950!important;line-height:1!important;}
+.grid-slot-stat img{width:16px!important;height:16px!important;object-fit:contain!important;opacity:.96!important;}
+.grid-slot-stat span{font-size:12px!important;line-height:1!important;font-variant-numeric:tabular-nums!important;}
+.grid-slot-aag .grid-aag-badge{position:static!important;width:100%!important;height:100%!important;min-width:0!important;border:0!important;background:transparent!important;box-shadow:none!important;display:flex!important;align-items:center!important;justify-content:center!important;opacity:1!important;}
+.grid-slot-aag .grid-aag-icon{width:16px!important;height:16px!important;}
+.grid-slot-aag .grid-aag-emoji{font-size:15px!important;}
+.grid-card>.grid-group-badge{position:absolute!important;top:0!important;right:0!important;z-index:8!important;}
+.grid-card{min-height:178px!important;}
+@media (max-width:1180px){.grid-body{grid-template-rows:32px 32px 32px!important;gap:4px!important}.grid-slot-stat img{width:15px!important;height:15px!important}}
