@@ -1,0 +1,75 @@
+/* DIM-style refresh hotkey pill with freshness tooltip. */
+.d2aa-refresh-key{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  min-height:34px;
+  border:1px solid color-mix(in srgb,var(--accent) 26%,var(--border));
+  border-radius:11px;
+  background:rgba(255,255,255,.04);
+  color:var(--text);
+  padding:5px 9px;
+  cursor:pointer;
+  position:relative;
+}
+
+.d2aa-refresh-key:hover,
+.d2aa-refresh-key.is-refreshing{
+  border-color:color-mix(in srgb,var(--accent) 60%,var(--border));
+  background:color-mix(in srgb,var(--accent) 12%,transparent);
+  color:var(--accent-strong);
+}
+
+.d2aa-refresh-key kbd{
+  min-width:23px;
+  height:23px;
+  display:inline-grid;
+  place-items:center;
+  border:1px solid rgba(255,255,255,.22);
+  border-bottom-color:rgba(0,0,0,.48);
+  border-radius:7px;
+  background:linear-gradient(180deg,rgba(255,255,255,.12),rgba(255,255,255,.035));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 2px 0 rgba(0,0,0,.42);
+  font:900 11px/1 system-ui,-apple-system,Segoe UI,sans-serif;
+  color:inherit;
+}
+
+.d2aa-refresh-key span{
+  font-size:11px;
+  font-weight:850;
+  white-space:nowrap;
+}
+
+.d2aa-refresh-key::after{
+  content:attr(data-tip);
+  position:absolute;
+  top:calc(100% + 9px);
+  right:0;
+  width:max-content;
+  max-width:280px;
+  padding:8px 10px;
+  border:1px solid color-mix(in srgb,var(--accent) 38%,var(--border));
+  border-radius:10px;
+  background:linear-gradient(135deg,color-mix(in srgb,var(--panel) 97%,black),color-mix(in srgb,var(--accent) 8%,var(--panel)));
+  box-shadow:0 16px 42px rgba(0,0,0,.48);
+  color:var(--text);
+  font-size:11px;
+  line-height:1.35;
+  text-align:left;
+  white-space:pre-line;
+  opacity:0;
+  transform:translateY(-4px);
+  pointer-events:none;
+  transition:opacity .12s ease,transform .12s ease;
+  z-index:300;
+}
+
+.d2aa-refresh-key:hover::after,
+.d2aa-refresh-key:focus-visible::after{
+  opacity:1;
+  transform:translateY(0);
+}
+
+@media (max-width:760px){
+  .d2aa-refresh-key span{display:none;}
+}
