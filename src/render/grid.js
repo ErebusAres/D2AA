@@ -61,9 +61,16 @@
     const actionClass = row.Is_Dupe ? 'grid-actions' : 'grid-actions grid-actions--single';
     return `<article class="grid-card ${rarityClass(row.Rarity)}${row.Is_Dupe ? ' is-dupe' : ''}" data-grid-id="${esc(clean(row.Id))}" data-id="${esc(clean(row.Id))}" data-compare-group-id="${esc(clean(row.Dupe_Group))}"${style}>${groupBadge}<div class="grid-card-top"><div class="grid-item-icon">${icon ? `<img src="${esc(icon)}" alt="" loading="lazy">` : `<span>${esc(fallback)}</span>`}</div><div class="grid-item-title"><div class="grid-item-name" title="${esc(row.Name)}">${esc(row.Name || '(Unnamed item)')}</div><div class="grid-icon-row">${img(C.RARITY_ICONS[row.Rarity], row.Rarity || 'Rarity')}${mask(C.SLOT_ICONS[slot], slot)}${mask(C.CLASS_ICONS[row.Equippable], row.Equippable)}<span class="grid-location" title="${esc(row.Source || 'DIM')}">${locationIcon(row)}</span></div></div>${infoBadge(row)}</div><div class="grid-body" data-slot-grid="1">${slotGrid(row)}</div><div class="${actionClass}"><button class="grid-action" type="button" data-action="copy" data-id="${esc(clean(row.Id))}">${row.Source === 'Bungie' ? 'Vault/Pull' : 'Copy'}</button>${row.Is_Dupe ? `<button class="grid-action grid-action--group" type="button" data-action="copy-group" data-group="${esc(row.GroupKey)}">${mask(C.SLOT_ICONS[slot], `${slot} ${row.Dupe_Group}`, 'grid-action-slot-icon')}<span>${esc(clean(row.Dupe_Group))}</span></button>` : ''}</div></article>`;
   }
+  let lastGridSignature = '';
+  function gridSignature(state) {
+    return state.visible.map((row) => row.RenderKey || [row.Id,row.Tag,row.Dupe_Group,row.GroupColor,row.GearTier,row.Tier,row.Light,row.Power].join(':')).join('|');
+  }
   function renderGrid(state) {
     const host = document.getElementById('gridHost');
     if (!host) return;
+    const signature = gridSignature(state);
+    if (signature === lastGridSignature) return;
+    lastGridSignature = signature;
     host.innerHTML = state.visible.map(card).join('') || '<p class="status-text">No armor rows match the current filters.</p>';
   }
   window.D2AA_GRID = { renderGrid };
