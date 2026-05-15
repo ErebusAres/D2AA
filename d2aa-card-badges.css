@@ -30,15 +30,30 @@ body.grid-view .grid-card:hover{
   box-shadow:0 18px 40px rgba(0,0,0,.36),0 0 22px color-mix(in srgb,var(--group-glow,var(--accent)) 18%,transparent)!important;
 }
 
-body.grid-view .grid-card > *{
+/* Keep normal card content above the hover wash, but do not pull corner badges into layout flow. */
+body.grid-view .grid-card > :not(.grid-group-badge):not(.grid-tag){
   position:relative!important;
   z-index:2!important;
 }
 
+body.grid-view .grid-group-badge{
+  position:absolute!important;
+  top:0!important;
+  right:0!important;
+  left:auto!important;
+  bottom:auto!important;
+  z-index:17!important;
+  display:inline-flex!important;
+  transform:none!important;
+}
+
 body.grid-view .grid-tag.grid-info-badge{
+  position:absolute!important;
   top:0!important;
   left:0!important;
-  z-index:16!important;
+  right:auto!important;
+  bottom:auto!important;
+  z-index:17!important;
   min-width:24px!important;
   height:19px!important;
   width:auto!important;
@@ -59,6 +74,7 @@ body.grid-view .grid-tag.grid-info-badge{
   justify-content:center!important;
   gap:4px!important;
   white-space:nowrap!important;
+  transform:none!important;
 }
 
 body.grid-view .grid-tag.grid-info-badge .grid-info-light{
