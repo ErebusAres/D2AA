@@ -10,7 +10,7 @@
     config: 'd2aa_bungie_public_config_v1',
     token: 'd2aa_bungie_token_v1'
   };
-  const PROFILE_COMPONENTS = [100, 102, 200, 201, 205, 300, 304].join(',');
+  const PROFILE_COMPONENTS = [100, 102, 200, 201, 205, 300, 304, 305].join(',');
   const VAULT_BUCKET_HASH = 138197802;
   const CLASS_TYPE = { 0: 'Titan', 1: 'Hunter', 2: 'Warlock' };
   const CLASS_ITEM_BY_CLASS = { Warlock: 'Warlock Bond', Hunter: 'Hunter Cloak', Titan: 'Titan Mark' };
@@ -87,6 +87,7 @@
   }
 
   async function getItemDef(hash) {
+    if (!hash) return null;
     if (DEF_MEMORY.has(hash)) return DEF_MEMORY.get(hash);
     const def = await bungieFetch(`/Destiny2/Manifest/DestinyInventoryItemDefinition/${hash}/`, false);
     DEF_MEMORY.set(hash, def);
@@ -129,13 +130,39 @@
 
   function emptyArmorStats() { return Object.fromEntries(ARMOR_STAT_KEYS.map((key) => [key, 0])); }
   function statValue(stat) { return Number(stat?.base ?? stat?.statValue ?? stat?.value ?? stat?.minimum ?? 0); }
-  function statsForItem(def, statComponent) {
+
+  function plugHashesForInstance(socketComponent) {
+    const hashes = [];
+    for (const socket of socketComponent?.sockets || []) {
+      const plugHash = socket.plugHash || socket.plugItemHash;
+      if (plugHash) hashes.push(plugHash);
+    }
+    return hashes;
+  }
+
+  function socketBonusTotals(plugDefs) {
+    const bonuses = emptyArmorStats();
+    for (const plugDef of plugDefs || []) {
+      for (const stat of plugDef?.investmentStats || []) {
+        const column = ARMOR_STAT_HASH_TO_COLUMN[Number(stat.statTypeHash)];
+        const value = Number(stat.value || 0);
+        if (column && value > 0) bonuses[column] += value;
+      }
+    }
+    return bonuses;
+  }
+
+  function statsForItem(def, statComponent, socketBonusRow) {
     const source = Object.keys(statComponent?.stats || {}).length ? statComponent.stats : (def.stats?.stats || {});
     const rowStats = emptyArmorStats();
+    const currentStats = emptyArmorStats();
     for (const [hash, stat] of Object.entries(source)) {
       const column = ARMOR_STAT_HASH_TO_COLUMN[Number(hash)];
-      if (column) rowStats[column] = statValue(stat);
+      if (!column) continue;
+      currentStats[column] = statValue(stat);
+      rowStats[column] = Math.max(0, currentStats[column] - Number(socketBonusRow?.[column] || 0));
     }
+    rowStats['Total (Current)'] = ARMOR_STAT_KEYS.reduce((sum, key) => sum + Number(currentStats[key] || 0), 0);
     rowStats['Total (Base)'] = ARMOR_STAT_KEYS.reduce((sum, key) => sum + Number(rowStats[key] || 0), 0);
     return rowStats;
   }
@@ -197,12 +224,23 @@
     const profile = await bungieFetch(`/Destiny2/${membership.membershipType}/Profile/${membership.membershipId}/?components=${PROFILE_COMPONENTS}`, true);
     const allItems = collectItems(profile);
     const statComponents = profile.itemComponents?.stats?.data || {};
+    const socketComponents = profile.itemComponents?.sockets?.data || {};
     const characterMap = buildCharacterMap(profile);
 
-    const uniqueHashes = [...new Set(allItems.map((item) => item.itemHash).filter(Boolean))];
-    setStatus(`Resolving item definitions: 0/${uniqueHashes.length}`, false);
-    const defsList = await mapLimit(uniqueHashes, 8, getItemDef, (done, total) => setStatus(`Resolving item definitions: ${done}/${total}`, false));
-    const itemDefs = Object.fromEntries(uniqueHashes.map((hash, i) => [hash, defsList[i]]));
+    const uniqueItemHashes = [...new Set(allItems.map((item) => item.itemHash).filter(Boolean))];
+    setStatus(`Resolving item definitions: 0/${uniqueItemHashes.length}`, false);
+    const defsList = await mapLimit(uniqueItemHashes, 8, getItemDef, (done, total) => setStatus(`Resolving item definitions: ${done}/${total}`, false));
+    const itemDefs = Object.fromEntries(uniqueItemHashes.map((hash, i) => [hash, defsList[i]]));
+
+    const armorItems = allItems.filter((item) => {
+      if (!item.itemInstanceId) return false;
+      const def = itemDefs[item.itemHash];
+      return isArmorDef(def);
+    });
+    const uniquePlugHashes = [...new Set(armorItems.flatMap((item) => plugHashesForInstance(socketComponents[item.itemInstanceId])).filter(Boolean))];
+    setStatus(`Resolving socket bonuses: 0/${uniquePlugHashes.length}`, false);
+    const plugDefsList = await mapLimit(uniquePlugHashes, 8, getItemDef, (done, total) => setStatus(`Resolving socket bonuses: ${done}/${total}`, false));
+    const plugDefs = Object.fromEntries(uniquePlugHashes.map((hash, i) => [hash, plugDefsList[i]]));
 
     const seen = new Set();
     const rows = [];
@@ -218,7 +256,8 @@
       const equippable = CLASS_TYPE[def.classType];
       const rarity = rarityForItem(def);
       const type = slot === 'Class Item' ? CLASS_ITEM_BY_CLASS[equippable] : slot;
-      const statRow = statsForItem(def, statComponents[instanceId]);
+      const socketPlugDefs = plugHashesForInstance(socketComponents[instanceId]).map((hash) => plugDefs[hash]).filter(Boolean);
+      const statRow = statsForItem(def, statComponents[instanceId], socketBonusTotals(socketPlugDefs));
       const targetCharacterId = characterMap[equippable]?.characterId || '';
       rows.push({
         Name: def.displayProperties?.name || 'Unknown Armor',
@@ -239,7 +278,7 @@
         IsEquipped: Boolean(item.d2aaEquipped)
       });
       if (scanned % 100 === 0) {
-        setStatus(`Building rows: ${scanned}/${allItems.length} scanned, ${rows.length} armor found`, false);
+        setStatus(`Building base-stat rows: ${scanned}/${allItems.length} scanned, ${rows.length} armor found`, false);
         await sleep(0);
       }
     }
@@ -248,7 +287,7 @@
     await sleep(0);
     window.D2AA?.loadRows?.(rows, `Bungie sync • ${rows.length} armor items`);
     const seconds = ((performance.now() - startedAt) / 1000).toFixed(1);
-    setStatus(`Bungie sync complete: ${rows.length} armor items in ${seconds}s.`, true);
+    setStatus(`Bungie sync complete: ${rows.length} armor items in ${seconds}s. Base stats derived from current stats minus socket bonuses.`, true);
   }
 
   const btn = $('bungieImportLiteBtn');
