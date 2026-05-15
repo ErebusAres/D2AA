@@ -7,10 +7,12 @@
     { id: 'infuse', icon: '⚡', label: 'Infuse' },
     { id: 'archive', icon: '📦', label: 'Archive' }
   ];
+  const DISPLAY_TAGS = [{ id: 'feed', icon: '✨', label: 'Item Feed' }, ...TAGS];
   const LS_VIEW = 'd2aa_beta2_view_mode_v1';
   const normId = (v) => String(v || '').trim();
-  const normTag = (v) => TAGS.some((t) => t.id === String(v || '').trim().toLowerCase()) ? String(v || '').trim().toLowerCase() : '';
-  const tagData = (tag) => TAGS.find((t) => t.id === normTag(tag)) || TAGS[0];
+  const normTag = (v) => DISPLAY_TAGS.some((t) => t.id === String(v || '').trim().toLowerCase()) ? String(v || '').trim().toLowerCase() : '';
+  const assignTag = (v) => TAGS.some((t) => t.id === String(v || '').trim().toLowerCase()) ? String(v || '').trim().toLowerCase() : '';
+  const tagData = (tag) => DISPLAY_TAGS.find((t) => t.id === normTag(tag)) || DISPLAY_TAGS[1];
   const state = () => window.D2AA?.getState?.();
   let selectedId = '';
 
@@ -32,7 +34,7 @@
       if (!btn || !selectedId) return;
       const row = (state()?.visible || []).find((item) => normId(item.Id) === selectedId);
       if (!row) return closePopover();
-      window.D2AA?.setTag?.(row, btn.dataset.tag || '');
+      window.D2AA?.setTag?.(row, assignTag(btn.dataset.tag));
       closePopover();
       window.D2AA?.render?.();
     });
@@ -60,7 +62,7 @@
     selectedId = normId(row.Id);
     markSelected(card);
     const pop = ensurePopover();
-    pop.querySelectorAll('[data-tag]').forEach((btn) => btn.classList.toggle('is-active', btn.dataset.tag === normTag(row.Tag)));
+    pop.querySelectorAll('[data-tag]').forEach((btn) => btn.classList.toggle('is-active', btn.dataset.tag === assignTag(row.Tag)));
     positionPopover(card);
     pop.classList.add('is-open');
   }
