@@ -1,9 +1,11 @@
 (() => {
   const LS_META = 'd2aa_bungie_cached_meta_v1';
+  const LS_LIVE = 'd2aa_bungie_live_state_v1';
   const AUTH_KEY = 'd2aa_bungie_token_v1';
   const readJson = (key, fallback) => { try { return JSON.parse(localStorage.getItem(key) || JSON.stringify(fallback)); } catch (_) { return fallback; } };
   const hasAuth = () => Object.keys(readJson(AUTH_KEY, {})).length > 0;
   const meta = () => readJson(LS_META, null);
+  const live = () => readJson(LS_LIVE, {});
   const ageMs = (iso) => { const time = Date.parse(iso || ''); return Number.isFinite(time) ? Date.now() - time : Infinity; };
 
   function formatRelative(iso) {
@@ -25,44 +27,61 @@
     catch (_) { return 'Unknown'; }
   }
 
+  function statusLabel(m = meta(), l = live()) {
+    if (!hasAuth()) return 'connect Bungie to refresh';
+    if (l.running) return 'refreshing in background';
+    if (l.lastError) return `last refresh failed; retry backs off automatically`;
+    if (!m?.savedAt) return 'no cache yet';
+    if (window.D2AAInventoryCache?.isFresh?.()) return 'semi-live / fresh';
+    if (window.D2AAInventoryCache?.isStale?.()) return 'refresh ready';
+    return 'semi-live cache active';
+  }
+
   function tipText() {
     const m = meta();
-    const auth = hasAuth();
-    const stale = ageMs(m?.savedAt) > 5 * 60 * 1000;
+    const l = live();
     const lines = [
       'Refresh inventory [R]',
+      `Mode: automatic semi-live cache`,
       `Last sync: ${m?.savedAt ? `${formatRelative(m.savedAt)} (${formatAbsolute(m.savedAt)})` : 'never'}`,
+      l.lastAttemptAt ? `Last check: ${formatRelative(l.lastAttemptAt)}` : 'Last check: never',
       m?.count ? `Cached armor: ${m.count}` : 'Cached armor: none',
-      auth ? (stale ? 'Status: refresh recommended' : 'Status: cache fresh') : 'Status: connect Bungie to refresh'
+      `Status: ${statusLabel(m, l)}`
     ];
+    if (l.lastError) lines.push(`Last error: ${l.lastError}`);
     return lines.join('\n');
   }
 
   function setRefreshing(value) {
     const btn = document.getElementById('d2aaRefreshKey');
     if (!btn) return;
-    btn.classList.toggle('is-refreshing', Boolean(value));
-    btn.querySelector('span').textContent = value ? 'Refreshing' : 'Refresh';
+    const active = Boolean(value || live().running);
+    btn.classList.toggle('is-refreshing', active);
+    btn.querySelector('span').textContent = active ? 'Syncing' : 'Refresh';
     updateTooltip();
   }
 
   function updateTooltip() {
     const btn = document.getElementById('d2aaRefreshKey');
-    if (btn) btn.dataset.tip = tipText();
+    if (!btn) return;
+    const l = live();
+    btn.dataset.tip = tipText();
+    btn.classList.toggle('is-refreshing', Boolean(l.running));
+    btn.querySelector('span').textContent = l.running ? 'Syncing' : 'Refresh';
   }
 
   function doRefresh() {
     const btn = document.getElementById('d2aaRefreshKey');
     setRefreshing(true);
     if (window.D2AAInventoryCache?.refresh?.()) {
-      setTimeout(() => setRefreshing(false), 6500);
+      setTimeout(updateTooltip, 6500);
       return;
     }
     const sync = document.getElementById('bungieImportV2Btn');
     const restore = document.getElementById('restoreBtn');
     if (sync && hasAuth()) sync.click();
     else restore?.click();
-    setTimeout(() => setRefreshing(false), 3500);
+    setTimeout(updateTooltip, 3500);
     if (btn) btn.blur();
   }
 
@@ -102,14 +121,11 @@
     updateTooltip();
     setInterval(updateTooltip, 30000);
     window.addEventListener('storage', updateTooltip);
+    window.addEventListener('d2aa:cache-state', updateTooltip);
     const status = document.getElementById('bungieStatus');
     if (status && status.dataset.refreshObserver !== '1') {
       status.dataset.refreshObserver = '1';
-      new MutationObserver(() => {
-        updateTooltip();
-        const text = status.textContent || '';
-        if (/loaded cached|sync complete|imported|saved|ready/i.test(text)) setRefreshing(false);
-      }).observe(status, { childList: true, characterData: true, subtree: true });
+      new MutationObserver(() => updateTooltip()).observe(status, { childList: true, characterData: true, subtree: true });
     }
   }
 
