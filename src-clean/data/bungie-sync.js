@@ -21,7 +21,7 @@ const STAT_CACHE = new Map();
 
 export async function initializeBungieSync({ setStatus, setRows, hasRows }) {
   await handleOAuthRedirect();
-  const cached = loadBungieInventoryFromCache();
+  const cached = await loadBungieInventoryFromCache();
   if (cached?.rows?.length && !hasRows()) {
     setRows(cached.rows, `Loaded Bungie cache: ${cached.rows.length} armor from ${formatCacheTime(cached.meta)}.`);
     if (tokenIsValid()) scheduleSemiLiveRefresh({ setStatus, setRows, hasRows, delay: 2500 });
@@ -67,7 +67,7 @@ export async function syncBungieInventory({ setStatus, setRows, reason = 'manual
     const membership = await getMembership();
     const profile = await bungieFetch(`/Destiny2/${membership.membershipType}/Profile/${membership.membershipId}/?components=${PROFILE_COMPONENTS}`, true);
     const rows = await buildArmorRows(profile, membership, setStatus, background);
-    const saved = saveBungieInventory(rows, reason);
+    const saved = await saveBungieInventory(rows, reason);
     const seconds = ((performance.now() - startedAt) / 1000).toFixed(1);
     const meta = saved.meta;
     setRows(saved.rows, `Bungie sync complete: ${rows.length} armor in ${seconds}s. New: ${meta.added}. Moved: ${meta.moved}. Changed: ${meta.changed}.`);
