@@ -1,6 +1,7 @@
 import { STAT_KEYS, STAT_LABELS, TAGS } from '../constants.js';
+import { actionLabel, canRunAction } from '../data/actions.js';
 
-export function renderGrid(container, rows, onTag) {
+export function renderGrid(container, rows, onTag, onAction) {
   container.innerHTML = rows.map(renderCard).join('');
   container.querySelectorAll('[data-tag-choice]').forEach((button) => {
     button.addEventListener('click', (event) => {
@@ -8,11 +9,18 @@ export function renderGrid(container, rows, onTag) {
       onTag(button.dataset.id, button.dataset.tagChoice);
     });
   });
+  container.querySelectorAll('[data-card-action]').forEach((button) => {
+    button.addEventListener('click', (event) => {
+      event.stopPropagation();
+      onAction(button.dataset.cardAction, button);
+    });
+  });
 }
 
 function renderCard(row) {
   const badge = badgeText(row);
   const group = row.Group ? `<div class="group-badge ${row.GroupColor || ''}">${row.Group}</div>` : '';
+  const actionDisabled = canRunAction(row) ? '' : ' disabled';
   return `<article class="armor-card ${row.Rarity.toLowerCase()} ${row.Group ? 'is-grouped ' + row.GroupColor : ''}">
     ${badge ? `<button class="light-tag-badge" type="button">${badge}</button>` : ''}
     ${group}
@@ -25,6 +33,10 @@ function renderCard(row) {
       <div><span>Tier</span><strong class="diamonds">${diamonds(row.Tier, row.TierMax)}</strong></div>
       <div><span>Arch</span><strong>${html(row.Archetype || '—')}</strong></div>
       ${STAT_KEYS.map((key) => `<div class="stat-cell stat-${key.toLowerCase()}"><span>${STAT_LABELS[key]}</span><strong>${row[key] || 0}</strong></div>`).join('')}
+    </div>
+    <div class="card-actions">
+      <button type="button" class="mini-action" data-card-action="${html(row.Id)}"${actionDisabled}>${html(actionLabel(row))}</button>
+      ${row.Group ? `<button type="button" class="mini-action mini-action--group" data-card-action="group:${html(row.Group.replace(/[A-Z]$/, ''))}">Group IDs</button>` : ''}
     </div>
     <div class="tag-strip">${TAGS.map((tag) => `<button type="button" class="tag-dot ${row.Tag === tag.value ? 'is-active' : ''}" title="${tag.label}" data-id="${html(row.Id)}" data-tag-choice="${tag.value}">${tag.emoji}</button>`).join('')}</div>
   </article>`;
