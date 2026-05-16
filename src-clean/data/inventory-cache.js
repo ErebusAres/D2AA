@@ -1,5 +1,5 @@
 import { STORAGE_KEYS } from '../constants.js';
-import { readJson, writeJson } from '../state.js';
+import { readJson, writeJson, slimRowForStorage } from '../state.js';
 
 export function getCachedBungieInventory() {
   const rows = readJson(STORAGE_KEYS.bungieRows, []);
@@ -12,11 +12,19 @@ export function saveBungieInventory(rows, reason = 'sync') {
   const previousById = new Map(previous.map((row) => [String(row.Id), row]));
   const savedAt = new Date().toISOString();
   const cleanRows = rows.map((row) => markRecentChange({ ...row, Source: 'Bungie', FromCache: false }, previousById, savedAt));
-  const changes = summarizeChanges(cleanRows);
-  const meta = { savedAt, count: cleanRows.length, reason, version: 2, ...changes };
-  writeJson(STORAGE_KEYS.bungieRows, cleanRows);
-  writeJson(STORAGE_KEYS.bungieMeta, meta);
-  writeJson(STORAGE_KEYS.rows, cleanRows);
+  const slimRows = cleanRows.map(slimRowForStorage);
+  const changes = summarizeChanges(slimRows);
+  const meta = { savedAt, count: slimRows.length, reason, version: 3, ...changes };
+  try {
+    writeJson(STORAGE_KEYS.bungieRows, slimRows);
+    writeJson(STORAGE_KEYS.bungieMeta, meta);
+    localStorage.removeItem(STORAGE_KEYS.rows);
+  } catch (error) {
+    console.warn('D2AA clean Bungie cache write failed.', error);
+    localStorage.removeItem(STORAGE_KEYS.rows);
+    localStorage.removeItem(STORAGE_KEYS.bungieRows);
+    writeJson(STORAGE_KEYS.bungieMeta, { ...meta, cacheFailed: true, cacheError: error.message || String(error) });
+  }
   return { rows: cleanRows, meta };
 }
 
