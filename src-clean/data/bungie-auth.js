@@ -4,7 +4,8 @@ const TOKEN_URL = 'https://www.bungie.net/Platform/App/OAuth/Token/';
 export const BUNGIE_STORAGE = {
   config: 'd2aa_bungie_public_config_v1',
   token: 'd2aa_bungie_token_v1',
-  state: 'd2aa_bungie_oauth_state_v1'
+  state: 'd2aa_bungie_oauth_state_v1',
+  returnUrl: 'd2aa_clean_return_after_oauth'
 };
 
 export const PUBLIC_CONFIG = {
@@ -40,7 +41,7 @@ export function startLogin() {
   const cfg = getBungieConfig();
   const state = randomState();
   localStorage.setItem(BUNGIE_STORAGE.state, state);
-  sessionStorage.setItem('d2aa_clean_return_after_oauth', location.href);
+  sessionStorage.setItem(BUNGIE_STORAGE.returnUrl, location.href);
   const url = new URL(AUTH_URL);
   url.searchParams.set('client_id', cfg.clientId);
   url.searchParams.set('response_type', 'code');
@@ -83,6 +84,7 @@ export async function handleOAuthRedirect() {
   if (expectedState && returnedState !== expectedState) throw new Error('Bungie sign-in failed: OAuth state mismatch.');
   await exchangeCode(code);
   localStorage.removeItem(BUNGIE_STORAGE.state);
+  sessionStorage.removeItem(BUNGIE_STORAGE.returnUrl);
   url.searchParams.delete('code');
   url.searchParams.delete('state');
   history.replaceState({}, document.title, url.toString());
