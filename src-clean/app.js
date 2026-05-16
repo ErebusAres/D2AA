@@ -59,7 +59,7 @@ function render() {
   els.gridView.hidden = state.view !== 'grid';
   els.tableView.hidden = state.view !== 'table';
   renderGrid(els.gridView, filtered, updateTag, handleCardAction);
-  renderTable(els.tableBody, filtered);
+  renderTable(els.tableBody, filtered, handleCardAction);
   renderItemFeed(els.feedList, els.feedCount, grouped, updateTag);
   els.emptyState.hidden = state.rows.length > 0;
   updateSummary(grouped, filtered);
@@ -109,7 +109,7 @@ function updateSummary(allRows, shownRows) {
   els.summaryShown.textContent = shownRows.length;
   els.summaryCached.textContent = allRows.length;
   els.summaryGroups.textContent = new Set(allRows.filter((r) => r.Group).map((r) => r.Group.replace(/[A-Z]$/, ''))).size;
-  els.summaryRecent.textContent = Math.min(allRows.length, 30);
+  els.summaryRecent.textContent = allRows.filter((row) => row.RecentlyFound || row.RecentStatus).length || Math.min(allRows.length, 30);
   const counts = CLASS_ORDER.map((cls) => `${cls[0]}:${allRows.filter((r) => r.Class === cls).length}`).join(' ');
   els.summaryClasses.textContent = counts || '—';
 }
