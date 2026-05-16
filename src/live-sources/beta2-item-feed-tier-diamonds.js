@@ -1,20 +1,9 @@
 (() => {
-  function tierToDiamonds(rawText, maxTier = 5) {
+  function tierToDiamonds(rawText) {
     const match = String(rawText || '').match(/T\s*(\d+)/i);
-    const max = Math.max(1, Math.min(5, Number(maxTier || 5)));
-    const tier = Math.max(0, Math.min(max, Number(match?.[1] || 0)));
-    if (!tier) return `${'◇'.repeat(max)}`;
-    return `${'◆'.repeat(tier)}${'◇'.repeat(max - tier)}`;
-  }
-
-  function itemNameForBadge(badge) {
-    const card = badge.closest('.item-feed-card');
-    return String(card?.querySelector('.feed-title')?.getAttribute('title') || card?.querySelector('.feed-title')?.textContent || '').trim().toLowerCase();
-  }
-
-  function maxTierForBadge(badge) {
-    const cardText = String(badge.closest('.item-feed-card')?.textContent || '').toLowerCase();
-    return cardText.includes('exotic') ? 2 : 5;
+    const tier = Math.max(0, Math.min(5, Number(match?.[1] || 0)));
+    if (!tier) return '◇◇◇◇◇';
+    return `${'◆'.repeat(tier)}${'◇'.repeat(5 - tier)}`;
   }
 
   function injectStyle() {
@@ -29,14 +18,12 @@
 
   function patchTierBadges(root = document) {
     root.querySelectorAll('.feed-tier-badge').forEach((badge) => {
-      const original = badge.dataset.tierText || badge.textContent || '';
-      const max = maxTierForBadge(badge);
-      const visual = tierToDiamonds(original, max);
+      if (badge.dataset.diamondPatched === '1') return;
+      const original = badge.textContent || '';
       badge.dataset.diamondPatched = '1';
       badge.dataset.tierText = original;
-      badge.dataset.tierMax = String(max);
-      badge.title = `Stat tier ${original.replace(/^T/i, '') || '0'}/${max}${max === 2 ? ' • Exotic armor cap' : ''}`;
-      if (badge.textContent !== visual) badge.textContent = visual;
+      badge.title = `Stat tier ${original.replace(/^T/i, '') || '0'}`;
+      badge.textContent = tierToDiamonds(original);
     });
   }
 
