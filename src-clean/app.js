@@ -21,7 +21,7 @@ function boot() {
 }
 
 function cacheEls() {
-  ['statusText','searchBox','refreshBtn','menuBtn','commandPanel','gridView','tableView','tableBody','emptyState','summaryShown','summaryCached','summaryGroups','summaryRecent','summaryClasses','activeChips','csvFile','uploadCsvBtn','restoreCacheBtn','clearCacheBtn','classFilter','slotFilter','rarityFilter','sortBy','themePills','feedList','feedCount','feedToggle','itemFeed'].forEach((id) => els[id] = document.getElementById(id));
+  ['statusText','searchBox','refreshBtn','menuBtn','commandPanel','gridView','tableView','tableBody','emptyState','summaryShown','summaryCached','summaryGroups','summaryRecent','summaryClasses','activeChips','csvFile','uploadCsvBtn','restoreCacheBtn','clearCacheBtn','classFilter','slotFilter','rarityFilter','sortBy','duplicateTolerance','duplicateToleranceOut','themePills','feedList','feedCount','feedToggle','itemFeed'].forEach((id) => els[id] = document.getElementById(id));
 }
 
 function bindEvents() {
@@ -41,6 +41,7 @@ function bindEvents() {
   els.clearCacheBtn.addEventListener('click', clearCache);
   [els.classFilter, els.slotFilter, els.rarityFilter].forEach((select) => select.addEventListener('change', () => setState({ filters: { class: els.classFilter.value, slot: els.slotFilter.value, rarity: els.rarityFilter.value } })));
   els.sortBy.addEventListener('change', () => setState({ sortBy: els.sortBy.value }));
+  els.duplicateTolerance?.addEventListener('input', () => setState({ duplicateTolerance: Number(els.duplicateTolerance.value || 5) }));
   els.themePills.querySelectorAll('[data-theme]').forEach((button) => button.addEventListener('click', () => setState({ theme: button.dataset.theme })));
   els.refreshBtn.addEventListener('click', () => setStatus('Use Sync from Bungie in the command menu, or connect Bungie first.'));
 }
@@ -50,10 +51,12 @@ function render() {
   els.statusText.textContent = state.status;
   els.searchBox.value = state.search;
   els.sortBy.value = state.sortBy;
+  if (els.duplicateTolerance) els.duplicateTolerance.value = state.duplicateTolerance;
+  if (els.duplicateToleranceOut) els.duplicateToleranceOut.textContent = `±${state.duplicateTolerance}`;
   syncViewButtons();
   syncThemeButtons();
   syncFilterOptions();
-  const grouped = applyDuplicateGroups(state.rows);
+  const grouped = applyDuplicateGroups(state.rows, state.duplicateTolerance);
   lastGroupedRows = grouped;
   const filtered = getFilteredRowsFrom(grouped);
   els.gridView.hidden = state.view !== 'grid';
@@ -134,6 +137,7 @@ function renderChips() {
   const chips = [];
   if (state.search) chips.push(`Search: ${state.search}`);
   Object.entries(state.filters).forEach(([key, value]) => { if (value !== 'all') chips.push(`${key}: ${value}`); });
+  if (state.duplicateTolerance !== 5) chips.push(`Tolerance: ±${state.duplicateTolerance}`);
   els.activeChips.innerHTML = chips.map((chip) => `<span>${chip}</span>`).join('');
 }
 function unique(values) { return [...new Set(values.filter(Boolean))].sort(); }
