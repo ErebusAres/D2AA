@@ -6,102 +6,35 @@
   <title>D2 Armor Analyzer Clean Rebuild - By ErebusAres</title>
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
   <link rel="stylesheet" href="src-clean/styles/app.css" />
+  <link rel="stylesheet" href="src-clean/styles/layout-pass.css" />
 </head>
 <body data-theme="calus">
   <div class="app-frame">
     <header class="command-bar" aria-label="D2AA command bar">
-      <div class="brand-chip">
-        <span class="brand-mark">◆</span>
-        <div>
-          <strong>D2 Armor Analyzer</strong>
-          <span id="statusText">Clean rebuild baseline</span>
-        </div>
-      </div>
-
-      <nav class="view-toggle" aria-label="View mode">
-        <button type="button" class="is-active" data-view="grid">Grid</button>
-        <button type="button" data-view="table">Table</button>
-      </nav>
-
-      <label class="search-wrap" for="searchBox">
-        <span>Search</span>
-        <input id="searchBox" type="search" placeholder="Armor name, slot, class, id..." autocomplete="off" />
-      </label>
-
+      <div class="brand-chip"><span class="brand-mark">◆</span><div><strong>D2 Armor Analyzer</strong><span id="statusText">Clean rebuild baseline</span></div></div>
+      <nav class="view-toggle" aria-label="View mode"><button type="button" class="is-active" data-view="grid">Grid</button><button type="button" data-view="table">Table</button></nav>
+      <label class="search-wrap" for="searchBox"><span>Search</span><input id="searchBox" type="search" placeholder="Armor name, slot, class, id..." autocomplete="off" /></label>
       <button type="button" id="refreshBtn" class="command-button">Refresh</button>
       <button type="button" id="menuBtn" class="command-button command-button--primary">Command Menu</button>
     </header>
-
-    <section class="overview-row" aria-label="Inventory summary">
-      <article><span>Shown</span><strong id="summaryShown">0</strong></article>
-      <article><span>Cached</span><strong id="summaryCached">0</strong></article>
-      <article><span>Groups</span><strong id="summaryGroups">0</strong></article>
-      <article><span>Recent</span><strong id="summaryRecent">0</strong></article>
-      <article class="class-overview"><span>Class Mix</span><strong id="summaryClasses">—</strong></article>
-    </section>
-
+    <section class="overview-row" aria-label="Inventory summary"><article><span>Shown</span><strong id="summaryShown">0</strong></article><article><span>Cached</span><strong id="summaryCached">0</strong></article><article><span>Groups</span><strong id="summaryGroups">0</strong></article><article><span>Recent</span><strong id="summaryRecent">0</strong></article><article class="class-overview"><span>Class Mix</span><strong id="summaryClasses">—</strong></article></section>
     <main class="workspace" id="workspace">
       <aside class="side-panel" id="commandPanel" aria-label="Command menu">
-        <section class="panel-card">
-          <h2>Data</h2>
-          <input id="csvFile" type="file" accept=".csv" hidden />
-          <button type="button" class="action-card" id="uploadCsvBtn"><span>⇧</span><b>Upload DIM CSV</b><small>Parse and cache local armor rows</small></button>
-          <button type="button" class="action-card" id="bungieLoginBtn"><span>◇</span><b>Connect Destiny Account</b><small>OAuth module will plug in here next</small></button>
-          <button type="button" class="action-card" id="bungieSyncBtn"><span>↓</span><b>Sync from Bungie</b><small>Clean Bungie sync module target</small></button>
-          <button type="button" class="action-card" id="restoreCacheBtn"><span>↻</span><b>Restore Cache</b><small>Load locally cached clean rows</small></button>
-          <button type="button" class="action-card action-card--danger" id="clearCacheBtn"><span>×</span><b>Clear Cache</b><small>Remove clean rebuild cache only</small></button>
-        </section>
-
-        <section class="panel-card">
-          <h2>Filters</h2>
-          <label>Class <select id="classFilter"><option value="all">All</option></select></label>
-          <label>Slot <select id="slotFilter"><option value="all">All</option></select></label>
-          <label>Rarity <select id="rarityFilter"><option value="all">All</option></select></label>
-          <label>Sort <select id="sortBy"><option value="recent">Newest / import order</option><option value="totalDesc">Total high to low</option><option value="nameAsc">Name A to Z</option><option value="slotAsc">Slot order</option></select></label>
-        </section>
-
-        <section class="panel-card">
-          <h2>Theme</h2>
-          <div class="theme-pills" id="themePills">
-            <button type="button" data-theme="calus" class="is-active">Calus</button>
-            <button type="button" data-theme="void">Void</button>
-            <button type="button" data-theme="arc">Arc</button>
-            <button type="button" data-theme="solar">Solar</button>
-          </div>
-        </section>
+        <section class="panel-card"><h2>Data</h2><input id="csvFile" type="file" accept=".csv" hidden /><button type="button" class="action-card" id="uploadCsvBtn"><span>⇧</span><b>Upload DIM CSV</b><small>Parse and cache local armor rows</small></button><button type="button" class="action-card" id="bungieLoginBtn"><span>◇</span><b>Connect Destiny Account</b><small>Bungie OAuth login</small></button><button type="button" class="action-card" id="bungieSyncBtn"><span>↓</span><b>Sync from Bungie</b><small>Fetch vault, inventory, and equipped armor</small></button><button type="button" class="action-card" id="restoreCacheBtn"><span>↻</span><b>Restore Cache</b><small>Load locally cached clean rows</small></button><button type="button" class="action-card action-card--danger" id="clearCacheBtn"><span>×</span><b>Clear Cache</b><small>Remove clean rebuild cache only</small></button></section>
+        <section class="panel-card"><h2>Filters</h2><label>Class <select id="classFilter"><option value="all">All</option></select></label><label>Slot <select id="slotFilter"><option value="all">All</option></select></label><label>Rarity <select id="rarityFilter"><option value="all">All</option></select></label><label>Sort <select id="sortBy"><option value="recent">Newest / import order</option><option value="totalDesc">Total high to low</option><option value="nameAsc">Name A to Z</option><option value="slotAsc">Slot order</option></select></label></section>
+        <section class="panel-card"><h2>Duplicate Tolerance</h2><label>Top-3 stat tolerance <input id="duplicateTolerance" type="range" min="0" max="20" value="5" /></label><strong id="duplicateToleranceOut">±5</strong><p class="muted compact">Lower values are stricter. Higher values catch more possible duplicate rolls.</p></section>
+        <section class="panel-card"><h2>Theme</h2><div class="theme-pills" id="themePills"><button type="button" data-theme="calus" class="is-active">Calus</button><button type="button" data-theme="void">Void</button><button type="button" data-theme="arc">Arc</button><button type="button" data-theme="solar">Solar</button></div></section>
       </aside>
-
       <section class="results-panel" aria-label="Armor results">
-        <div class="results-head">
-          <div>
-            <p class="eyebrow">Results</p>
-            <h1>Armor Workspace</h1>
-          </div>
-          <div class="active-chips" id="activeChips"></div>
-        </div>
+        <div class="results-head"><div><p class="eyebrow">Results</p><h1>Armor Workspace</h1></div><div class="active-chips" id="activeChips"></div></div>
         <div id="gridView" class="armor-grid-view"></div>
-        <div id="tableView" class="armor-table-wrap" hidden>
-          <table class="armor-table">
-            <thead><tr><th>Item</th><th>Slot</th><th>Class</th><th>Tier</th><th>Total</th><th>Stats</th><th>Tag</th></tr></thead>
-            <tbody id="tableBody"></tbody>
-          </table>
-        </div>
-        <div id="emptyState" class="empty-state">
-          <h2>No armor loaded yet.</h2>
-          <p>Upload a DIM CSV or connect Bungie once the clean sync module is ported.</p>
-        </div>
+        <div id="tableView" class="armor-table-wrap" hidden><table class="armor-table"><thead><tr><th>Item</th><th>Slot</th><th>Class</th><th>Tier</th><th>Total</th><th>Stats</th><th>Tag</th><th>Action</th></tr></thead><tbody id="tableBody"></tbody></table></div>
+        <div id="emptyState" class="empty-state"><h2>No armor loaded yet.</h2><p>Upload a DIM CSV or connect Bungie to sync your armor.</p></div>
       </section>
     </main>
-
-    <aside class="item-feed" id="itemFeed" aria-label="Item Feed">
-      <button type="button" class="feed-tab" id="feedToggle">Item Feed</button>
-      <div class="feed-shell">
-        <div class="feed-head"><strong>Latest Items</strong><span id="feedCount">0</span></div>
-        <div class="feed-list" id="feedList"></div>
-      </div>
-    </aside>
+    <aside class="item-feed" id="itemFeed" aria-label="Item Feed"><button type="button" class="feed-tab" id="feedToggle">Item Feed</button><div class="feed-shell"><div class="feed-head"><strong>Latest Items</strong><span id="feedCount">0</span></div><div class="feed-list" id="feedList"></div></div></aside>
   </div>
-
   <script type="module" src="src-clean/app.js"></script>
+  <script type="module" src="src-clean/bungie-wire.js"></script>
 </body>
 </html>
