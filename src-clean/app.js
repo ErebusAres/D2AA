@@ -2,11 +2,13 @@ import { state, subscribe, setState, setRows, updateTag, getFilteredRows, loadCa
 import { CLASS_ORDER, SLOT_ORDER } from './constants.js';
 import { parseDimCsv } from './data/dim-csv.js';
 import { applyDuplicateGroups } from './data/duplicate-groups.js';
+import { runItemAction } from './data/actions.js';
 import { renderGrid } from './render/grid.js';
 import { renderTable } from './render/table.js';
 import { renderItemFeed } from './render/item-feed.js';
 
 const els = {};
+let lastGroupedRows = [];
 
 function boot() {
   cacheEls();
@@ -40,7 +42,7 @@ function bindEvents() {
   [els.classFilter, els.slotFilter, els.rarityFilter].forEach((select) => select.addEventListener('change', () => setState({ filters: { class: els.classFilter.value, slot: els.slotFilter.value, rarity: els.rarityFilter.value } })));
   els.sortBy.addEventListener('change', () => setState({ sortBy: els.sortBy.value }));
   els.themePills.querySelectorAll('[data-theme]').forEach((button) => button.addEventListener('click', () => setState({ theme: button.dataset.theme })));
-  els.refreshBtn.addEventListener('click', () => setStatus('Clean Bungie refresh module is the next port target.'));
+  els.refreshBtn.addEventListener('click', () => setStatus('Use Sync from Bungie in the command menu, or connect Bungie first.'));
 }
 
 function render() {
@@ -52,15 +54,47 @@ function render() {
   syncThemeButtons();
   syncFilterOptions();
   const grouped = applyDuplicateGroups(state.rows);
+  lastGroupedRows = grouped;
   const filtered = getFilteredRowsFrom(grouped);
   els.gridView.hidden = state.view !== 'grid';
   els.tableView.hidden = state.view !== 'table';
-  renderGrid(els.gridView, filtered, updateTag);
+  renderGrid(els.gridView, filtered, updateTag, handleCardAction);
   renderTable(els.tableBody, filtered);
   renderItemFeed(els.feedList, els.feedCount, grouped, updateTag);
   els.emptyState.hidden = state.rows.length > 0;
   updateSummary(grouped, filtered);
   renderChips();
+}
+
+async function handleCardAction(actionId, button) {
+  if (actionId.startsWith('group:')) return copyGroupIds(actionId.slice(6), button);
+  const row = lastGroupedRows.find((item) => String(item.Id) === String(actionId));
+  if (!row) return setStatus('Could not find that item in current state.');
+  const original = button?.textContent || '';
+  if (button) button.textContent = 'Working...';
+  try {
+    const result = await runItemAction(row);
+    setStatus(result.message || 'Action complete.');
+    if (button) button.textContent = 'Done';
+  } catch (error) {
+    console.error('D2AA clean item action failed', error);
+    setStatus(error.message || String(error));
+    if (button) button.textContent = 'Failed';
+  } finally {
+    if (button) setTimeout(() => { button.textContent = original; }, 1200);
+  }
+}
+
+async function copyGroupIds(groupId, button) {
+  const ids = lastGroupedRows.filter((row) => row.Group?.replace(/[A-Z]$/, '') === groupId).map((row) => `id:${row.Id}`);
+  if (!ids.length) return setStatus('No group IDs found.');
+  await navigator.clipboard?.writeText(ids.join(' or '));
+  setStatus(`Copied ${ids.length} group item IDs.`);
+  if (button) {
+    const original = button.textContent;
+    button.textContent = 'Copied';
+    setTimeout(() => { button.textContent = original; }, 1200);
+  }
 }
 
 function getFilteredRowsFrom(rows) {
