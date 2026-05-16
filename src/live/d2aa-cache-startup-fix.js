@@ -13,7 +13,7 @@
 
   const writeJson = (key, value) => {
     try { localStorage.setItem(key, JSON.stringify(value)); return true; }
-    catch (_) { return false; }
+    catch (error) { console.warn('D2AA cache write failed', error); return false; }
   };
 
   function cacheInfo() {
@@ -36,60 +36,77 @@
     status.classList.remove('is-missing');
   }
 
+  function isCacheLabel(label) {
+    return String(label || '').includes(CACHE_SOURCE);
+  }
+
+  function isBungieRows(rows, label) {
+    if (!Array.isArray(rows) || !rows.length) return false;
+    if (/bungie/i.test(String(label || '')) && !isCacheLabel(label)) return true;
+    return rows.some((row) => String(row?.Source || '').toLowerCase() === 'bungie' && !row?.FromCache);
+  }
+
+  function cleanRowsForCache(rows) {
+    return rows.map((row) => ({ ...row, Source: row.Source || 'Bungie', RecentlyFound: Boolean(row.RecentlyFound), FromCache: false, CachedAt: undefined }));
+  }
+
+  function saveRowsToCache(rows, label = '') {
+    if (!isBungieRows(rows, label)) return false;
+    const cleaned = cleanRowsForCache(rows);
+    const meta = { savedAt: new Date().toISOString(), count: cleaned.length, version: 4, mode: 'post-bundle-cache-guard', label: String(label || '') };
+    const okRows = writeJson(LS_ROWS, cleaned);
+    const okMeta = writeJson(LS_META, meta);
+    writeJson(LS_LIVE, { ...readJson(LS_LIVE, {}), running: false, lastSuccessAt: meta.savedAt, lastReason: 'saved-cache-guard', lastError: '', errorCount: 0 });
+    if (okRows && okMeta) setStatus(`Saved Bungie inventory cache: ${cleaned.length} armor from ${formatWhen(meta.savedAt)}.`);
+    return okRows && okMeta;
+  }
+
+  function normalizedCacheRows(rows) {
+    return rows.map((row) => ({ ...row, Source: row.Source || 'Bungie', FromCache: true, RecentlyFound: Boolean(row.RecentlyFound) }));
+  }
+
   function markNotRunning() {
     const live = readJson(LS_LIVE, {});
     if (live && live.running) writeJson(LS_LIVE, { ...live, running: false, lastReason: 'startup-cache-first-skipped' });
   }
 
-  function normalizedCacheRows(rows) {
-    return rows.map((row) => ({
-      ...row,
-      Source: row.Source || 'Bungie',
-      FromCache: true,
-      RecentlyFound: Boolean(row.RecentlyFound)
-    }));
+  function loadCache(reason = 'startup-cache-first') {
+    const info = cacheInfo();
+    if (!info.hasRows || !window.D2AA?.loadRows) return false;
+    const rows = normalizedCacheRows(info.rows);
+    window.D2AA.loadRows(rows, `${CACHE_SOURCE} • ${rows.length} armor • saved ${formatWhen(info.meta?.savedAt)} • ${reason}`);
+    markNotRunning();
+    setStatus(`Loaded cached inventory: ${rows.length} armor from ${formatWhen(info.meta?.savedAt)}. Use Sync from Bungie to refresh now.`);
+    return true;
   }
 
-  function ensureCacheLoaded(reason = 'startup-cache-first') {
-    const info = cacheInfo();
-    if (!info.hasRows) return false;
+  function ensureCacheLoaded() {
     const currentRows = window.D2AA?.getState?.()?.allRows?.length || 0;
     if (currentRows) return true;
-
-    if (window.D2AAInventoryCache?.load) {
-      const loaded = window.D2AAInventoryCache.load(reason);
-      if (loaded) {
-        markNotRunning();
-        setStatus(`Loaded cached inventory: ${info.rows.length} armor from ${formatWhen(info.meta?.savedAt)}. Use Sync from Bungie to refresh now.`);
-        return true;
-      }
-    }
-
-    if (window.D2AA?.loadRows) {
-      const rows = normalizedCacheRows(info.rows);
-      window.D2AA.loadRows(rows, `${CACHE_SOURCE} • ${rows.length} armor • saved ${formatWhen(info.meta?.savedAt)}`);
-      markNotRunning();
-      setStatus(`Loaded cached inventory: ${rows.length} armor from ${formatWhen(info.meta?.savedAt)}. Use Sync from Bungie to refresh now.`);
-      return true;
-    }
-    return false;
+    return loadCache('startup-cache-first');
   }
 
-  function shouldBlockStartupAutoSync(event) {
-    const info = cacheInfo();
-    if (!info.hasRows) return false;
-    if (Date.now() - startedAt > STARTUP_GUARD_MS) return false;
-    if (event?.isTrusted !== false) return false;
-    const target = event.target?.closest?.('#bungieImportV2Btn');
-    return Boolean(target);
+  function patchLoadRows() {
+    if (!window.D2AA?.loadRows || window.D2AA.__cacheGuardSavePatched) return false;
+    const originalLoadRows = window.D2AA.loadRows.bind(window.D2AA);
+    window.D2AA.loadRows = (rows, label) => {
+      const result = originalLoadRows(rows, label);
+      saveRowsToCache(rows, label);
+      return result;
+    };
+    window.D2AA.__cacheGuardSavePatched = true;
+    return true;
   }
 
   function blockStartupAutoSync(event) {
-    if (!shouldBlockStartupAutoSync(event)) return;
+    const info = cacheInfo();
+    const isProgrammaticAutoClick = event?.isTrusted === false;
+    const withinStartupWindow = Date.now() - startedAt <= STARTUP_GUARD_MS;
+    const target = event?.target?.closest?.('#bungieImportV2Btn');
+    if (!info.hasRows || !isProgrammaticAutoClick || !withinStartupWindow || !target) return;
     event.preventDefault();
     event.stopImmediatePropagation();
-    const info = cacheInfo();
-    ensureCacheLoaded('startup-cache-first-blocked-sync');
+    ensureCacheLoaded();
     markNotRunning();
     setStatus(`Loaded cached inventory: ${info.rows.length} armor from ${formatWhen(info.meta?.savedAt)}. Startup Bungie sync skipped; click Sync from Bungie to refresh manually.`);
   }
@@ -97,28 +114,29 @@
   function installStartupSyncGuard() {
     document.removeEventListener('click', blockStartupAutoSync, true);
     document.addEventListener('click', blockStartupAutoSync, true);
-
     const button = document.getElementById('bungieImportV2Btn');
-    if (!button || button.dataset.cacheStartupGuard === '3') return;
-    button.dataset.cacheStartupGuard = '3';
-    button.addEventListener('click', blockStartupAutoSync, true);
+    if (button && button.dataset.cacheStartupGuard !== '4') {
+      button.dataset.cacheStartupGuard = '4';
+      button.addEventListener('click', blockStartupAutoSync, true);
+    }
+  }
+
+  function exposeApi() {
+    window.D2AACacheGuard = { saveRowsToCache, loadCache, getRows: () => cacheInfo().rows, getMeta: () => cacheInfo().meta, patchLoadRows };
   }
 
   function runPass() {
     installStartupSyncGuard();
+    patchLoadRows();
     ensureCacheLoaded();
+    exposeApi();
   }
 
   function run() {
     runPass();
-    document.addEventListener('d2aa:bundle-loaded', () => {
-      runPass();
-      setTimeout(runPass, 25);
-      setTimeout(runPass, 100);
-      setTimeout(runPass, 350);
-    });
+    document.addEventListener('d2aa:bundle-loaded', runPass);
     window.addEventListener('load', runPass);
-    [50, 150, 300, 600, 1000, 1600, 2500, 4000].forEach((ms) => setTimeout(runPass, ms));
+    [25, 75, 150, 300, 600, 1000, 1600, 2500, 4000].forEach((ms) => setTimeout(runPass, ms));
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run);
