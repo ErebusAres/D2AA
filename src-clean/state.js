@@ -8,6 +8,7 @@ export const state = {
   search: '',
   filters: { class: 'all', slot: 'all', rarity: 'all' },
   sortBy: 'recent',
+  duplicateTolerance: 5,
   theme: 'calus',
   tags: readJson(STORAGE_KEYS.tags, {}),
   status: 'Ready.'
@@ -84,7 +85,7 @@ export function writeJson(key, value) {
 }
 
 function persistSettings() {
-  writeJson(STORAGE_KEYS.settings, { view: state.view, theme: state.theme, filters: state.filters, sortBy: state.sortBy });
+  writeJson(STORAGE_KEYS.settings, { view: state.view, theme: state.theme, filters: state.filters, sortBy: state.sortBy, duplicateTolerance: state.duplicateTolerance });
 }
 
 export function loadSettings() {
@@ -93,6 +94,7 @@ export function loadSettings() {
     view: settings.view || state.view,
     theme: settings.theme || state.theme,
     sortBy: settings.sortBy || state.sortBy,
+    duplicateTolerance: Number.isFinite(Number(settings.duplicateTolerance)) ? Number(settings.duplicateTolerance) : state.duplicateTolerance,
     filters: { ...state.filters, ...(settings.filters || {}) }
   });
 }
