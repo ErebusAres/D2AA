@@ -1,26 +1,43 @@
 import { STORAGE_KEYS } from '../constants.js';
 import { readJson, writeJson, slimRowForStorage } from '../state.js';
 
-export function getCachedBungieInventory() {
+const DB_NAME = 'd2aa-clean-cache';
+const DB_VERSION = 1;
+const STORE = 'keyval';
+const IDB_ROWS_KEY = 'bungieRows';
+const IDB_META_KEY = 'bungieMeta';
+
+export async function getCachedBungieInventory() {
+  const idbRows = await idbGet(IDB_ROWS_KEY).catch(() => null);
+  const idbMeta = await idbGet(IDB_META_KEY).catch(() => null);
+  if (Array.isArray(idbRows) && idbRows.length) return { rows: idbRows, meta: idbMeta, hasRows: true };
+
   const rows = readJson(STORAGE_KEYS.bungieRows, []);
   const meta = readJson(STORAGE_KEYS.bungieMeta, null);
+  if (Array.isArray(rows) && rows.length) {
+    await idbSet(IDB_ROWS_KEY, rows).catch(() => {});
+    await idbSet(IDB_META_KEY, meta).catch(() => {});
+    try { localStorage.removeItem(STORAGE_KEYS.bungieRows); } catch (_) {}
+  }
   return { rows: Array.isArray(rows) ? rows : [], meta, hasRows: Array.isArray(rows) && rows.length > 0 };
 }
 
-export function saveBungieInventory(rows, reason = 'sync') {
-  const previous = getCachedBungieInventory().rows;
+export async function saveBungieInventory(rows, reason = 'sync') {
+  const previous = (await getCachedBungieInventory()).rows;
   const previousById = new Map(previous.map((row) => [String(row.Id), row]));
   const savedAt = new Date().toISOString();
   const cleanRows = rows.map((row) => markRecentChange({ ...row, Source: 'Bungie', FromCache: false }, previousById, savedAt));
   const slimRows = cleanRows.map(slimRowForStorage);
   const changes = summarizeChanges(slimRows);
-  const meta = { savedAt, count: slimRows.length, reason, version: 3, ...changes };
+  const meta = { savedAt, count: slimRows.length, reason, version: 4, store: 'indexeddb', ...changes };
   try {
-    writeJson(STORAGE_KEYS.bungieRows, slimRows);
-    writeJson(STORAGE_KEYS.bungieMeta, meta);
+    await idbSet(IDB_ROWS_KEY, slimRows);
+    await idbSet(IDB_META_KEY, meta);
     localStorage.removeItem(STORAGE_KEYS.rows);
+    localStorage.removeItem(STORAGE_KEYS.bungieRows);
+    writeJson(STORAGE_KEYS.bungieMeta, meta);
   } catch (error) {
-    console.warn('D2AA clean Bungie cache write failed.', error);
+    console.warn('D2AA clean IndexedDB cache write failed.', error);
     localStorage.removeItem(STORAGE_KEYS.rows);
     localStorage.removeItem(STORAGE_KEYS.bungieRows);
     writeJson(STORAGE_KEYS.bungieMeta, { ...meta, cacheFailed: true, cacheError: error.message || String(error) });
@@ -28,15 +45,58 @@ export function saveBungieInventory(rows, reason = 'sync') {
   return { rows: cleanRows, meta };
 }
 
-export function loadBungieInventoryFromCache() {
-  const cache = getCachedBungieInventory();
+export async function loadBungieInventoryFromCache() {
+  const cache = await getCachedBungieInventory();
   if (!cache.hasRows) return null;
   return { rows: cache.rows.map((row) => ({ ...row, Source: row.Source || 'Bungie', FromCache: true })), meta: cache.meta };
 }
 
-export function clearBungieInventoryCache() {
+export async function clearBungieInventoryCache() {
+  await idbDelete(IDB_ROWS_KEY).catch(() => {});
+  await idbDelete(IDB_META_KEY).catch(() => {});
   localStorage.removeItem(STORAGE_KEYS.bungieRows);
   localStorage.removeItem(STORAGE_KEYS.bungieMeta);
+}
+
+function openDb() {
+  return new Promise((resolve, reject) => {
+    if (!('indexedDB' in window)) return reject(new Error('IndexedDB is not available.'));
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
+    request.onupgradeneeded = () => request.result.createObjectStore(STORE);
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error || new Error('IndexedDB open failed.'));
+  });
+}
+
+async function idbGet(key) {
+  const db = await openDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, 'readonly');
+    const request = tx.objectStore(STORE).get(key);
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+    tx.oncomplete = () => db.close();
+  });
+}
+
+async function idbSet(key, value) {
+  const db = await openDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, 'readwrite');
+    tx.objectStore(STORE).put(value, key);
+    tx.oncomplete = () => { db.close(); resolve(true); };
+    tx.onerror = () => { db.close(); reject(tx.error); };
+  });
+}
+
+async function idbDelete(key) {
+  const db = await openDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, 'readwrite');
+    tx.objectStore(STORE).delete(key);
+    tx.oncomplete = () => { db.close(); resolve(true); };
+    tx.onerror = () => { db.close(); reject(tx.error); };
+  });
 }
 
 function markRecentChange(row, previousById, savedAt) {
