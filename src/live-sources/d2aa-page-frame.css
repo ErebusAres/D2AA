@@ -1,0 +1,71 @@
+/* Page/frame sizing repair for the source-loaded live app.
+   Keeps the armor workspace using the full browser width, then yields room when the right Item Feed drawer is open. */
+
+html,
+body{
+  width:100%;
+  min-width:0;
+}
+
+body{
+  margin:0;
+  overflow-x:hidden;
+}
+
+.app-shell{
+  width:100%;
+  max-width:none!important;
+  min-width:0;
+  box-sizing:border-box;
+}
+
+body.grid-view .app-shell{
+  grid-template-columns:minmax(220px,260px) minmax(0,1fr) minmax(220px,260px)!important;
+  max-width:none!important;
+}
+
+.table-stage,
+.table-panel,
+.table-wrap{
+  width:100%;
+  max-width:none!important;
+  min-width:0;
+  box-sizing:border-box;
+}
+
+body.grid-view .table-stage{
+  padding-left:0!important;
+  padding-right:0!important;
+}
+
+body.grid-view .table-panel{
+  margin:0!important;
+}
+
+body.feed-drawer-open.grid-view .table-stage{
+  padding-right:calc(var(--feed-drawer-width,372px) + var(--feed-drawer-gap,14px))!important;
+}
+
+body.feed-drawer-open.grid-view .right-rail{
+  opacity:.28;
+  pointer-events:none;
+  transition:opacity .16s ease;
+}
+
+@media (max-width:1200px){
+  body.grid-view .app-shell{
+    grid-template-columns:minmax(190px,230px) minmax(0,1fr)!important;
+  }
+  body.grid-view .right-rail{
+    display:none!important;
+  }
+}
+
+@media (max-width:980px){
+  body.grid-view .app-shell{
+    display:block!important;
+  }
+  body.feed-drawer-open.grid-view .table-stage{
+    padding-right:0!important;
+  }
+}
