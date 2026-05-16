@@ -23,7 +23,8 @@
     'src/live-sources/d2aa-ux-v74.css',
     'src/live-sources/d2aa-ux-v75.css',
     'src/live-sources/d2aa-ux-v76.css',
-    'src/live-sources/d2aa-layout-fix.css'
+    'src/live-sources/d2aa-layout-fix.css',
+    'src/live-sources/d2aa-page-frame.css'
   ];
 
   const jsFiles = [
