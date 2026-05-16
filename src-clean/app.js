@@ -28,7 +28,7 @@ function bindEvents() {
   els.searchBox.addEventListener('input', () => setState({ search: els.searchBox.value }));
   document.querySelectorAll('[data-view]').forEach((button) => button.addEventListener('click', () => setState({ view: button.dataset.view })));
   els.menuBtn.addEventListener('click', () => els.commandPanel.classList.toggle('is-open'));
-  els.feedToggle.addEventListener('click', () => els.itemFeed.classList.toggle('is-open'));
+  els.feedToggle.addEventListener('click', toggleItemFeed);
   els.uploadCsvBtn.addEventListener('click', () => els.csvFile.click());
   els.csvFile.addEventListener('change', async () => {
     const file = els.csvFile.files?.[0];
@@ -44,6 +44,12 @@ function bindEvents() {
   els.duplicateTolerance?.addEventListener('input', () => setState({ duplicateTolerance: Number(els.duplicateTolerance.value || 5) }));
   els.themePills.querySelectorAll('[data-theme]').forEach((button) => button.addEventListener('click', () => setState({ theme: button.dataset.theme })));
   els.refreshBtn.addEventListener('click', () => setStatus('Use Sync from Bungie in the command menu, or connect Bungie first.'));
+}
+
+function toggleItemFeed() {
+  const open = !els.itemFeed.classList.contains('is-open');
+  els.itemFeed.classList.toggle('is-open', open);
+  document.body.classList.toggle('feed-open', open);
 }
 
 function render() {
