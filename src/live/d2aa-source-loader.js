@@ -1,5 +1,5 @@
 (() => {
-  const SOURCE_VERSION = new URLSearchParams(location.search).get('v') || '103';
+  const SOURCE_VERSION = new URLSearchParams(location.search).get('v') || '104';
   const withVersion = (path) => `${path}${path.includes('?') ? '&' : '?'}v=${encodeURIComponent(SOURCE_VERSION)}`;
 
   const cssFiles = [
@@ -10,6 +10,7 @@
     'src/live-sources/beta2-grid-polish.css',
     'src/live-sources/beta2-grid-compact.css',
     'src/live-sources/beta2-feed-drawer.css',
+    'src/live-sources/beta2-feed-clean.css',
     'src/live-sources/d2aa-ux-v64.css',
     'src/live-sources/d2aa-ux-v65.css',
     'src/live-sources/d2aa-ux-v66.css',
@@ -38,11 +39,13 @@
     'src/live-sources/beta2-grid-view.js',
     'src/live-sources/beta2-group-actions.js',
     'src/live-sources/beta2-item-feed.js',
+    'src/live-sources/beta2-item-feed-icons.js',
+    'src/live-sources/beta2-item-feed-tier-diamonds.js',
+    'src/live-sources/beta2-feed-clean-tags.js',
     'src/live-sources/beta2-inventory-cache.js',
     'src/live-sources/beta2-grid-polish.js',
     'src/live-sources/beta2-grid-compact.js',
     'src/live-sources/beta2-aag-badge.js',
-    'src/live-sources/beta2-item-feed-tier-diamonds.js',
     'src/live-sources/beta2-tag-popover.js',
     'src/live-sources/beta2-tier-patch.js',
     'src/live-sources/beta2-feed-drawer.js',
