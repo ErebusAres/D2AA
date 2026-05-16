@@ -18,7 +18,7 @@ export async function runItemAction(row) {
   if (!row) throw new Error('No row selected.');
   if (row.Source !== 'Bungie') {
     await copyText(`id:${row.Id}`);
-    return { message: 'Copied DIM item filter.' };
+    return { message: 'Copied DIM item filter.', needsRefresh: false };
   }
   if (row.IsEquipped) throw new Error('Equipped items must be unequipped before they can be vaulted.');
   if (row.IsInVault) return pullFromVault(row);
@@ -27,12 +27,12 @@ export async function runItemAction(row) {
 
 async function pullFromVault(row) {
   await transferItem(row, false, row.TargetCharacterId);
-  return { message: `Pulled ${row.Name} from vault.`, needsRefresh: true };
+  return { message: `Pulled ${row.Name} from vault. Refresh to confirm location.`, needsRefresh: true };
 }
 
 async function moveToVault(row) {
   await transferItem(row, true, row.OwnerCharacterId);
-  return { message: `Moved ${row.Name} to vault.`, needsRefresh: true };
+  return { message: `Moved ${row.Name} to vault. Refresh to confirm location.`, needsRefresh: true };
 }
 
 async function transferItem(row, transferToVault, characterId) {
