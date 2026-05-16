@@ -1,3 +1,4 @@
+@import url('./shell-flow.css');
 /* Clean rebuild layout pass: keep the current theme language, but make the app shell behave like a modern command surface. */
 .app-frame{min-height:100vh;grid-template-rows:auto auto 1fr;max-width:none;width:100%}
 .command-bar{grid-template-columns:minmax(220px,auto) auto minmax(260px,1fr) auto auto;box-shadow:0 10px 30px rgba(0,0,0,.24)}
