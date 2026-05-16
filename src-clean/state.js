@@ -56,8 +56,7 @@ export function getFilteredRows() {
 }
 
 export function loadCachedRows() {
-  const bungieCached = readJson(STORAGE_KEYS.bungieRows, []);
-  const cached = Array.isArray(bungieCached) && bungieCached.length ? bungieCached : readJson(STORAGE_KEYS.rows, []);
+  const cached = readJson(STORAGE_KEYS.rows, []);
   if (Array.isArray(cached) && cached.length) {
     setRows(cached, `Loaded ${cached.length} cached clean rows.`);
     return true;
@@ -66,6 +65,14 @@ export function loadCachedRows() {
 }
 
 export function saveRows(rows) {
+  if (!Array.isArray(rows) || !rows.length) {
+    try { writeJson(STORAGE_KEYS.rows, []); } catch (_) {}
+    return;
+  }
+  if (rows.every((row) => row.Source === 'Bungie')) {
+    try { localStorage.removeItem(STORAGE_KEYS.rows); } catch (_) {}
+    return;
+  }
   const slim = rows.map(slimRowForStorage);
   try {
     writeJson(STORAGE_KEYS.rows, slim);
@@ -80,6 +87,7 @@ export function clearCache() {
   localStorage.removeItem(STORAGE_KEYS.rows);
   localStorage.removeItem(STORAGE_KEYS.bungieRows);
   localStorage.removeItem(STORAGE_KEYS.bungieMeta);
+  try { indexedDB.deleteDatabase('d2aa-clean-cache'); } catch (_) {}
   setRows([], 'Clean cache cleared.');
 }
 
@@ -114,7 +122,6 @@ export function slimRowForStorage(row) {
     Melee: row.Melee,
     Grenade: row.Grenade,
     Super: row.Super,
-    Class: row.Class,
     Weapon: row.Weapon,
     Total: row.Total,
     Source: row.Source,
