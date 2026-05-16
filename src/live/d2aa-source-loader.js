@@ -1,5 +1,5 @@
 (() => {
-  const SOURCE_VERSION = new URLSearchParams(location.search).get('v') || '101';
+  const SOURCE_VERSION = new URLSearchParams(location.search).get('v') || '103';
   const withVersion = (path) => `${path}${path.includes('?') ? '&' : '?'}v=${encodeURIComponent(SOURCE_VERSION)}`;
 
   const cssFiles = [
@@ -38,6 +38,7 @@
     'src/live-sources/beta2-grid-view.js',
     'src/live-sources/beta2-group-actions.js',
     'src/live-sources/beta2-item-feed.js',
+    'src/live-sources/beta2-inventory-cache.js',
     'src/live-sources/beta2-grid-polish.js',
     'src/live-sources/beta2-grid-compact.js',
     'src/live-sources/beta2-aag-badge.js',
