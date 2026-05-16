@@ -46,8 +46,8 @@
           <h2>Data</h2>
           <input id="csvFile" type="file" accept=".csv" hidden />
           <button type="button" class="action-card" id="uploadCsvBtn"><span>⇧</span><b>Upload DIM CSV</b><small>Parse and cache local armor rows</small></button>
-          <button type="button" class="action-card" id="bungieLoginBtn"><span>◇</span><b>Connect Destiny Account</b><small>OAuth module will plug in here next</small></button>
-          <button type="button" class="action-card" id="bungieSyncBtn"><span>↓</span><b>Sync from Bungie</b><small>Clean Bungie sync module target</small></button>
+          <button type="button" class="action-card" id="bungieLoginBtn"><span>◇</span><b>Connect Destiny Account</b><small>Bungie OAuth login</small></button>
+          <button type="button" class="action-card" id="bungieSyncBtn"><span>↓</span><b>Sync from Bungie</b><small>Fetch vault, inventory, and equipped armor</small></button>
           <button type="button" class="action-card" id="restoreCacheBtn"><span>↻</span><b>Restore Cache</b><small>Load locally cached clean rows</small></button>
           <button type="button" class="action-card action-card--danger" id="clearCacheBtn"><span>×</span><b>Clear Cache</b><small>Remove clean rebuild cache only</small></button>
         </section>
@@ -88,7 +88,7 @@
         </div>
         <div id="emptyState" class="empty-state">
           <h2>No armor loaded yet.</h2>
-          <p>Upload a DIM CSV or connect Bungie once the clean sync module is ported.</p>
+          <p>Upload a DIM CSV or connect Bungie to sync your armor.</p>
         </div>
       </section>
     </main>
@@ -103,5 +103,6 @@
   </div>
 
   <script type="module" src="src-clean/app.js"></script>
+  <script type="module" src="src-clean/bungie-wire.js"></script>
 </body>
 </html>
