@@ -8,6 +8,7 @@ export const state = {
   search: '',
   filters: { class: 'all', slot: 'all', rarity: 'all' },
   sortBy: 'recent',
+  duplicateTolerance: 5,
   theme: 'calus',
   tags: readJson(STORAGE_KEYS.tags, {}),
   status: 'Ready.'
@@ -55,7 +56,8 @@ export function getFilteredRows() {
 }
 
 export function loadCachedRows() {
-  const cached = readJson(STORAGE_KEYS.rows, []);
+  const bungieCached = readJson(STORAGE_KEYS.bungieRows, []);
+  const cached = Array.isArray(bungieCached) && bungieCached.length ? bungieCached : readJson(STORAGE_KEYS.rows, []);
   if (Array.isArray(cached) && cached.length) {
     setRows(cached, `Loaded ${cached.length} cached clean rows.`);
     return true;
@@ -64,7 +66,14 @@ export function loadCachedRows() {
 }
 
 export function saveRows(rows) {
-  writeJson(STORAGE_KEYS.rows, rows);
+  const slim = rows.map(slimRowForStorage);
+  try {
+    writeJson(STORAGE_KEYS.rows, slim);
+  } catch (error) {
+    console.warn('D2AA clean cache write skipped because browser storage is full.', error);
+    try { localStorage.removeItem(STORAGE_KEYS.rows); } catch (_) {}
+    state.status = 'Loaded rows, but browser storage is full. Clear old D2AA cache if reload cache is needed.';
+  }
 }
 
 export function clearCache() {
@@ -83,8 +92,49 @@ export function writeJson(key, value) {
   localStorage.setItem(key, JSON.stringify(value));
 }
 
+export function slimRowForStorage(row) {
+  return {
+    Name: row.Name,
+    Id: row.Id,
+    Type: row.Type,
+    Slot: row.Slot,
+    Rarity: row.Rarity,
+    Class: row.Class,
+    Equippable: row.Equippable,
+    Tier: row.Tier,
+    GearTier: row.GearTier,
+    TierSource: row.TierSource,
+    TierMax: row.TierMax,
+    Power: row.Power,
+    Light: row.Light,
+    Archetype: row.Archetype,
+    Icon: row.Icon,
+    IconUrl: row.IconUrl,
+    Health: row.Health,
+    Melee: row.Melee,
+    Grenade: row.Grenade,
+    Super: row.Super,
+    Class: row.Class,
+    Weapon: row.Weapon,
+    Total: row.Total,
+    Source: row.Source,
+    FoundAt: row.FoundAt,
+    RecentStatus: row.RecentStatus,
+    RecentlyFound: row.RecentlyFound,
+    LastChangedAt: row.LastChangedAt,
+    Tag: row.Tag,
+    ItemHash: row.ItemHash,
+    BucketHash: row.BucketHash,
+    MembershipType: row.MembershipType,
+    OwnerCharacterId: row.OwnerCharacterId,
+    TargetCharacterId: row.TargetCharacterId,
+    IsInVault: row.IsInVault,
+    IsEquipped: row.IsEquipped
+  };
+}
+
 function persistSettings() {
-  writeJson(STORAGE_KEYS.settings, { view: state.view, theme: state.theme, filters: state.filters, sortBy: state.sortBy });
+  writeJson(STORAGE_KEYS.settings, { view: state.view, theme: state.theme, filters: state.filters, sortBy: state.sortBy, duplicateTolerance: state.duplicateTolerance });
 }
 
 export function loadSettings() {
@@ -93,6 +143,7 @@ export function loadSettings() {
     view: settings.view || state.view,
     theme: settings.theme || state.theme,
     sortBy: settings.sortBy || state.sortBy,
+    duplicateTolerance: Number.isFinite(Number(settings.duplicateTolerance)) ? Number(settings.duplicateTolerance) : state.duplicateTolerance,
     filters: { ...state.filters, ...(settings.filters || {}) }
   });
 }
