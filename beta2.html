@@ -7,6 +7,18 @@
   <script>
     (function(){
       try {
+        var params = new URLSearchParams(location.search);
+        var cleanReturn = sessionStorage.getItem('d2aa_clean_return_after_oauth');
+        if (cleanReturn && params.get('code')) {
+          var target = new URL(cleanReturn, location.href);
+          target.searchParams.set('code', params.get('code'));
+          if (params.get('state')) target.searchParams.set('state', params.get('state'));
+          sessionStorage.removeItem('d2aa_clean_return_after_oauth');
+          location.replace(target.toString());
+          return;
+        }
+      } catch (e) {}
+      try {
         var view = localStorage.getItem('d2aa_beta2_view_mode_v1') || 'grid';
         document.documentElement.classList.add('d2aa-preboot');
         document.documentElement.classList.toggle('grid-view', view !== 'table');
