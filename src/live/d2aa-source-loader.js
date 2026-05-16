@@ -1,5 +1,5 @@
 (() => {
-  const version = new URLSearchParams(location.search).get('v') || '106';
+  const version = new URLSearchParams(location.search).get('v') || '110';
   const withVersion = (path) => `${path}${path.includes('?') ? '&' : '?'}v=${encodeURIComponent(version)}`;
 
   function loadCss(path) {
