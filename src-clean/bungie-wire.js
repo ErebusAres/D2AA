@@ -3,6 +3,7 @@ import { connectBungie, initializeBungieSync, scheduleSemiLiveRefresh, shouldRef
 
 const setStatus = (status) => setState({ status });
 const hasRows = () => state.rows.length > 0;
+const ROW_CACHE_KEY = 'd2aa_clean_rows_v1';
 
 function bindBungieControls() {
   const login = document.getElementById('bungieLoginBtn');
@@ -17,11 +18,23 @@ function bindBungieControls() {
 }
 
 async function runSync(reason, background = false) {
+  clearOversizedGenericCache();
   const result = await syncBungieInventory({ setStatus, setRows, reason, background });
-  if (result) scheduleSemiLiveRefresh({ setStatus, setRows, hasRows });
+  if (result) {
+    clearOversizedGenericCache();
+    scheduleSemiLiveRefresh({ setStatus, setRows, hasRows });
+  }
+}
+
+function clearOversizedGenericCache() {
+  try {
+    const value = localStorage.getItem(ROW_CACHE_KEY) || '';
+    if (value.length > 750000) localStorage.removeItem(ROW_CACHE_KEY);
+  } catch (_) {}
 }
 
 async function bootBungieSidecar() {
+  clearOversizedGenericCache();
   bindBungieControls();
   try {
     await initializeBungieSync({ setStatus, setRows, hasRows });
