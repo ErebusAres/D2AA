@@ -77,7 +77,7 @@ function archetypeIcon(row) {
   const description = row.ArchetypeDescription ? ` — ${row.ArchetypeDescription}` : '';
   const title = `${label}${statLabel ? ` · ${statLabel}` : ''}${description}`;
   if (row.ArchetypeIcon) {
-    return `<span class="arch-icon arch-api arch-${safeClass(label)}" title="${html(title)}" aria-label="${html(title)}"><img src="${html(row.ArchetypeIcon)}" alt="${html(label)}" loading="lazy"></span>`;
+    return `<img class="arch-image arch-api arch-${safeClass(label)}" src="${html(row.ArchetypeIcon)}" alt="${html(label)}" title="${html(title)}" aria-label="${html(title)}" loading="lazy">`;
   }
   if (meta?.icon) {
     return `<span class="arch-icon arch-fallback arch-${safeClass(meta.label)}" title="${html(title)}" aria-label="${html(title)}"><span>${html(meta.icon)}</span></span>`;
