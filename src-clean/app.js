@@ -89,6 +89,7 @@ async function handleCardAction(actionId, button) {
     const result = await runItemAction(row);
     setStatus(result.message || 'Action complete.');
     if (button) button.textContent = 'Done';
+    if (result.needsRefresh) requestBungieRefresh('post-action-refresh');
   } catch (error) {
     console.error('D2AA clean item action failed', error);
     setStatus(error.message || String(error));
@@ -96,6 +97,12 @@ async function handleCardAction(actionId, button) {
   } finally {
     if (button) setTimeout(() => { button.textContent = original; }, 1200);
   }
+}
+
+function requestBungieRefresh(reason) {
+  setTimeout(() => {
+    window.dispatchEvent(new CustomEvent('d2aa:bungie-sync-request', { detail: { reason, background: true } }));
+  }, 1200);
 }
 
 async function copyGroupIds(groupId, button) {
