@@ -35,12 +35,12 @@ export const STAT_ICONS = {
 };
 
 export const ARMOR_ARCHETYPES = {
-  Paragon: { label: 'Paragon', primary: 'Super', secondary: 'Melee' },
-  Grenadier: { label: 'Grenadier', primary: 'Grenade', secondary: 'Super' },
-  Specialist: { label: 'Specialist', primary: 'ClassAbility', secondary: 'Weapon' },
-  Brawler: { label: 'Brawler', primary: 'Melee', secondary: 'Health' },
-  Bulwark: { label: 'Bulwark', primary: 'Health', secondary: 'ClassAbility' },
-  Gunner: { label: 'Gunner', primary: 'Weapon', secondary: 'Grenade' }
+  Paragon: { label: 'Paragon', stat: 'Super', icon: '☉' },
+  Grenadier: { label: 'Grenadier', stat: 'Grenade', icon: '✹' },
+  Specialist: { label: 'Specialist', stat: 'ClassAbility', icon: '△' },
+  Brawler: { label: 'Brawler', stat: 'Melee', icon: '✊' },
+  Bulwark: { label: 'Bulwark', stat: 'Health', icon: '✚' },
+  Gunner: { label: 'Gunner', stat: 'Weapon', icon: '✥' }
 };
 export const ARCHETYPE_ALIASES = {
   super: 'Paragon',
