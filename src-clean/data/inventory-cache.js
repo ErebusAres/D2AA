@@ -6,6 +6,7 @@ const DB_VERSION = 1;
 const STORE = 'keyval';
 const IDB_ROWS_KEY = 'bungieRows';
 const IDB_META_KEY = 'bungieMeta';
+const RECENT_WINDOW_MS = 10 * 60 * 1000;
 
 export async function getCachedBungieInventory() {
   const idbRows = await idbGet(IDB_ROWS_KEY).catch(() => null);
@@ -25,11 +26,12 @@ export async function getCachedBungieInventory() {
 export async function saveBungieInventory(rows, reason = 'sync') {
   const previous = (await getCachedBungieInventory()).rows;
   const previousById = new Map(previous.map((row) => [String(row.Id), row]));
+  const hasPrevious = previousById.size > 0;
   const savedAt = new Date().toISOString();
-  const cleanRows = rows.map((row) => markRecentChange({ ...row, Source: 'Bungie', FromCache: false }, previousById, savedAt));
+  const cleanRows = rows.map((row) => markRecentChange({ ...row, Source: 'Bungie', FromCache: false }, previousById, savedAt, hasPrevious));
   const slimRows = cleanRows.map(slimRowForStorage);
   const changes = summarizeChanges(slimRows);
-  const meta = { savedAt, count: slimRows.length, reason, version: 4, store: 'indexeddb', ...changes };
+  const meta = { savedAt, count: slimRows.length, reason, version: 5, store: 'indexeddb', ...changes };
   try {
     await idbSet(IDB_ROWS_KEY, slimRows);
     await idbSet(IDB_META_KEY, meta);
@@ -48,7 +50,7 @@ export async function saveBungieInventory(rows, reason = 'sync') {
 export async function loadBungieInventoryFromCache() {
   const cache = await getCachedBungieInventory();
   if (!cache.hasRows) return null;
-  return { rows: cache.rows.map((row) => ({ ...row, Source: row.Source || 'Bungie', FromCache: true })), meta: cache.meta };
+  return { rows: cache.rows.map(clearExpiredRecent).map((row) => ({ ...row, Source: row.Source || 'Bungie', FromCache: true })), meta: cache.meta };
 }
 
 export async function clearBungieInventoryCache() {
@@ -99,21 +101,27 @@ async function idbDelete(key) {
   });
 }
 
-function markRecentChange(row, previousById, savedAt) {
+function markRecentChange(row, previousById, savedAt, hasPrevious) {
   const old = previousById.get(String(row.Id));
-  if (!old) return { ...row, RecentStatus: 'new', RecentlyFound: true, FoundAt: Date.now(), LastChangedAt: savedAt };
+  if (!old) {
+    return hasPrevious
+      ? { ...row, RecentStatus: 'new', RecentlyFound: true, FoundAt: Date.now(), LastChangedAt: savedAt }
+      : { ...row, RecentStatus: '', RecentlyFound: false, FoundAt: 0, LastChangedAt: savedAt };
+  }
   const oldLoc = locationKey(old);
   const newLoc = locationKey(row);
   const statChanged = Number(old.Total || 0) !== Number(row.Total || 0) || Number(old.Power || 0) !== Number(row.Power || 0) || Number(old.Tier || 0) !== Number(row.Tier || 0);
   const moved = oldLoc !== newLoc;
   const status = moved ? 'moved' : statChanged ? 'changed' : '';
-  return {
-    ...row,
-    RecentStatus: status || old.RecentStatus || '',
-    RecentlyFound: Boolean(status),
-    FoundAt: status ? Date.now() : Number(old.FoundAt || 0),
-    LastChangedAt: status ? savedAt : old.LastChangedAt
-  };
+  if (!status) return clearExpiredRecent({ ...row, FoundAt: Number(old.FoundAt || 0), LastChangedAt: old.LastChangedAt });
+  return { ...row, RecentStatus: status, RecentlyFound: true, FoundAt: Date.now(), LastChangedAt: savedAt };
+}
+
+function clearExpiredRecent(row) {
+  const time = Number(row.FoundAt || Date.parse(row.LastChangedAt || '') || 0);
+  if (!row.RecentStatus || !time) return { ...row, RecentStatus: '', RecentlyFound: false };
+  if (Date.now() - time > RECENT_WINDOW_MS) return { ...row, RecentStatus: '', RecentlyFound: false };
+  return row;
 }
 
 function summarizeChanges(rows) {
