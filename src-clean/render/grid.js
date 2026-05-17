@@ -79,10 +79,7 @@ function archetypeIcon(row) {
   if (row.ArchetypeIcon) {
     return `<img class="arch-image arch-api arch-${safeClass(label)}" src="${html(row.ArchetypeIcon)}" alt="${html(label)}" title="${html(title)}" aria-label="${html(title)}" loading="lazy">`;
   }
-  if (meta?.icon) {
-    return `<span class="arch-icon arch-fallback arch-${safeClass(meta.label)}" title="${html(title)}" aria-label="${html(title)}"><span>${html(meta.icon)}</span></span>`;
-  }
-  return `<span class="arch-unknown" title="${html(row.Archetype || 'Unknown archetype')}">◇</span>`;
+  return `<span class="arch-missing" title="${html(`${label}${statLabel ? ` · ${statLabel}` : ''}. Real Bungie archetype image unavailable until a fresh Bungie sync provides ArchetypeIcon.`)}">—</span>`;
 }
 function normalizeArchetypeName(value) {
   return ARCHETYPE_ALIASES[String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, '')] || String(value || '').trim();
