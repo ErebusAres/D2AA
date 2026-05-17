@@ -11,7 +11,7 @@ export const BUNGIE_STORAGE = {
 export const PUBLIC_CONFIG = {
   apiKey: '96e154014bdd44c0a537e482709b7473',
   clientId: '50794',
-  redirectUri: 'https://erebusares.github.io/D2AA/beta2.html'
+  redirectUri: 'https://erebusares.github.io/D2AA/D2AA-clean.html'
 };
 
 let refreshPromise = null;
@@ -53,21 +53,26 @@ export function saveToken(token) {
 export function startLogin() {
   const cfg = getBungieConfig();
   const state = randomState();
+  const returnUrl = cleanReturnUrl(location.href);
   localStorage.setItem(BUNGIE_STORAGE.state, state);
-  localStorage.setItem(BUNGIE_STORAGE.returnUrl, cleanReturnUrl(location.href));
+  localStorage.setItem(BUNGIE_STORAGE.returnUrl, returnUrl);
+  const redirectUri = cleanReturnUrl(cfg.redirectUri || returnUrl);
   const url = new URL(AUTH_URL);
   url.searchParams.set('client_id', cfg.clientId);
   url.searchParams.set('response_type', 'code');
   url.searchParams.set('state', state);
-  window.location.href = url.toString();
+  url.searchParams.set('redirect_uri', redirectUri);
+  window.location.assign(url.toString());
 }
 
 export async function exchangeCode(code) {
   const cfg = getBungieConfig();
+  const redirectUri = cleanReturnUrl(cfg.redirectUri || location.href);
   const body = new URLSearchParams();
   body.set('grant_type', 'authorization_code');
   body.set('code', code);
   body.set('client_id', cfg.clientId);
+  body.set('redirect_uri', redirectUri);
   const response = await fetch(TOKEN_URL, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-API-Key': cfg.apiKey }, body });
   const json = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(json.error_description || json.Message || `OAuth token exchange failed (${response.status}).`);
