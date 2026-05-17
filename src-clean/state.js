@@ -210,6 +210,7 @@ export function slimRowForStorage(row) {
     StatSource: row.StatSource,
     Source: row.Source,
     FoundAt: row.FoundAt,
+    ActivityAt: row.ActivityAt,
     RecentStatus: row.RecentStatus,
     RecentlyFound: row.RecentlyFound,
     LastChangedAt: row.LastChangedAt,
