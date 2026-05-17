@@ -26,12 +26,13 @@ function handleRootClick(event) {
 
 function ensurePicker() {
   if (picker) return picker;
+  const pickerTags = TAGS.filter((tag) => tag.picker !== false);
   picker = document.createElement('div');
   picker.className = 'floating-tag-picker';
   picker.hidden = true;
   picker.innerHTML = `<div class="tag-picker-card" role="menu" aria-label="Tag picker">
     <div class="tag-picker-head"><strong>Tag item</strong><button type="button" data-close-tag-picker>×</button></div>
-    <div class="tag-picker-options">${TAGS.map((tag) => `<button type="button" data-picker-tag="${escapeAttr(tag.value)}" title="${escapeAttr(tag.label)}"><span>${tag.emoji}</span><small>${escapeHtml(tag.label)}</small></button>`).join('')}</div>
+    <div class="tag-picker-options">${pickerTags.map((tag) => `<button type="button" data-picker-tag="${escapeAttr(tag.value)}" title="${escapeAttr(tag.label)}"><span>${tag.emoji}</span><small>${escapeHtml(tag.label)}</small></button>`).join('')}</div>
   </div>`;
   document.body.appendChild(picker);
   picker.addEventListener('click', (event) => {
