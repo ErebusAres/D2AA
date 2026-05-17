@@ -13,13 +13,13 @@ export function defaultAnalyzerSort(a, b) {
   if (slot) return slot;
   const rarity = rarityOrder(a.Rarity) - rarityOrder(b.Rarity);
   if (rarity) return rarity;
-  const dupe = Number(Boolean(b.Group || b.Is_Dupe)) - Number(Boolean(a.Group || a.Is_Dupe));
+  const dupe = Number(Boolean(b.Is_Dupe || b.Group)) - Number(Boolean(a.Is_Dupe || a.Group));
   if (dupe) return dupe;
   const aKey = String(a.GroupKey || groupingKey(a));
   const bKey = String(b.GroupKey || groupingKey(b));
   if (aKey !== bKey) return aKey.localeCompare(bKey);
-  const aGroup = String(a.SortGroup || a.Group || 'ZZ');
-  const bGroup = String(b.SortGroup || b.Group || 'ZZ');
+  const aGroup = String(a.Dupe_Group || a.SortGroup || a.Group || 'ZZ');
+  const bGroup = String(b.Dupe_Group || b.SortGroup || b.Group || 'ZZ');
   if (aGroup !== bGroup) return aGroup.localeCompare(bGroup, undefined, { numeric: true });
   const rank = rankScore(b) - rankScore(a);
   if (rank) return rank;
