@@ -12,6 +12,7 @@ export const state = {
   duplicateTolerance: 5,
   theme: 'calus',
   tags: readJson(STORAGE_KEYS.tags, {}),
+  dismissedRecent: readJson(STORAGE_KEYS.dismissedRecent, {}),
   status: 'Ready.'
 };
 
@@ -34,9 +35,19 @@ export function setRows(rows, status = 'Rows loaded.') {
 }
 
 export function updateTag(id, tag) {
-  state.tags[id] = tag;
-  state.rows = state.rows.map((row) => row.Id === id ? { ...row, Tag: tag } : row);
+  const nextTag = state.tags[id] === tag ? '' : tag;
+  if (nextTag) state.tags[id] = nextTag;
+  else delete state.tags[id];
+  state.rows = state.rows.map((row) => row.Id === id ? { ...row, Tag: nextTag } : row);
   writeJson(STORAGE_KEYS.tags, state.tags);
+  emit();
+}
+
+export function dismissRecent(id) {
+  state.dismissedRecent[id] = Date.now();
+  state.rows = state.rows.map((row) => row.Id === id ? { ...row, RecentStatus: '', RecentlyFound: false } : row);
+  writeJson(STORAGE_KEYS.dismissedRecent, state.dismissedRecent);
+  saveRows(state.rows);
   emit();
 }
 
@@ -71,11 +82,14 @@ export function rowMatchesClass(row, className) {
 export function normalizeStoredRow(row) {
   const characterClass = normalizeClassFilter(row.Equippable || row.Class || row.CharacterClass);
   const classAbility = number(row.ClassAbility || (isClassName(row.Class) ? 0 : row.Class));
+  const dismissed = Boolean(state.dismissedRecent[row.Id]);
   return {
     ...row,
     Class: characterClass === 'all' ? row.Equippable || row.Class || 'Any' : characterClass,
     Equippable: characterClass === 'all' ? row.Equippable || row.Class || 'Any' : characterClass,
     ClassAbility: classAbility,
+    RecentStatus: dismissed && row.RecentStatus === 'new' ? '' : row.RecentStatus,
+    RecentlyFound: dismissed ? false : row.RecentlyFound,
     Archetype: normalizeArchetype(row.Archetype, row.Slot)
   };
 }
@@ -122,6 +136,7 @@ export function clearCache() {
   localStorage.removeItem(STORAGE_KEYS.rows);
   localStorage.removeItem(STORAGE_KEYS.bungieRows);
   localStorage.removeItem(STORAGE_KEYS.bungieMeta);
+  localStorage.removeItem(STORAGE_KEYS.dismissedRecent);
   try { indexedDB.deleteDatabase('d2aa-clean-cache'); } catch (_) {}
   setRows([], 'Clean cache cleared.');
 }
