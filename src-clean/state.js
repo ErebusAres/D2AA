@@ -42,14 +42,30 @@ export function updateTag(id, tag) {
 
 export function getFilteredRows() {
   const q = state.search.trim().toLowerCase();
+  const activeClass = normalizeClassFilter(state.filters.class);
   const rows = state.rows.filter((row) => {
-    if (state.filters.class !== 'all' && row.Class !== state.filters.class) return false;
+    if (activeClass !== 'all' && !rowMatchesClass(row, activeClass)) return false;
     if (state.filters.slot !== 'all' && row.Slot !== state.filters.slot) return false;
     if (state.filters.rarity !== 'all' && row.Rarity !== state.filters.rarity) return false;
     if (!q) return true;
-    return [row.Name, row.Id, row.Slot, row.Type, row.Class, row.Rarity, row.Archetype].some((value) => String(value || '').toLowerCase().includes(q));
+    return [row.Name, row.Id, row.Slot, row.Type, row.Class, row.Equippable, row.Rarity, row.Archetype].some((value) => String(value || '').toLowerCase().includes(q));
   });
   return sortRows(rows, state.sortBy);
+}
+
+export function normalizeClassFilter(value) {
+  const text = String(value || '').toLowerCase();
+  if (text.includes('warlock') || text === 'w') return 'Warlock';
+  if (text.includes('hunter') || text === 'h') return 'Hunter';
+  if (text.includes('titan') || text === 't') return 'Titan';
+  return 'all';
+}
+
+export function rowMatchesClass(row, className) {
+  const target = normalizeClassFilter(className);
+  if (target === 'all') return true;
+  return [row.Class, row.Equippable, row.Type, row.BucketClass, row.ItemType]
+    .some((value) => normalizeClassFilter(value) === target);
 }
 
 export function loadCachedRows() {
@@ -151,6 +167,7 @@ export function loadSettings() {
     duplicateTolerance: Number.isFinite(Number(settings.duplicateTolerance)) ? Number(settings.duplicateTolerance) : state.duplicateTolerance,
     filters: { ...state.filters, ...(settings.filters || {}) }
   });
+  state.filters.class = normalizeClassFilter(state.filters.class);
 }
 
 function emit() {
