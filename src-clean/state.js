@@ -27,7 +27,7 @@ export function setState(patch) {
 }
 
 export function setRows(rows, status = 'Rows loaded.') {
-  state.rows = rows.map((row, index) => ({ ...row, _index: index, Tag: state.tags[row.Id] || row.Tag || '' }));
+  state.rows = rows.map((row, index) => normalizeStoredRow({ ...row, _index: index, Tag: state.tags[row.Id] || row.Tag || '' }));
   state.status = status;
   saveRows(state.rows);
   emit();
@@ -64,8 +64,30 @@ export function normalizeClassFilter(value) {
 export function rowMatchesClass(row, className) {
   const target = normalizeClassFilter(className);
   if (target === 'all') return true;
-  return [row.Class, row.Equippable, row.Type, row.BucketClass, row.ItemType]
+  return [row.Equippable, row.Class, row.Type, row.BucketClass, row.ItemType]
     .some((value) => normalizeClassFilter(value) === target);
+}
+
+export function normalizeStoredRow(row) {
+  const characterClass = normalizeClassFilter(row.Equippable || row.Class || row.CharacterClass);
+  const classAbility = number(row.ClassAbility || (isClassName(row.Class) ? 0 : row.Class));
+  return {
+    ...row,
+    Class: characterClass === 'all' ? row.Equippable || row.Class || 'Any' : characterClass,
+    Equippable: characterClass === 'all' ? row.Equippable || row.Class || 'Any' : characterClass,
+    ClassAbility: classAbility,
+    Archetype: normalizeArchetype(row.Archetype, row.Slot)
+  };
+}
+
+function isClassName(value) { return normalizeClassFilter(value) !== 'all'; }
+function number(value) { const n = Number(String(value ?? '').replace(/[^0-9.-]/g, '')); return Number.isFinite(n) ? n : 0; }
+function normalizeArchetype(value, slot) {
+  const text = String(value || '').trim();
+  if (!text) return '—';
+  const a = text.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  const s = String(slot || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  return a && a !== s ? text : '—';
 }
 
 export function loadCachedRows() {
@@ -135,6 +157,7 @@ export function slimRowForStorage(row) {
     Melee: row.Melee,
     Grenade: row.Grenade,
     Super: row.Super,
+    ClassAbility: row.ClassAbility,
     Weapon: row.Weapon,
     Total: row.Total,
     Source: row.Source,
