@@ -1,4 +1,4 @@
-import { getBungieConfig, getToken, tokenIsValid, refreshToken } from './bungie-auth.js';
+import { getBungieConfig, ensureValidToken } from './bungie-auth.js';
 
 const API_ROOT = 'https://www.bungie.net/Platform';
 const BUNGIE_ORIGIN = 'https://www.bungie.net';
@@ -16,8 +16,7 @@ export async function bungieFetch(path, auth = false, options = {}) {
   const headers = { ...(options.headers || {}) };
   headers['X-API-Key'] = cfg.apiKey;
   if (auth) {
-    let token = getToken();
-    if (!tokenIsValid(token)) token = await refreshToken();
+    const token = await ensureValidToken();
     headers.Authorization = `Bearer ${token.access_token}`;
   }
   const response = await fetch(`${API_ROOT}${path}`, { ...options, headers });
