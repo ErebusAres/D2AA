@@ -4,19 +4,20 @@ let picker;
 let activeId = '';
 let activeRows = [];
 let activeOnTag = null;
+let activeTag = '';
 
 export function attachTagPicker(root, rows, onTag) {
   activeRows = rows;
   activeOnTag = onTag;
   ensurePicker();
-  root.addEventListener('click', handleRootClick, { once: true });
+  root.onclick = handleRootClick;
 }
 
 function handleRootClick(event) {
-  const trigger = event.target.closest('[data-card-id],[data-tag-trigger]');
-  if (!trigger || event.target.closest('[data-action-id],[data-tag-choice]')) return;
+  const trigger = event.target.closest('[data-tag-trigger]') || event.target.closest('[data-card-id]');
+  if (!trigger || event.target.closest('[data-action-id],[data-compare-group],[data-tag-choice],[data-picker-tag]')) return;
   const card = trigger.closest('[data-card-id]') || trigger;
-  const id = card.dataset.cardId || trigger.dataset.id;
+  const id = trigger.dataset.id || card.dataset.cardId;
   const row = activeRows.find((item) => String(item.Id) === String(id));
   if (!row) return;
   event.preventDefault();
@@ -26,7 +27,7 @@ function handleRootClick(event) {
 
 function ensurePicker() {
   if (picker) return picker;
-  const pickerTags = TAGS.filter((tag) => tag.picker !== false);
+  const pickerTags = TAGS.filter((tag) => tag.picker !== false && tag.value);
   picker = document.createElement('div');
   picker.className = 'floating-tag-picker';
   picker.hidden = true;
@@ -40,7 +41,8 @@ function ensurePicker() {
     if (close) return closePicker();
     const choice = event.target.closest('[data-picker-tag]');
     if (!choice) return;
-    activeOnTag?.(activeId, choice.dataset.pickerTag);
+    const picked = choice.dataset.pickerTag || '';
+    activeOnTag?.(activeId, picked === activeTag ? '' : picked);
     closePicker();
   });
   document.addEventListener('keydown', (event) => { if (event.key === 'Escape') closePicker(); });
@@ -52,13 +54,14 @@ function ensurePicker() {
 
 function openPicker(row, trigger) {
   activeId = row.Id;
+  activeTag = row.Tag || '';
   const rect = trigger.getBoundingClientRect();
   const x = Math.min(window.innerWidth - 260, Math.max(12, rect.left + rect.width / 2 - 125));
-  const y = Math.min(window.innerHeight - 170, Math.max(12, rect.top + 28));
+  const y = Math.min(window.innerHeight - 190, Math.max(12, rect.top + 28));
   picker.style.left = `${x}px`;
   picker.style.top = `${y}px`;
   picker.querySelector('.tag-picker-head strong').textContent = row.Name || 'Tag item';
-  picker.querySelectorAll('[data-picker-tag]').forEach((button) => button.classList.toggle('is-active', button.dataset.pickerTag === (row.Tag || '')));
+  picker.querySelectorAll('[data-picker-tag]').forEach((button) => button.classList.toggle('is-active', button.dataset.pickerTag === activeTag));
   picker.hidden = false;
 }
 
