@@ -1,6 +1,7 @@
 export const STORAGE_KEYS = {
   rows: 'd2aa_clean_rows_v1',
   tags: 'd2aa_clean_tags_v1',
+  dismissedRecent: 'd2aa_clean_dismissed_recent_v1',
   settings: 'd2aa_clean_settings_v1',
   bungieRows: 'd2aa_clean_bungie_rows_v1',
   bungieMeta: 'd2aa_clean_bungie_meta_v1'
