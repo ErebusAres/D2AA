@@ -22,19 +22,19 @@ function isFeedCandidate(row) {
     row.Tag === 'feed' ||
     row.RecentStatus ||
     row.RecentlyFound ||
-    Number(row.FoundAt || 0) > 0
+    Number(row.FoundAt || 0) > 0 ||
+    Number(row.ActivityAt || 0) > 0
   );
 }
 
 function compareRecent(a, b) {
   const aTime = recentTime(a);
   const bTime = recentTime(b);
-  const statusWeight = (row) => row.RecentStatus === 'new' || row.Tag === 'feed' ? 3 : row.RecentStatus === 'moved' ? 2 : row.RecentStatus === 'changed' ? 1 : 0;
-  return statusWeight(b) - statusWeight(a) || bTime - aTime || String(a.Name).localeCompare(String(b.Name));
+  return bTime - aTime || String(a.Name).localeCompare(String(b.Name));
 }
 
 function recentTime(row) {
-  return Number(row.FoundAt || 0) || Date.parse(row.LastChangedAt || '') || 0;
+  return Number(row.ActivityAt || 0) || Number(row.FoundAt || 0) || Date.parse(row.LastChangedAt || '') || 0;
 }
 
 function renderEmptyFeed() {
