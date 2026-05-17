@@ -73,10 +73,9 @@ function archetypeIcon(row) {
   const name = normalizeArchetypeName(row.Archetype);
   const meta = ARMOR_ARCHETYPES[name];
   if (!meta) return `<span class="arch-unknown" title="${html(row.Archetype || 'Unknown archetype')}">◇</span>`;
-  const primaryIcon = STAT_ICONS[meta.primary] || '';
-  const secondaryIcon = STAT_ICONS[meta.secondary] || '';
-  const title = `${meta.label}: ${STAT_LABELS[meta.primary]} / ${STAT_LABELS[meta.secondary]}`;
-  return `<span class="arch-icon arch-${safeClass(meta.label)}" title="${html(title)}" aria-label="${html(title)}"><img src="${html(primaryIcon)}" alt="" loading="lazy">${secondaryIcon ? `<img src="${html(secondaryIcon)}" alt="" loading="lazy">` : ''}</span>`;
+  const statLabel = STAT_LABELS[meta.stat] || meta.stat || '';
+  const title = `${meta.label}${statLabel ? ` · ${statLabel}` : ''}`;
+  return `<span class="arch-icon arch-${safeClass(meta.label)}" title="${html(title)}" aria-label="${html(title)}"><span>${html(meta.icon || '◇')}</span></span>`;
 }
 function normalizeArchetypeName(value) {
   return ARCHETYPE_ALIASES[String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, '')] || String(value || '').trim();
