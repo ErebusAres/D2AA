@@ -1,5 +1,5 @@
 import { getMembership, bungieFetch, getDef, mapLimit, bungieIconUrl, toUint32, toSigned32 } from './bungie-api.js';
-import { tokenIsValid, handleOAuthRedirect, startLogin } from './bungie-auth.js';
+import { isSignedIn, handleOAuthRedirect, startLogin } from './bungie-auth.js';
 import { saveBungieInventory, loadBungieInventoryFromCache, formatCacheTime } from './inventory-cache.js';
 
 const PROFILE_COMPONENTS = [100, 102, 200, 201, 205, 300, 304, 305].join(',');
@@ -25,16 +25,16 @@ export async function initializeBungieSync({ setStatus, setRows, hasRows }) {
   const cached = await loadBungieInventoryFromCache();
   if (cached?.rows?.length && !hasRows()) {
     setRows(cached.rows, `Loaded Bungie cache: ${cached.rows.length} armor from ${formatCacheTime(cached.meta)}.`);
-    if (tokenIsValid()) scheduleSemiLiveRefresh({ setStatus, setRows, hasRows, delay: 2500 });
+    if (isSignedIn()) scheduleSemiLiveRefresh({ setStatus, setRows, hasRows, delay: 2500 });
     return;
   }
-  if (!cached?.rows?.length && !hasRows() && tokenIsValid()) {
+  if (!cached?.rows?.length && !hasRows() && isSignedIn()) {
     setStatus('No Bungie cache found. Starting initial sync...');
     await syncBungieInventory({ setStatus, setRows, reason: 'startup-no-cache' });
     scheduleSemiLiveRefresh({ setStatus, setRows, hasRows });
     return;
   }
-  if (tokenIsValid()) scheduleSemiLiveRefresh({ setStatus, setRows, hasRows });
+  if (isSignedIn()) scheduleSemiLiveRefresh({ setStatus, setRows, hasRows });
 }
 
 let semiLiveTimer = null;
@@ -43,7 +43,7 @@ let lastSyncStartedAt = 0;
 
 export function scheduleSemiLiveRefresh({ setStatus, setRows, hasRows, delay = 90000 }) {
   clearTimeout(semiLiveTimer);
-  if (!tokenIsValid()) return;
+  if (!isSignedIn()) return;
   semiLiveTimer = setTimeout(async () => {
     if (document.hidden) {
       scheduleSemiLiveRefresh({ setStatus, setRows, hasRows, delay: 30000 });
@@ -56,7 +56,7 @@ export function scheduleSemiLiveRefresh({ setStatus, setRows, hasRows, delay = 9
 
 export async function syncBungieInventory({ setStatus, setRows, reason = 'manual-sync', background = false }) {
   if (syncRunning) return null;
-  if (!tokenIsValid()) {
+  if (!isSignedIn()) {
     setStatus('Connect your Destiny account before syncing armor.');
     return null;
   }
@@ -83,7 +83,7 @@ export async function syncBungieInventory({ setStatus, setRows, reason = 'manual
 }
 
 export function connectBungie() { startLogin(); }
-export function shouldRefreshOnFocus() { return tokenIsValid() && Date.now() - lastSyncStartedAt > 45000; }
+export function shouldRefreshOnFocus() { return isSignedIn() && Date.now() - lastSyncStartedAt > 45000; }
 
 async function buildArmorRows(profile, membership, setStatus, background) {
   const allItems = collectItems(profile);
@@ -258,99 +258,3 @@ function isSubtractableArmorBonusPlug(plugDef) {
 }
 function socketBonusTotals(plugDefs, statColumnMap) {
   const bonuses = emptyArmorStats();
-  for (const plugDef of plugDefs || []) {
-    if (!isSubtractableArmorBonusPlug(plugDef)) continue;
-    for (const stat of plugDef?.investmentStats || []) {
-      const col = statColumnMap[Number(stat.statTypeHash)] || statColumnMap[toUint32(stat.statTypeHash)] || statColumnMap[toSigned32(stat.statTypeHash)];
-      const value = Number(stat.value || 0);
-      if (col && value > 0) bonuses[col] += value;
-    }
-  }
-  return bonuses;
-}
-function statsForItem(def, statComponent, socketBonusRow, statColumnMap) {
-  const liveStats = statComponent?.stats || {};
-  const manifestStats = def.stats?.stats || {};
-  const source = Object.keys(liveStats).length ? liveStats : manifestStats;
-  const rowStats = emptyArmorStats();
-  const currentStats = emptyArmorStats();
-  for (const [rawHash, stat] of Object.entries(source)) {
-    const col = statColumnMap[Number(rawHash)] || statColumnMap[toUint32(rawHash)] || statColumnMap[toSigned32(rawHash)];
-    if (!col) continue;
-    currentStats[col] = getStatNumericValue(stat);
-    rowStats[col] = Math.max(0, currentStats[col] - Number(socketBonusRow?.[col] || 0));
-  }
-  rowStats.Total = totalOf(rowStats) || totalOf(currentStats);
-  return rowStats;
-}
-function slotForItem(def) {
-  const bucket = String(def.inventory?.bucketTypeHash || '');
-  const display = `${def.itemTypeDisplayName || ''} ${def.itemTypeAndTierDisplayName || ''}`;
-  if (display.includes('Helmet')) return 'Helmet';
-  if (display.includes('Gauntlets') || display.includes('Gloves')) return 'Gauntlets';
-  if (display.includes('Chest Armor') || display.includes('Chest')) return 'Chest Armor';
-  if (display.includes('Leg Armor') || display.includes('Legs') || display.includes('Boots')) return 'Leg Armor';
-  if (display.includes('Class Armor') || display.includes('Class Item')) return 'Class Item';
-  if (bucket === '3448274439') return 'Helmet';
-  if (bucket === '3551918588') return 'Gauntlets';
-  if (bucket === '14239492') return 'Chest Armor';
-  if (bucket === '20886954') return 'Leg Armor';
-  if (bucket === '1585787867') return 'Class Item';
-  return null;
-}
-function rarityForItem(def) { return def.inventory?.tierTypeName || (String(def.itemTypeAndTierDisplayName || '').match(/^(Common|Uncommon|Rare|Legendary|Exotic)/)?.[1]) || 'Unknown'; }
-function gearTierForItem(instanceComponent, rarity, total) {
-  const max = rarity === 'Exotic' ? 2 : 5;
-  const fromBungie = Number(instanceComponent?.gearTier || 0);
-  const tier = fromBungie >= 1 ? fromBungie : fallbackTier(total);
-  return Math.max(1, Math.min(max, tier));
-}
-function fallbackTier(total) {
-  if (total >= 73) return 5;
-  if (total >= 65) return 4;
-  if (total >= 59) return 3;
-  if (total >= 54) return 2;
-  return 1;
-}
-function buildCharacterMap(profile) {
-  const map = {};
-  for (const [characterId, character] of Object.entries(profile.characters?.data || {})) {
-    const className = CLASS_TYPE[character.classType] || 'Unknown';
-    map[className] = { characterId, className };
-  }
-  return map;
-}
-function isArmorDef(def) {
-  if (!def || def.itemType !== 2) return false;
-  if (!CLASS_TYPE[def.classType]) return false;
-  if (!slotForItem(def)) return false;
-  return ['Common', 'Uncommon', 'Rare', 'Legendary', 'Exotic'].includes(rarityForItem(def));
-}
-function armorArchetype(def, plugDefs = []) {
-  const plug = plugDefs.find(isArmorArchetypePlug);
-  if (plug) {
-    return {
-      name: String(plug.displayProperties?.name || '').trim() || '—',
-      icon: bungieIconUrl(plug.displayProperties?.icon),
-      description: String(plug.displayProperties?.description || '').trim(),
-      hash: plug.hash || plug.itemHash || '',
-      trait: firstTrait(plug)
-    };
-  }
-  return { name: '—', icon: '', description: '', hash: '', trait: '' };
-}
-function isArmorArchetypePlug(plugDef) {
-  const name = String(plugDef?.displayProperties?.name || '').trim();
-  const normalizedName = normalizeName(name);
-  if (!name || isNonArchetypeName(name)) return false;
-  if (ARMOR_ARCHETYPE_NAMES.has(normalizedName)) return true;
-  const category = normalizeName(plugDef?.plug?.plugCategoryIdentifier);
-  const type = normalizeName(plugDef?.itemTypeDisplayName);
-  const desc = normalizeName(plugDef?.displayProperties?.description);
-  return category.includes('armor archetype') || type.includes('armor archetype') || desc.includes('armor archetype');
-}
-function firstTrait(def) { return def?.traitIds?.find(Boolean) || def?.itemCategoryHashes?.[0] || ''; }
-function isNonArchetypeName(name) {
-  const n = normalizeName(name);
-  return !n || n.includes('empty') || n.includes('artifice') || n.includes('mod') || n.includes('shader') || n.includes('ornament') || n.includes('masterwork') || n.includes('kill tracker') || n.includes('helmet') || n.includes('gauntlet') || n.includes('chest') || n.includes('leg armor') || n.includes('class item');
-}
