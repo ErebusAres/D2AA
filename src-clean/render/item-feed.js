@@ -35,8 +35,24 @@ function renderFeedCard(row) {
   return `<article class="feed-card ${statusText ? 'is-' + html(statusText) : ''} ${feedNew ? 'is-new-found' : ''} ${row.Is_Dupe ? `is-feed-grouped ${row.GroupColor || ''}` : ''}" data-feed-card-id="${html(row.Id)}" data-feed-group="${html(groupLabel)}">
     ${dismiss}${groupButton}
     <div class="feed-icon">${row.Icon ? `<img src="${html(row.Icon)}" alt="" loading="lazy">` : '<span>◇</span>'}${row.Power || row.Light ? `<b>${row.Power || row.Light}</b>` : ''}${feedNew ? '<i class="feed-new-spark">✨</i>' : ''}</div>
-    <div class="feed-main"><div class="feed-title-line"><strong title="${html(row.Name)}">${html(row.Name)}</strong>${status}</div><span class="feed-meta-icons" aria-label="${html(`${row.Class} ${row.Slot} ${row.Rarity} ${loc}`)}">${iconImg(CLASS_ICONS[row.Class], row.Class)}${maskIcon(SLOT_ICONS[row.Slot], row.Slot)}${iconImg(RARITY_ICONS[row.Rarity], row.Rarity)}${locationIcon(loc)}</span><div class="feed-stats">${STAT_KEYS.map((key) => `<em><img class="stat-icon" src="${html(STAT_ICONS[key])}" alt="${html(STAT_LABELS[key])}" loading="lazy">${row[key] || 0}</em>`).join('')}</div><div class="feed-tags">${tagButtons}</div></div>
+    <div class="feed-main"><div class="feed-title-line"><strong title="${html(row.Name)}">${html(row.Name)}</strong>${status}</div><span class="feed-meta-icons" aria-label="${html(`${row.Class} ${row.Slot} ${row.Rarity} ${loc}`)}">${iconImg(CLASS_ICONS[row.Class], row.Class)}${maskIcon(SLOT_ICONS[row.Slot], row.Slot)}${iconImg(RARITY_ICONS[row.Rarity], row.Rarity)}${locationIcon(loc)}</span><div class="feed-stats">${STAT_KEYS.map((key) => statChip(row, key)).join('')}</div><div class="feed-tags">${tagButtons}</div></div>
   </article>`;
+}
+function statChip(row, key) {
+  const value = Number(row[key] || 0);
+  const quality = statQuality(value);
+  return `<em class="stat-quality-${quality}" title="${html(STAT_LABELS[key])}: ${value} · ${qualityLabel(quality)}"><img class="stat-icon" src="${html(STAT_ICONS[key])}" alt="${html(STAT_LABELS[key])}" loading="lazy">${value}</em>`;
+}
+function statQuality(value) {
+  if (value >= 25) return 'perfect';
+  if (value >= 20) return 'great';
+  if (value >= 15) return 'good';
+  if (value >= 10) return 'okay';
+  if (value >= 5) return 'bad';
+  return 'poor';
+}
+function qualityLabel(value) {
+  return ({ perfect: 'Perfect', great: 'Great', good: 'Good', okay: 'Okay', bad: 'Bad', poor: 'Poor' })[value] || value;
 }
 function locationLabel(row) {
   if (row.Source !== 'Bungie') return 'DIM';
