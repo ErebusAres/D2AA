@@ -10,6 +10,7 @@ const ARCHETYPE_STATS = [
   ['ClassAbility', 'Class'],
   ['Weapon', 'Weapon']
 ];
+const STAT_KEYS = ['Health', 'Melee', 'Grenade', 'Super', 'ClassAbility', 'Weapon'];
 
 export const state = {
   rows: [],
@@ -175,7 +176,7 @@ export function writeJson(key, value) {
 }
 
 export function slimRowForStorage(row) {
-  return {
+  const slim = {
     Name: row.Name,
     Id: row.Id,
     Type: row.Type,
@@ -203,6 +204,10 @@ export function slimRowForStorage(row) {
     ClassAbility: row.ClassAbility,
     Weapon: row.Weapon,
     Total: row.Total,
+    BaseTotal: row.BaseTotal,
+    CurrentTotal: row.CurrentTotal,
+    StatBonusTotal: row.StatBonusTotal,
+    StatSource: row.StatSource,
     Source: row.Source,
     FoundAt: row.FoundAt,
     RecentStatus: row.RecentStatus,
@@ -217,6 +222,12 @@ export function slimRowForStorage(row) {
     IsInVault: row.IsInVault,
     IsEquipped: row.IsEquipped
   };
+  for (const key of STAT_KEYS) {
+    slim[`Base${key}`] = row[`Base${key}`];
+    slim[`Current${key}`] = row[`Current${key}`];
+    slim[`StatBonus${key}`] = row[`StatBonus${key}`];
+  }
+  return slim;
 }
 
 function persistSettings() {
