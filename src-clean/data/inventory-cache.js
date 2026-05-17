@@ -28,10 +28,11 @@ export async function saveBungieInventory(rows, reason = 'sync') {
   const previousById = new Map(previous.map((row) => [String(row.Id), row]));
   const hasPrevious = previousById.size > 0;
   const savedAt = new Date().toISOString();
-  const cleanRows = rows.map((row) => markRecentChange({ ...row, Source: 'Bungie', FromCache: false }, previousById, savedAt, hasPrevious));
+  const discoveredBase = Date.now();
+  const cleanRows = rows.map((row, index) => markRecentChange({ ...row, Source: 'Bungie', FromCache: false }, previousById, savedAt, hasPrevious, discoveredBase + index));
   const slimRows = cleanRows.map(slimRowForStorage);
   const changes = summarizeChanges(slimRows);
-  const meta = { savedAt, count: slimRows.length, reason, version: 5, store: 'indexeddb', ...changes };
+  const meta = { savedAt, count: slimRows.length, reason, version: 6, store: 'indexeddb', ...changes };
   try {
     await idbSet(IDB_ROWS_KEY, slimRows);
     await idbSet(IDB_META_KEY, meta);
@@ -101,11 +102,11 @@ async function idbDelete(key) {
   });
 }
 
-function markRecentChange(row, previousById, savedAt, hasPrevious) {
+function markRecentChange(row, previousById, savedAt, hasPrevious, discoveredAt) {
   const old = previousById.get(String(row.Id));
   if (!old) {
     return hasPrevious
-      ? { ...row, RecentStatus: 'new', RecentlyFound: true, FoundAt: Date.now(), LastChangedAt: savedAt }
+      ? { ...row, RecentStatus: 'new', RecentlyFound: true, FoundAt: discoveredAt, LastChangedAt: savedAt }
       : { ...row, RecentStatus: '', RecentlyFound: false, FoundAt: 0, LastChangedAt: savedAt };
   }
   const oldLoc = locationKey(old);
@@ -114,11 +115,11 @@ function markRecentChange(row, previousById, savedAt, hasPrevious) {
   const moved = oldLoc !== newLoc;
   const status = moved ? 'moved' : statChanged ? 'changed' : '';
   if (!status) return clearExpiredRecent({ ...row, FoundAt: Number(old.FoundAt || 0), LastChangedAt: old.LastChangedAt });
-  return { ...row, RecentStatus: status, RecentlyFound: true, FoundAt: Date.now(), LastChangedAt: savedAt };
+  return { ...row, RecentStatus: status, RecentlyFound: true, FoundAt: Number(old.FoundAt || 0), LastChangedAt: savedAt, ActivityAt: discoveredAt };
 }
 
 function clearExpiredRecent(row) {
-  const time = Number(row.FoundAt || Date.parse(row.LastChangedAt || '') || 0);
+  const time = Number(row.ActivityAt || row.FoundAt || Date.parse(row.LastChangedAt || '') || 0);
   if (!row.RecentStatus || !time) return { ...row, RecentStatus: '', RecentlyFound: false };
   if (Date.now() - time > RECENT_WINDOW_MS) return { ...row, RecentStatus: '', RecentlyFound: false };
   return row;
