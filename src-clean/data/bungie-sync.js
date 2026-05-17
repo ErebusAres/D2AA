@@ -98,7 +98,11 @@ async function buildArmorRows(profile, membership, setStatus, background) {
   });
   const itemDefs = Object.fromEntries(uniqueItemHashes.map((hash, i) => [hash, itemDefsList[i]]));
   const armorItems = allItems.filter((item) => item.itemInstanceId && isArmorDef(itemDefs[toUint32(item.itemHash)]));
-  const uniquePlugHashes = [...new Set(armorItems.flatMap((item) => armorPlugHashes(itemDefs[toUint32(item.itemHash)], socketComponents[item.itemInstanceId])).filter(Boolean))];
+
+  // We need both live instance socket plugs and definition plugs for archetype discovery.
+  // IMPORTANT: definition plugs must NOT be used for stat subtraction, because they include possible/reusable plugs,
+  // not necessarily plugs currently applied to the user's item.
+  const uniquePlugHashes = [...new Set(armorItems.flatMap((item) => allArchetypePlugHashes(itemDefs[toUint32(item.itemHash)], socketComponents[item.itemInstanceId])).filter(Boolean))];
   if (!background) setStatus(`Resolving armor plugs: 0/${uniquePlugHashes.length}`);
   const plugDefsList = await mapLimit(uniquePlugHashes, 8, (hash) => getDef('DestinyInventoryItemDefinition', hash), (done, total) => {
     if (!background) setStatus(`Resolving armor plugs: ${done}/${total}`);
@@ -109,7 +113,7 @@ async function buildArmorRows(profile, membership, setStatus, background) {
     const def = itemDefs[toUint32(item.itemHash)];
     const source = Object.keys(statComponents[item.itemInstanceId]?.stats || {}).length ? statComponents[item.itemInstanceId].stats : (def.stats?.stats || {});
     statHashes.push(...Object.keys(source));
-    for (const plugHash of armorPlugHashes(def, socketComponents[item.itemInstanceId])) {
+    for (const plugHash of plugHashesForInstance(socketComponents[item.itemInstanceId])) {
       const plugDef = plugDefs[plugHash];
       if (!isSubtractableArmorBonusPlug(plugDef)) continue;
       for (const stat of plugDef?.investmentStats || []) statHashes.push(stat.statTypeHash);
@@ -130,9 +134,10 @@ async function buildArmorRows(profile, membership, setStatus, background) {
     const equippable = CLASS_TYPE[def.classType];
     const rarity = rarityForItem(def);
     const type = slot === 'Class Item' ? CLASS_ITEM_BY_CLASS[equippable] : slot;
-    const socketPlugDefs = armorPlugHashes(def, socketComponents[instanceId]).map((hash) => plugDefs[hash]).filter(Boolean);
-    const archetype = armorArchetype(def, socketPlugDefs);
-    const statRow = statsForItem(def, statComponents[instanceId], socketBonusTotals(socketPlugDefs, statColumnMap), statColumnMap);
+    const instancePlugDefs = plugHashesForInstance(socketComponents[instanceId]).map((hash) => plugDefs[hash]).filter(Boolean);
+    const archetypePlugDefs = allArchetypePlugHashes(def, socketComponents[instanceId]).map((hash) => plugDefs[hash]).filter(Boolean);
+    const archetype = armorArchetype(def, archetypePlugDefs);
+    const statRow = statsForItem(def, statComponents[instanceId], socketBonusTotals(instancePlugDefs, statColumnMap), statColumnMap);
     const targetCharacterId = characterMap[equippable]?.characterId || '';
     const instanceComponent = instanceComponents[instanceId];
     const power = getLightLevel(instanceComponent, item);
@@ -241,7 +246,7 @@ function plugHashesForDefinition(def) {
   }
   return hashes;
 }
-function armorPlugHashes(def, socketComponent) {
+function allArchetypePlugHashes(def, socketComponent) {
   return [...new Set([...plugHashesForInstance(socketComponent), ...plugHashesForDefinition(def)].filter(Boolean))];
 }
 function isSubtractableArmorBonusPlug(plugDef) {
