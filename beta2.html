@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>D2 Armor Analyzer</title>
   <script>
-    const cleanReturn = sessionStorage.getItem('d2aa_clean_return_after_oauth');
+    const cleanReturn = localStorage.getItem('d2aa_clean_return_after_oauth') || sessionStorage.getItem('d2aa_clean_return_after_oauth');
     const fallback = new URL('D2AA.html', location.href).href;
     const target = new URL(cleanReturn || fallback, location.href);
     target.search = location.search;
