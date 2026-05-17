@@ -6,6 +6,7 @@ import { runItemAction } from './data/actions.js';
 import { renderGrid } from './render/grid.js';
 import { renderTable } from './render/table.js';
 import { renderItemFeed } from './render/item-feed.js';
+import { attachTagPicker } from './render/tag-picker.js';
 
 const els = {};
 let lastGroupedRows = [];
@@ -72,6 +73,7 @@ function render() {
   els.gridView.hidden = state.view !== 'grid';
   els.tableView.hidden = state.view !== 'table';
   renderGrid(els.gridView, filtered, updateTag, handleCardAction);
+  attachTagPicker(els.gridView, filtered, updateTag);
   renderTable(els.tableBody, filtered, handleCardAction);
   renderItemFeed(els.feedList, els.feedCount, grouped, updateTag);
   els.emptyState.hidden = state.rows.length > 0;
