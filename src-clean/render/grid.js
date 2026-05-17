@@ -1,12 +1,18 @@
 import { STAT_KEYS, STAT_LABELS, STAT_ICONS, RARITY_ICONS, CLASS_ICONS, SLOT_ICONS, LOCATION_EMOJIS, TAGS, SLOT_ORDER } from '../constants.js';
 import { actionLabel, canRunAction } from '../data/actions.js';
 
-export function renderGrid(container, rows, onTag, onAction) {
+export function renderGrid(container, rows, onTag, onAction, onCompareGroup) {
   container.innerHTML = renderSlotSections(rows);
   container.querySelectorAll('[data-action-id]').forEach((button) => {
     button.addEventListener('click', (event) => {
       event.stopPropagation();
       onAction?.(button.dataset.actionId, button);
+    });
+  });
+  container.querySelectorAll('[data-compare-group]').forEach((button) => {
+    button.addEventListener('click', (event) => {
+      event.stopPropagation();
+      onCompareGroup?.(button.dataset.compareGroup);
     });
   });
 }
@@ -38,7 +44,7 @@ function renderCard(row) {
   const groupLabel = row.Dupe_Group || row.Group || '';
   const groupActionKey = row.GroupActionKey || `${row.GroupKey || ''}::${groupLabel}`;
   const isNew = row.RecentStatus === 'new' || row.Tag === 'feed';
-  const group = row.Is_Dupe ? `<div class="group-badge ${row.GroupColor || ''}" title="Duplicate group ${html(groupLabel)}"><span>⚠️</span>${row.Is_Dupe_Exotic ? iconImg(RARITY_ICONS.Exotic, 'Exotic duplicate group', 'badge-icon') : ''}${html(groupLabel)}</div>` : '';
+  const group = row.Is_Dupe ? `<button type="button" class="group-badge ${row.GroupColor || ''}" title="Compare duplicate group ${html(groupLabel)}" data-compare-group="${html(groupActionKey)}"><span>⚖️</span>${row.Is_Dupe_Exotic ? iconImg(RARITY_ICONS.Exotic, 'Exotic duplicate group', 'badge-icon') : ''}${html(groupLabel)}</button>` : '';
   const newBadge = isNew ? `<div class="new-found-badge" title="Recently found">✨ New</div>` : '';
   const action = actionLabel(row);
   return `<article class="armor-card ${safeClass(row.Rarity)} ${isNew ? 'is-new-found' : ''} ${row.Is_Dupe ? 'is-grouped is-dupe ' + row.GroupColor : ''}" data-card-id="${html(row.Id)}" data-group="${html(groupLabel)}">
@@ -58,7 +64,7 @@ function renderCard(row) {
     </div>
     <div class="card-actions">
       <button type="button" data-action-id="${html(row.Id)}" ${canRunAction(row) ? '' : 'disabled'}>${html(action)}</button>
-      ${row.Is_Dupe ? `<button type="button" data-action-id="group:${html(groupActionKey)}">Copy group</button>` : ''}
+      ${row.Is_Dupe ? `<button type="button" data-action-id="group:${html(groupActionKey)}">Pull group</button>` : ''}
     </div>
   </article>`;
 }
