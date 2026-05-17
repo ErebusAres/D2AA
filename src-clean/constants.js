@@ -34,6 +34,31 @@ export const STAT_ICONS = {
   Weapon: 'https://www.bungie.net/common/destiny2_content/icons/bc69675acdae9e6b9a68a02fb4d62e07.png'
 };
 
+export const ARMOR_ARCHETYPES = {
+  Paragon: { label: 'Paragon', primary: 'Super', secondary: 'Melee' },
+  Grenadier: { label: 'Grenadier', primary: 'Grenade', secondary: 'Super' },
+  Specialist: { label: 'Specialist', primary: 'ClassAbility', secondary: 'Weapon' },
+  Brawler: { label: 'Brawler', primary: 'Melee', secondary: 'Health' },
+  Bulwark: { label: 'Bulwark', primary: 'Health', secondary: 'ClassAbility' },
+  Gunner: { label: 'Gunner', primary: 'Weapon', secondary: 'Grenade' }
+};
+export const ARCHETYPE_ALIASES = {
+  super: 'Paragon',
+  paragon: 'Paragon',
+  grenade: 'Grenadier',
+  grenadier: 'Grenadier',
+  class: 'Specialist',
+  classability: 'Specialist',
+  specialist: 'Specialist',
+  melee: 'Brawler',
+  brawler: 'Brawler',
+  health: 'Bulwark',
+  bulwark: 'Bulwark',
+  weapon: 'Gunner',
+  weapons: 'Gunner',
+  gunner: 'Gunner'
+};
+
 export const RARITY_ICONS = {
   Basic: '',
   Common: '',
