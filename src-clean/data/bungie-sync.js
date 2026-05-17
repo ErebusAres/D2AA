@@ -98,9 +98,9 @@ async function buildArmorRows(profile, membership, setStatus, background) {
   const itemDefs = Object.fromEntries(uniqueItemHashes.map((hash, i) => [hash, itemDefsList[i]]));
   const armorItems = allItems.filter((item) => item.itemInstanceId && isArmorDef(itemDefs[toUint32(item.itemHash)]));
   const uniquePlugHashes = [...new Set(armorItems.flatMap((item) => plugHashesForInstance(socketComponents[item.itemInstanceId])).filter(Boolean))];
-  if (!background) setStatus(`Resolving socket bonuses: 0/${uniquePlugHashes.length}`);
+  if (!background) setStatus(`Resolving armor plugs: 0/${uniquePlugHashes.length}`);
   const plugDefsList = await mapLimit(uniquePlugHashes, 8, (hash) => getDef('DestinyInventoryItemDefinition', hash), (done, total) => {
-    if (!background) setStatus(`Resolving socket bonuses: ${done}/${total}`);
+    if (!background) setStatus(`Resolving armor plugs: ${done}/${total}`);
   });
   const plugDefs = Object.fromEntries(uniquePlugHashes.map((hash, i) => [hash, plugDefsList[i]]));
   const statHashes = [];
@@ -130,6 +130,7 @@ async function buildArmorRows(profile, membership, setStatus, background) {
     const rarity = rarityForItem(def);
     const type = slot === 'Class Item' ? CLASS_ITEM_BY_CLASS[equippable] : slot;
     const socketPlugDefs = plugHashesForInstance(socketComponents[instanceId]).map((hash) => plugDefs[hash]).filter(Boolean);
+    const archetype = armorArchetype(def, socketPlugDefs);
     const statRow = statsForItem(def, statComponents[instanceId], socketBonusTotals(socketPlugDefs, statColumnMap), statColumnMap);
     const targetCharacterId = characterMap[equippable]?.characterId || '';
     const instanceComponent = instanceComponents[instanceId];
@@ -149,7 +150,11 @@ async function buildArmorRows(profile, membership, setStatus, background) {
       TierMax: rarity === 'Exotic' ? 2 : 5,
       Power: power,
       Light: power,
-      Archetype: armorArchetype(def, socketPlugDefs),
+      Archetype: archetype.name,
+      ArchetypeIcon: archetype.icon,
+      ArchetypeDescription: archetype.description,
+      ArchetypeHash: archetype.hash,
+      ArchetypeTrait: archetype.trait,
       Icon: bungieIconUrl(def.displayProperties?.icon),
       IconUrl: bungieIconUrl(def.displayProperties?.icon),
       ScreenshotUrl: bungieIconUrl(def.screenshot),
@@ -304,13 +309,32 @@ function isArmorDef(def) {
   return ['Common', 'Uncommon', 'Rare', 'Legendary', 'Exotic'].includes(rarityForItem(def));
 }
 function armorArchetype(def, plugDefs = []) {
-  const candidates = plugDefs
-    .map((plug) => plug?.displayProperties?.name || '')
-    .map((name) => String(name || '').trim())
-    .filter(Boolean)
-    .filter((name) => !isNonArchetypeName(name));
-  return candidates[0] || def.traitIds?.find((trait) => String(trait).includes('intrinsic')) || '—';
+  const plug = plugDefs.find(isArmorArchetypePlug);
+  if (plug) {
+    return {
+      name: String(plug.displayProperties?.name || '').trim() || '—',
+      icon: bungieIconUrl(plug.displayProperties?.icon),
+      description: String(plug.displayProperties?.description || '').trim(),
+      hash: plug.hash || plug.itemHash || '',
+      trait: firstTrait(plug)
+    };
+  }
+  const trait = def.traitIds?.find((item) => String(item).includes('intrinsic')) || '';
+  return { name: trait || '—', icon: '', description: '', hash: '', trait };
 }
+function isArmorArchetypePlug(plugDef) {
+  const name = String(plugDef?.displayProperties?.name || '').trim();
+  if (!name || isNonArchetypeName(name)) return false;
+  const category = normalizeName(plugDef?.plug?.plugCategoryIdentifier);
+  const type = normalizeName(plugDef?.itemTypeDisplayName);
+  const desc = normalizeName(plugDef?.displayProperties?.description);
+  const trait = normalizeName(firstTrait(plugDef));
+  if (category.includes('intrinsic') || trait.includes('intrinsic')) return true;
+  if (type.includes('armor intrinsic') || type.includes('intrinsic trait')) return true;
+  if (['paragon','grenadier','specialist','brawler','bulwark','gunner'].includes(normalizeName(name))) return true;
+  return desc.includes('archetype') || desc.includes('armor stat');
+}
+function firstTrait(def) { return def?.traitIds?.find(Boolean) || def?.itemCategoryHashes?.[0] || ''; }
 function isNonArchetypeName(name) {
   const n = normalizeName(name);
   return !n || n.includes('empty') || n.includes('artifice') || n.includes('mod') || n.includes('shader') || n.includes('ornament') || n.includes('masterwork') || n.includes('kill tracker') || n.includes('helmet') || n.includes('gauntlet') || n.includes('chest') || n.includes('leg armor') || n.includes('class item');
