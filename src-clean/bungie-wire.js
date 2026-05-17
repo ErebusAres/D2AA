@@ -12,6 +12,10 @@ function bindBungieControls() {
   login?.addEventListener('click', connectBungie);
   sync?.addEventListener('click', () => runSync('manual-sync'));
   refresh?.addEventListener('click', () => runSync('refresh-button'));
+  window.addEventListener('d2aa:bungie-sync-request', (event) => {
+    const detail = event.detail || {};
+    runSync(detail.reason || 'app-request', Boolean(detail.background));
+  });
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden && shouldRefreshOnFocus()) runSync('focus-refresh', true);
   });
