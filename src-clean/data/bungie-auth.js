@@ -11,7 +11,8 @@ export const BUNGIE_STORAGE = {
 export const PUBLIC_CONFIG = {
   apiKey: '96e154014bdd44c0a537e482709b7473',
   clientId: '50794',
-  redirectUri: 'https://erebusares.github.io/D2AA/D2AA-clean.html'
+  // Must exactly match the Bungie developer app redirect URL. GitHub Pages is case-sensitive.
+  redirectUri: 'https://erebusares.github.io/D2AA/d2aa-clean.html'
 };
 
 let refreshPromise = null;
