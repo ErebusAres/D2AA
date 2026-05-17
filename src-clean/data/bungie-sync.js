@@ -4,7 +4,7 @@ import { saveBungieInventory, loadBungieInventoryFromCache, formatCacheTime } fr
 
 const PROFILE_COMPONENTS = [100, 102, 200, 201, 205, 300, 304, 305].join(',');
 const VAULT_BUCKET_HASH = 138197802;
-const CLASS_TYPE = { 0: 'Titan', 1: 'Hunter', 2: 'Warlock' };
+const CLASS_TYPE = { 0: 'Titan', 1: 'Hunter', 2: 'Warlock', 3: 'Any' };
 const CLASS_ITEM_BY_CLASS = { Warlock: 'Warlock Bond', Hunter: 'Hunter Cloak', Titan: 'Titan Mark' };
 const STAT_KEYS = ['Health', 'Melee', 'Grenade', 'Super', 'ClassAbility', 'Weapon'];
 const ARMOR_ARCHETYPE_NAMES = new Set(['paragon', 'grenadier', 'specialist', 'brawler', 'bulwark', 'gunner']);
@@ -70,8 +70,8 @@ export async function syncBungieInventory({ setStatus, setRows, reason = 'manual
     const rows = await buildArmorRows(profile, membership, setStatus, background);
     const saved = await saveBungieInventory(rows, reason);
     const seconds = ((performance.now() - startedAt) / 1000).toFixed(1);
-    const meta = saved.meta;
-    setRows(saved.rows, `Bungie sync complete: ${rows.length} armor in ${seconds}s. New: ${meta.added}. Moved: ${meta.moved}. Changed: ${meta.changed}.`);
+    const meta = saved.meta || {};
+    setRows(saved.rows, `Bungie sync complete: ${rows.length} armor in ${seconds}s. New: ${meta.added || 0}. Moved: ${meta.moved || 0}. Changed: ${meta.changed || 0}.`);
     return saved;
   } catch (error) {
     console.error('D2AA clean Bungie sync failed', error);
@@ -99,15 +99,13 @@ async function buildArmorRows(profile, membership, setStatus, background) {
   const itemDefs = Object.fromEntries(uniqueItemHashes.map((hash, i) => [hash, itemDefsList[i]]));
   const armorItems = allItems.filter((item) => item.itemInstanceId && isArmorDef(itemDefs[toUint32(item.itemHash)]));
 
-  // We need both live instance socket plugs and definition plugs for archetype discovery.
-  // IMPORTANT: definition plugs must NOT be used for stat subtraction, because they include possible/reusable plugs,
-  // not necessarily plugs currently applied to the user's item.
   const uniquePlugHashes = [...new Set(armorItems.flatMap((item) => allArchetypePlugHashes(itemDefs[toUint32(item.itemHash)], socketComponents[item.itemInstanceId])).filter(Boolean))];
   if (!background) setStatus(`Resolving armor plugs: 0/${uniquePlugHashes.length}`);
   const plugDefsList = await mapLimit(uniquePlugHashes, 8, (hash) => getDef('DestinyInventoryItemDefinition', hash), (done, total) => {
     if (!background) setStatus(`Resolving armor plugs: ${done}/${total}`);
   });
   const plugDefs = Object.fromEntries(uniquePlugHashes.map((hash, i) => [hash, plugDefsList[i]]));
+
   const statHashes = [];
   for (const item of armorItems) {
     const def = itemDefs[toUint32(item.itemHash)];
@@ -131,9 +129,9 @@ async function buildArmorRows(profile, membership, setStatus, background) {
     const def = itemDefs[toUint32(item.itemHash)];
     if (!isArmorDef(def)) continue;
     const slot = slotForItem(def);
-    const equippable = CLASS_TYPE[def.classType];
+    const equippable = CLASS_TYPE[def.classType] || 'Any';
     const rarity = rarityForItem(def);
-    const type = slot === 'Class Item' ? CLASS_ITEM_BY_CLASS[equippable] : slot;
+    const type = slot === 'Class Item' ? CLASS_ITEM_BY_CLASS[equippable] || 'Class Item' : slot;
     const instancePlugDefs = plugHashesForInstance(socketComponents[instanceId]).map((hash) => plugDefs[hash]).filter(Boolean);
     const archetypePlugDefs = allArchetypePlugHashes(def, socketComponents[instanceId]).map((hash) => plugDefs[hash]).filter(Boolean);
     const archetype = armorArchetype(def, archetypePlugDefs);
@@ -258,3 +256,103 @@ function isSubtractableArmorBonusPlug(plugDef) {
 }
 function socketBonusTotals(plugDefs, statColumnMap) {
   const bonuses = emptyArmorStats();
+  for (const plugDef of plugDefs || []) {
+    if (!isSubtractableArmorBonusPlug(plugDef)) continue;
+    for (const stat of plugDef?.investmentStats || []) {
+      const column = statColumnMap[toUint32(stat.statTypeHash)] || statColumnMap[toSigned32(stat.statTypeHash)];
+      if (column) bonuses[column] += Number(stat.value || 0);
+    }
+  }
+  return bonuses;
+}
+function statsForItem(def, statComponent, socketBonuses, statColumnMap) {
+  const current = emptyArmorStats();
+  const source = Object.keys(statComponent?.stats || {}).length ? statComponent.stats : (def.stats?.stats || {});
+  for (const [hash, stat] of Object.entries(source || {})) {
+    const column = statColumnMap[toUint32(hash)] || statColumnMap[toSigned32(hash)] || HASH_TO_COLUMN[toUint32(hash)] || HASH_TO_COLUMN[toSigned32(hash)];
+    if (column) current[column] = getStatNumericValue(stat);
+  }
+  const base = emptyArmorStats();
+  for (const key of STAT_KEYS) base[key] = Math.max(0, current[key] - Number(socketBonuses[key] || 0));
+  const row = { ...base };
+  row.Total = totalOf(row);
+  row.BaseTotal = row.Total;
+  row.CurrentTotal = totalOf(current);
+  row.StatBonusTotal = Math.max(0, row.CurrentTotal - row.BaseTotal);
+  row.StatSource = Object.keys(statComponent?.stats || {}).length ? 'BungieInstanceBaseAdjusted' : 'DefinitionFallback';
+  for (const key of STAT_KEYS) {
+    row[`Base${key}`] = base[key];
+    row[`Current${key}`] = current[key];
+    row[`StatBonus${key}`] = Number(socketBonuses[key] || 0);
+  }
+  return row;
+}
+function isArmorDef(def) {
+  if (!def) return false;
+  const type = normalizeName(def.itemTypeDisplayName);
+  const name = normalizeName(def.displayProperties?.name);
+  return def.itemType === 2 || type.includes('armor') || ['helmet','gauntlets','chest armor','leg armor','class item'].some((part) => type.includes(part) || name.includes(part));
+}
+function slotForItem(def) {
+  const bucket = Number(def.inventory?.bucketTypeHash || 0);
+  const type = normalizeName(def.itemTypeDisplayName || def.displayProperties?.name);
+  if (bucket === 3448274439 || type.includes('helmet')) return 'Helmet';
+  if (bucket === 3551918588 || type.includes('gauntlet') || type.includes('glove')) return 'Gauntlets';
+  if (bucket === 14239492 || type.includes('chest')) return 'Chest Armor';
+  if (bucket === 20886954 || type.includes('leg')) return 'Leg Armor';
+  if (bucket === 1585787867 || type.includes('class item') || type.includes('bond') || type.includes('cloak') || type.includes('mark')) return 'Class Item';
+  return def.itemTypeDisplayName || 'Armor';
+}
+function rarityForItem(def) {
+  const tier = Number(def.inventory?.tierType || 0);
+  if (tier === 6) return 'Exotic';
+  if (tier === 5) return 'Legendary';
+  if (tier === 4) return 'Rare';
+  return def.inventory?.tierTypeName || 'Legendary';
+}
+function gearTierForItem(instanceComponent, rarity, total) {
+  const actual = Number(instanceComponent?.gearTier || 0);
+  if (actual) return rarity === 'Exotic' ? Math.min(actual, 2) : Math.min(actual, 5);
+  if (rarity === 'Exotic') return total >= 65 ? 2 : 1;
+  if (total >= 73) return 5;
+  if (total >= 65) return 4;
+  if (total >= 59) return 3;
+  if (total >= 54) return 2;
+  return 1;
+}
+function buildCharacterMap(profile) {
+  const map = {};
+  for (const [characterId, data] of Object.entries(profile.characters?.data || {})) {
+    const className = CLASS_TYPE[data.classType] || 'Any';
+    map[className] = { characterId, ...data };
+  }
+  return map;
+}
+function armorArchetype(def, plugDefs) {
+  const found = (plugDefs || []).find((plug) => {
+    const name = normalizeName(plug?.displayProperties?.name);
+    const type = normalizeName(plug?.itemTypeDisplayName);
+    const category = normalizeName(plug?.plug?.plugCategoryIdentifier);
+    return ARMOR_ARCHETYPE_NAMES.has(name) || type.includes('archetype') || category.includes('archetype');
+  });
+  const fallbackName = highestInvestmentStatName(def) || '—';
+  if (!found) return { name: fallbackName, icon: '', description: '', hash: '', trait: '' };
+  return {
+    name: found.displayProperties?.name || fallbackName,
+    icon: bungieIconUrl(found.displayProperties?.icon),
+    description: found.displayProperties?.description || '',
+    hash: found.hash || '',
+    trait: found.plug?.plugCategoryIdentifier || ''
+  };
+}
+function highestInvestmentStatName(def) {
+  const totals = emptyArmorStats();
+  for (const stat of def?.investmentStats || []) {
+    const col = HASH_TO_COLUMN[toUint32(stat.statTypeHash)] || HASH_TO_COLUMN[toSigned32(stat.statTypeHash)];
+    if (col) totals[col] += Number(stat.value || 0);
+  }
+  let best = '';
+  let value = 0;
+  for (const key of STAT_KEYS) if (totals[key] > value) { best = key; value = totals[key]; }
+  return best === 'ClassAbility' ? 'Class' : best;
+}
