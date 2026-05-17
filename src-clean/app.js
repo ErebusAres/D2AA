@@ -90,7 +90,7 @@ function render() {
   renderGrid(els.gridView, filtered, updateTag, handleCardAction, openGroupCompare);
   attachTagPicker(els.gridView, filtered, updateTag);
   renderTable(els.tableBody, filtered, handleCardAction);
-  renderItemFeed(els.feedList, els.feedCount, grouped, updateTag, dismissRecent);
+  renderItemFeed(els.feedList, els.feedCount, grouped, updateTag, dismissRecent, openGroupCompare);
   els.emptyState.hidden = state.rows.length > 0;
   updateSummary(grouped, filtered);
   renderChips();
