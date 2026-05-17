@@ -1,4 +1,4 @@
-import { state, subscribe, setState, setRows, updateTag, getFilteredRows, loadCachedRows, clearCache, loadSettings } from './state.js';
+import { state, subscribe, setState, setRows, updateTag, getFilteredRows, loadCachedRows, clearCache, loadSettings, normalizeClassFilter, rowMatchesClass } from './state.js';
 import { CLASS_ORDER, SLOT_ORDER } from './constants.js';
 import { parseDimCsv } from './data/dim-csv.js';
 import { applyDuplicateGroups } from './data/duplicate-groups.js';
@@ -46,14 +46,14 @@ function bindEvents() {
   });
   els.restoreCacheBtn?.addEventListener('click', () => loadCachedRows() || setStatus('No clean cached CSV rows found. Bungie cache restores automatically at startup.'));
   els.clearCacheBtn?.addEventListener('click', clearCache);
-  [els.classFilter, els.slotFilter, els.rarityFilter].filter(Boolean).forEach((select) => select.addEventListener('change', () => setState({ filters: { class: els.classFilter.value, slot: els.slotFilter.value, rarity: els.rarityFilter.value } })));
+  [els.classFilter, els.slotFilter, els.rarityFilter].filter(Boolean).forEach((select) => select.addEventListener('change', () => setState({ filters: { class: normalizeClassFilter(els.classFilter.value), slot: els.slotFilter.value, rarity: els.rarityFilter.value } })));
   els.sortBy?.addEventListener('change', () => setState({ sortBy: els.sortBy.value }));
   els.duplicateTolerance?.addEventListener('input', () => setState({ duplicateTolerance: Number(els.duplicateTolerance.value || 5) }));
   els.themePills?.querySelectorAll('[data-theme]').forEach((button) => button.addEventListener('click', () => setState({ theme: button.dataset.theme })));
 }
 
 function setClassFilter(className) {
-  setState({ filters: { ...state.filters, class: className || 'all' } });
+  setState({ filters: { ...state.filters, class: normalizeClassFilter(className) } });
 }
 
 function toggleItemFeed() {
@@ -140,7 +140,7 @@ function updateSummary(allRows, shownRows) {
   els.summaryCached.textContent = allRows.length;
   els.summaryGroups.textContent = new Set(allRows.filter((r) => r.Is_Dupe).map((r) => r.GroupActionKey)).size;
   els.summaryRecent.textContent = allRows.filter((row) => row.RecentlyFound || row.RecentStatus).length || Math.min(allRows.length, 30);
-  const counts = CLASS_ORDER.map((cls) => `${cls[0]}:${allRows.filter((r) => r.Class === cls).length}`).join(' ');
+  const counts = CLASS_ORDER.map((cls) => `${cls[0]}:${allRows.filter((r) => rowMatchesClass(r, cls)).length}`).join(' ');
   els.summaryClasses.textContent = counts || '—';
 }
 
@@ -154,15 +154,15 @@ function syncClassToggle() {
   if (!els.classToggle) return;
   const counts = countByClass(state.rows);
   els.classToggle.querySelectorAll('[data-class-filter]').forEach((button) => {
-    const cls = button.dataset.classFilter || 'all';
-    button.classList.toggle('is-active', state.filters.class === cls);
+    const cls = normalizeClassFilter(button.dataset.classFilter || 'all');
+    button.classList.toggle('is-active', normalizeClassFilter(state.filters.class) === cls);
     const count = cls === 'all' ? state.rows.length : counts[cls] || 0;
     const badge = button.querySelector('b');
     if (badge) badge.textContent = String(count);
   });
 }
 function syncFilterOptions() {
-  fillSelect(els.classFilter, ['all', ...unique(state.rows.map((r) => r.Class))], state.filters.class);
+  fillSelect(els.classFilter, ['all', ...CLASS_ORDER.filter((cls) => state.rows.some((row) => rowMatchesClass(row, cls)))], normalizeClassFilter(state.filters.class));
   fillSelect(els.slotFilter, ['all', ...SLOT_ORDER.filter((slot) => state.rows.some((r) => r.Slot === slot)), ...unique(state.rows.map((r) => r.Slot)).filter((slot) => !SLOT_ORDER.includes(slot))], state.filters.slot);
   fillSelect(els.rarityFilter, ['all', ...unique(state.rows.map((r) => r.Rarity))], state.filters.rarity);
 }
@@ -170,19 +170,24 @@ function fillSelect(select, values, selected) {
   if (!select) return;
   const current = select.value || selected;
   select.innerHTML = values.map((value) => `<option value="${html(value)}">${value === 'all' ? 'All' : html(value)}</option>`).join('');
-  select.value = values.includes(current) ? current : 'all';
+  select.value = values.includes(selected) ? selected : values.includes(current) ? current : 'all';
 }
 function renderChips() {
   const chips = [];
   if (state.search) chips.push(`Search: ${state.search}`);
-  Object.entries(state.filters).forEach(([key, value]) => { if (value !== 'all') chips.push(`${key}: ${value}`); });
+  Object.entries(state.filters).forEach(([key, value]) => {
+    if (key === 'class') {
+      const cls = normalizeClassFilter(value);
+      if (cls !== 'all') chips.push(`class: ${cls}`);
+    } else if (value !== 'all') chips.push(`${key}: ${value}`);
+  });
   if (state.duplicateTolerance !== 5) chips.push(`Tolerance: ±${state.duplicateTolerance}`);
   els.activeChips.innerHTML = chips.map((chip) => `<span>${html(chip)}</span>`).join('');
 }
 function unique(values) { return [...new Set(values.filter(Boolean))].sort(); }
 function countByClass(rows) {
-  return rows.reduce((acc, row) => {
-    if (row.Class) acc[row.Class] = (acc[row.Class] || 0) + 1;
+  return CLASS_ORDER.reduce((acc, cls) => {
+    acc[cls] = rows.filter((row) => rowMatchesClass(row, cls)).length;
     return acc;
   }, {});
 }
