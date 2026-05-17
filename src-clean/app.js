@@ -2,11 +2,12 @@ import { state, subscribe, setState, setRows, updateTag, getFilteredRows, loadCa
 import { CLASS_ORDER, SLOT_ORDER } from './constants.js';
 import { parseDimCsv } from './data/dim-csv.js';
 import { applyDuplicateGroups } from './data/duplicate-groups.js';
-import { runItemAction } from './data/actions.js';
+import { runItemAction, runGroupPull } from './data/actions.js';
 import { renderGrid } from './render/grid.js';
 import { renderTable } from './render/table.js';
 import { renderItemFeed } from './render/item-feed.js';
 import { attachTagPicker } from './render/tag-picker.js';
+import { openCompareModal } from './render/compare-modal.js';
 
 const els = {};
 let lastGroupedRows = [];
@@ -78,7 +79,7 @@ function render() {
   const filtered = getFilteredRowsFrom(grouped);
   els.gridView.hidden = state.view !== 'grid';
   els.tableView.hidden = state.view !== 'table';
-  renderGrid(els.gridView, filtered, updateTag, handleCardAction);
+  renderGrid(els.gridView, filtered, updateTag, handleCardAction, openGroupCompare);
   attachTagPicker(els.gridView, filtered, updateTag);
   renderTable(els.tableBody, filtered, handleCardAction);
   renderItemFeed(els.feedList, els.feedCount, grouped, updateTag);
@@ -88,7 +89,7 @@ function render() {
 }
 
 async function handleCardAction(actionId, button) {
-  if (actionId.startsWith('group:')) return copyGroupIds(actionId.slice(6), button);
+  if (actionId.startsWith('group:')) return pullGroup(actionId.slice(6), button);
   const row = lastGroupedRows.find((item) => String(item.Id) === String(actionId));
   if (!row) return setStatus('Could not find that item in current state.');
   const original = button?.textContent || '';
@@ -107,24 +108,35 @@ async function handleCardAction(actionId, button) {
   }
 }
 
+function openGroupCompare(groupKey) {
+  const rows = lastGroupedRows.filter((row) => row.Is_Dupe && row.GroupActionKey === groupKey);
+  if (!rows.length) return setStatus('No duplicate group found to compare.');
+  openCompareModal(rows, { onTag: updateTag, onPullGroup: (groupRows, button) => pullGroup(groupRows[0]?.GroupActionKey || groupKey, button) });
+}
+
+async function pullGroup(groupKey, button) {
+  const rows = lastGroupedRows.filter((row) => row.Is_Dupe && row.GroupActionKey === groupKey);
+  if (!rows.length) return setStatus('No group items found.');
+  const original = button?.textContent || '';
+  if (button) button.textContent = 'Pulling...';
+  try {
+    const result = await runGroupPull(rows);
+    setStatus(result.message || 'Group action complete.');
+    if (button) button.textContent = 'Done';
+    if (result.needsRefresh) requestBungieRefresh('post-group-pull-refresh');
+  } catch (error) {
+    console.error('D2AA clean group pull failed', error);
+    setStatus(error.message || String(error));
+    if (button) button.textContent = 'Failed';
+  } finally {
+    if (button) setTimeout(() => { button.textContent = original; }, 1400);
+  }
+}
+
 function requestBungieRefresh(reason) {
   setTimeout(() => {
     window.dispatchEvent(new CustomEvent('d2aa:bungie-sync-request', { detail: { reason, background: true } }));
   }, 1200);
-}
-
-async function copyGroupIds(groupKey, button) {
-  const rows = lastGroupedRows.filter((row) => row.Is_Dupe && row.GroupActionKey === groupKey);
-  const ids = rows.map((row) => `id:${row.Id}`);
-  if (!ids.length) return setStatus('No group IDs found.');
-  if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(ids.join(' or '));
-  const label = rows[0]?.Dupe_Group || rows[0]?.Group || 'group';
-  setStatus(`Copied ${ids.length} item IDs from duplicate group ${label}.`);
-  if (button) {
-    const original = button.textContent;
-    button.textContent = 'Copied';
-    setTimeout(() => { button.textContent = original; }, 1200);
-  }
 }
 
 function getFilteredRowsFrom(rows) {
