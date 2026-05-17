@@ -3,33 +3,45 @@ import { STAT_KEYS } from '../constants.js';
 const columnAliases = {
   Name: ['Name', 'Item Name', 'name'],
   Id: ['Id', 'ID', 'Instance ID', 'InstanceId', 'InstanceIdHash', 'Item Hash'],
-  Class: ['Class', 'Equippable', 'Bucket Class'],
+  CharacterClass: ['Equippable', 'Bucket Class', 'Class Type', 'Character Class'],
   Slot: ['Slot', 'Type', 'Bucket', 'Item Type'],
   Rarity: ['Rarity', 'Tier Type'],
   Power: ['Power', 'Light', 'Power Level'],
   Tier: ['Tier', 'GearTier', 'Gear Tier'],
-  Archetype: ['Archetype', 'Plug Archetype', 'Intrinsic'],
+  Archetype: ['Archetype', 'Plug Archetype', 'Intrinsic', 'Armor Archetype'],
   Icon: ['Icon', 'Icon Url', 'IconUrl']
+};
+
+const statAliases = {
+  Health: ['Health', 'health', 'Resilience', 'resilience'],
+  Melee: ['Melee', 'melee', 'Strength', 'strength'],
+  Grenade: ['Grenade', 'grenade', 'Discipline', 'discipline'],
+  Super: ['Super', 'super', 'Intellect', 'intellect'],
+  ClassAbility: ['ClassAbility', 'Class Ability', 'Class', 'class', 'Mobility', 'mobility'],
+  Weapon: ['Weapon', 'Weapons', 'weapon', 'weapons', 'Recovery', 'recovery']
 };
 
 export function normalizeArmorRow(raw, index = 0, source = 'DIM') {
   const row = {};
   Object.entries(columnAliases).forEach(([key, aliases]) => { row[key] = pick(raw, aliases); });
-  STAT_KEYS.forEach((key) => { row[key] = number(pick(raw, [key, key.toLowerCase()])); });
+  STAT_KEYS.forEach((key) => { row[key] = number(pick(raw, statAliases[key] || [key, key.toLowerCase()])); });
   const total = number(pick(raw, ['Total', 'Base Stat Total', 'Stat Total'])) || STAT_KEYS.reduce((sum, key) => sum + number(row[key]), 0);
   const id = String(row.Id || raw.id || raw.instanceId || `${source}-${index}-${row.Name || 'armor'}`);
-  const tierNumber = normalizeTier(row.Tier, total, row.Rarity);
+  const rarity = normalizeRarity(row.Rarity);
+  const tierNumber = normalizeTier(row.Tier, total, rarity);
+  const slot = normalizeSlot(row.Slot);
   return {
     Id: id,
     Name: String(row.Name || 'Unknown Armor'),
-    Class: normalizeClass(row.Class),
-    Slot: normalizeSlot(row.Slot),
-    Rarity: normalizeRarity(row.Rarity),
+    Class: normalizeClass(row.CharacterClass || raw.Equippable || raw['Bucket Class']),
+    Slot: slot,
+    Rarity: rarity,
     Power: number(row.Power),
     Tier: tierNumber,
-    TierMax: normalizeRarity(row.Rarity) === 'Exotic' ? 2 : 5,
+    GearTier: tierNumber,
+    TierMax: rarity === 'Exotic' ? 2 : 5,
     TierSource: row.Tier ? source : 'Fallback',
-    Archetype: String(row.Archetype || '—'),
+    Archetype: normalizeArchetype(row.Archetype, slot),
     Icon: normalizeIcon(row.Icon),
     Total: total,
     Source: source,
@@ -65,6 +77,11 @@ function normalizeRarity(value) {
   if (text.includes('rare')) return 'Rare';
   return 'Legendary';
 }
+function normalizeArchetype(value, slot) {
+  const text = String(value || '').trim();
+  if (!text || text === slot || normalizeName(text) === normalizeName(slot)) return '—';
+  return text;
+}
 function normalizeTier(value, total, rarity) {
   const match = String(value || '').match(/(\d+)/);
   let tier = match ? Number(match[1]) : fallbackTier(total);
@@ -85,3 +102,4 @@ function normalizeIcon(value) {
   if (text.startsWith('/')) return `https://www.bungie.net${text}`;
   return text;
 }
+function normalizeName(value) { return String(value || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, ' '); }
