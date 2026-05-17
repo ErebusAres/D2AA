@@ -1,5 +1,5 @@
-import { state, subscribe, setState, setRows, updateTag, dismissRecent, getFilteredRows, loadCachedRows, clearCache, loadSettings, normalizeClassFilter, rowMatchesClass } from './state.js';
-import { CLASS_ORDER, SLOT_ORDER } from './constants.js';
+import { state, subscribe, setState, setRows, updateTag, dismissRecent, getFilteredRows, loadCachedRows, clearCache, loadSettings, normalizeClassFilter, rowMatchesClass, readJson, writeJson } from './state.js';
+import { CLASS_ORDER, SLOT_ORDER, STORAGE_KEYS } from './constants.js';
 import { parseDimCsv } from './data/dim-csv.js';
 import { applyDuplicateGroups } from './data/duplicate-groups.js';
 import { runItemAction, runGroupPull } from './data/actions.js';
@@ -15,6 +15,7 @@ let lastGroupedRows = [];
 function boot() {
   cacheEls();
   loadSettings();
+  restoreFeedOpenState();
   bindEvents();
   subscribe(render);
   document.body.dataset.theme = state.theme;
@@ -57,10 +58,17 @@ function setClassFilter(className) {
   setState({ filters: { ...state.filters, class: normalizeClassFilter(className) } });
 }
 
+function restoreFeedOpenState() {
+  const open = readJson(STORAGE_KEYS.feedOpen, false) === true;
+  els.itemFeed?.classList.toggle('is-open', open);
+  document.body.classList.toggle('feed-open', open);
+}
+
 function toggleItemFeed() {
   const open = !els.itemFeed.classList.contains('is-open');
   els.itemFeed.classList.toggle('is-open', open);
   document.body.classList.toggle('feed-open', open);
+  writeJson(STORAGE_KEYS.feedOpen, open);
 }
 
 function render() {
