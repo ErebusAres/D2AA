@@ -19,10 +19,11 @@ export function renderGrid(container, rows, onTag, onAction) {
 
 function renderCard(row) {
   const badge = badgeText(row);
-  const groupId = row.Group ? row.Group.replace(/[A-Z]$/, '') : '';
-  const group = row.Group ? `<div class="group-badge ${row.GroupColor || ''}">${row.Group}</div>` : '';
+  const groupLabel = row.Dupe_Group || row.Group || '';
+  const groupActionKey = row.GroupActionKey || `${row.GroupKey || ''}::${groupLabel}`;
+  const group = row.Is_Dupe ? `<div class="group-badge ${row.GroupColor || ''}" title="Duplicate group ${html(groupLabel)}"><span>⚠️</span>${row.Is_Dupe_Exotic ? iconImg(RARITY_ICONS.Exotic, 'Exotic duplicate group', 'badge-icon') : ''}${html(groupLabel)}</div>` : '';
   const action = actionLabel(row);
-  return `<article class="armor-card ${safeClass(row.Rarity)} ${row.Group ? 'is-grouped ' + row.GroupColor : ''}" data-card-id="${html(row.Id)}">
+  return `<article class="armor-card ${safeClass(row.Rarity)} ${row.Is_Dupe ? 'is-grouped is-dupe ' + row.GroupColor : ''}" data-card-id="${html(row.Id)}" data-group="${html(groupLabel)}">
     ${badge ? `<button class="light-tag-badge" type="button" data-tag-trigger data-id="${html(row.Id)}">${badge}</button>` : ''}
     ${group}
     <div class="card-top">
@@ -37,7 +38,7 @@ function renderCard(row) {
     </div>
     <div class="card-actions">
       <button type="button" data-action-id="${html(row.Id)}" ${canRunAction(row) ? '' : 'disabled'}>${html(action)}</button>
-      ${row.Group ? `<button type="button" data-action-id="group:${html(groupId)}">Copy group</button>` : ''}
+      ${row.Is_Dupe ? `<button type="button" data-action-id="group:${html(groupActionKey)}">Copy group</button>` : ''}
     </div>
     <div class="tag-strip" aria-label="Tag ${html(row.Name)}">${TAGS.filter((tag) => tag.value !== 'feed').map((tag) => `<button type="button" class="tag-dot ${row.Tag === tag.value ? 'is-active' : ''}" title="${html(tag.label)}" data-id="${html(row.Id)}" data-tag-choice="${html(tag.value)}">${tag.emoji}</button>`).join('')}</div>
   </article>`;
@@ -64,8 +65,8 @@ function locationLabel(row) {
   if (row.Source !== 'Bungie') return 'DIM';
   return row.IsInVault ? 'Vault' : row.IsEquipped ? 'Equipped' : 'Inventory';
 }
-function iconImg(src, label) {
-  return src ? `<img class="meta-icon" src="${html(src)}" alt="${html(label || '')}" title="${html(label || '')}" loading="lazy">` : '';
+function iconImg(src, label, className = 'meta-icon') {
+  return src ? `<img class="${html(className)}" src="${html(src)}" alt="${html(label || '')}" title="${html(label || '')}" loading="lazy">` : '';
 }
 function maskIcon(src, label) {
   return src ? `<span class="meta-mask" style="--icon:url('${html(src)}')" title="${html(label || '')}" aria-label="${html(label || '')}"></span>` : '';
