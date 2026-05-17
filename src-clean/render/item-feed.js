@@ -18,9 +18,7 @@ export function renderItemFeed(container, countEl, rows, onTag, onDismissNew, on
 }
 
 function isFeedCandidate(row) {
-  // Do not show every item that merely has a historical FoundAt timestamp.
-  // Feed is for active DIM-like live activity: newly seen, moved, changed, or manually pinned to feed.
-  return Boolean(row.Tag === 'feed' || row.RecentStatus || row.RecentlyFound);
+  return row.RecentStatus === 'new' || row.RecentlyFound === true;
 }
 
 function compareRecent(a, b) {
@@ -30,24 +28,24 @@ function compareRecent(a, b) {
 }
 
 function recentTime(row) {
-  return Number(row.ActivityAt || 0) || Number(row.FoundAt || 0) || Date.parse(row.LastChangedAt || '') || 0;
+  return Number(row.FoundAt || row.ActivityAt || Date.parse(row.LastChangedAt || '') || 0);
 }
 
 function renderEmptyFeed() {
-  return `<div class="feed-empty"><strong>No live item activity.</strong><span>Newly found, moved, or changed armor will appear here after Bungie sync detects it.</span></div>`;
+  return `<div class="feed-empty"><strong>No newly obtained armor.</strong><span>New armor detected by Bungie sync will stay here until it falls past the latest 20, you dismiss it, or you assign a tag.</span></div>`;
 }
 
 function renderFeedCard(row) {
-  const feedNew = row.RecentStatus === 'new' || row.Tag === 'feed';
-  const statusText = feedNew ? 'new' : row.RecentStatus || '';
+  const feedNew = true;
+  const statusText = 'new';
   const groupLabel = row.Dupe_Group || row.Group || '';
   const groupKey = row.GroupActionKey || '';
   const groupButton = row.Is_Dupe ? `<button type="button" class="feed-group-badge ${row.GroupColor || ''}" title="Compare duplicate group ${html(groupLabel)}" data-feed-compare-group="${html(groupKey)}">${html(groupLabel)}</button>` : '';
-  const status = statusText ? `<small class="feed-status ${html(statusText)}">${feedNew ? '✨ ' : ''}${html(statusText)}</small>` : '';
-  const dismiss = feedNew ? `<button type="button" class="feed-dismiss-new" data-id="${html(row.Id)}" data-dismiss-new title="Dismiss new marker" aria-label="Dismiss new marker for ${html(row.Name)}">×</button>` : '';
+  const status = `<small class="feed-status new">✨ new</small>`;
+  const dismiss = `<button type="button" class="feed-dismiss-new" data-id="${html(row.Id)}" data-dismiss-new title="Dismiss new marker" aria-label="Dismiss new marker for ${html(row.Name)}">×</button>`;
   const loc = locationLabel(row);
   const tagButtons = TAGS.filter((tag) => tag.picker && tag.value).map((tag) => `<button type="button" class="feed-tag-btn ${row.Tag === tag.value ? 'is-active' : ''}" title="${html(row.Tag === tag.value ? `Remove ${tag.label}` : tag.label)}" aria-label="${html(row.Tag === tag.value ? `Remove ${tag.label}` : `Tag ${row.Name} as ${tag.label}`)}" data-id="${html(row.Id)}" data-feed-tag="${html(tag.value)}"><span>${tag.emoji}</span></button>`).join('');
-  return `<article class="feed-card ${statusText ? 'is-' + html(statusText) : ''} ${feedNew ? 'is-new-found' : ''} ${row.Is_Dupe ? `is-feed-grouped ${row.GroupColor || ''}` : ''}" data-feed-card-id="${html(row.Id)}" data-feed-group="${html(groupLabel)}">
+  return `<article class="feed-card is-new is-new-found ${row.Is_Dupe ? `is-feed-grouped ${row.GroupColor || ''}` : ''}" data-feed-card-id="${html(row.Id)}" data-feed-group="${html(groupLabel)}">
     ${dismiss}${groupButton}
     <div class="feed-icon">${row.Icon ? `<img src="${html(row.Icon)}" alt="" loading="lazy">` : '<span>◇</span>'}${row.Power || row.Light ? `<b>${row.Power || row.Light}</b>` : ''}${feedNew ? '<i class="feed-new-spark">✨</i>' : ''}</div>
     <div class="feed-main"><div class="feed-title-line"><strong title="${html(row.Name)}">${html(row.Name)}</strong>${status}</div><span class="feed-meta-icons" aria-label="${html(`${row.Class} ${row.Slot} ${row.Rarity} ${loc}`)}">${iconImg(CLASS_ICONS[row.Class], row.Class)}${maskIcon(SLOT_ICONS[row.Slot], row.Slot)}${iconImg(RARITY_ICONS[row.Rarity], row.Rarity)}${locationIcon(loc)}</span><div class="feed-stats">${STAT_KEYS.map((key) => statChip(row, key)).join('')}</div><div class="feed-tags">${tagButtons}</div></div>
