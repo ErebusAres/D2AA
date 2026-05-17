@@ -10,15 +10,30 @@ const LIVE_MIN_GAP_MS = 25000;
 
 let lastLiveRefreshAt = 0;
 let liveRefreshTimer = null;
+let controlsBound = false;
 
 function bindBungieControls() {
-  const login = document.getElementById('bungieLoginBtn');
-  const sync = document.getElementById('bungieSyncBtn');
-  const refresh = document.getElementById('refreshBtn');
+  if (controlsBound) return;
+  controlsBound = true;
   refreshLoginState();
-  login?.addEventListener('click', connectBungie);
-  sync?.addEventListener('click', () => runSync('manual-sync'));
-  refresh?.addEventListener('click', () => runSync('refresh-button'));
+  document.addEventListener('click', (event) => {
+    const button = event.target.closest?.('#bungieLoginBtn,#bungieSyncBtn,#refreshBtn');
+    if (!button) return;
+    if (button.id === 'bungieLoginBtn') {
+      event.preventDefault();
+      connectBungie();
+      return;
+    }
+    if (button.id === 'bungieSyncBtn') {
+      event.preventDefault();
+      runSync('manual-sync');
+      return;
+    }
+    if (button.id === 'refreshBtn') {
+      event.preventDefault();
+      runSync('refresh-button');
+    }
+  });
   window.addEventListener('d2aa:bungie-sync-request', (event) => {
     const detail = event.detail || {};
     runSync(detail.reason || 'app-request', Boolean(detail.background));
@@ -67,8 +82,11 @@ function refreshLoginState() {
   const sync = document.getElementById('bungieSyncBtn');
   const signedIn = isSignedIn();
   if (login) {
-    login.querySelector('b') ? login.querySelector('b').textContent = signedIn ? 'Destiny Account Connected' : 'Connect Destiny Account' : null;
-    login.querySelector('small') ? login.querySelector('small').textContent = signedIn ? 'Session remembered; refresh uses Bungie token' : 'Bungie OAuth login' : null;
+    const label = login.querySelector('b');
+    const detail = login.querySelector('small');
+    if (label) label.textContent = signedIn ? 'Destiny Account Connected' : 'Connect Destiny Account';
+    if (detail) detail.textContent = signedIn ? 'Session remembered; refresh uses Bungie token' : 'Bungie OAuth login';
+    login.disabled = false;
   }
   if (sync) sync.disabled = false;
   document.body.classList.toggle('bungie-signed-in', signedIn);
@@ -91,6 +109,7 @@ async function bootBungieSidecar() {
   } catch (error) {
     console.error('D2AA clean Bungie sidecar failed', error);
     setStatus(error.message || String(error));
+    refreshLoginState();
   }
 }
 
