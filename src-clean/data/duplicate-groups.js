@@ -1,4 +1,4 @@
-import { STAT_KEYS } from '../constants.js';
+import { STAT_KEYS, SLOT_ORDER } from '../constants.js';
 import { defaultAnalyzerSort, slotNumber } from './sort.js';
 
 const GROUP_COLORS = ['group-1', 'group-2', 'group-3', 'group-4', 'group-5', 'group-6'];
@@ -23,6 +23,7 @@ export function applyDuplicateGroups(rows, tolerance = 5) {
     byKey.get(key).push({ row, index, key, top: topStats(row) });
   });
 
+  const discoveredGroups = [];
   for (const [key, candidates] of byKey.entries()) {
     const assigned = new Set();
     const groups = [];
@@ -40,33 +41,57 @@ export function applyDuplicateGroups(rows, tolerance = 5) {
       groups.push(group);
     }
 
-    groups.sort((a, b) => maxTotal(candidates, b) - maxTotal(candidates, a));
-    let dupeGroupIndex = 0;
-    for (const group of groups) {
-      if (group.length < 2) continue;
-      const first = candidates[group[0]].row;
-      const groupLabel = `${slotNumber(first)}${LETTERS[Math.min(dupeGroupIndex, LETTERS.length - 1)]}`;
-      const color = GROUP_COLORS[dupeGroupIndex % GROUP_COLORS.length];
-      const actionKey = `${key}::${groupLabel}`;
-      dupeGroupIndex++;
-      group
-        .map((candidateIndex) => candidates[candidateIndex])
-        .sort((a, b) => defaultAnalyzerSort(a.row, b.row))
-        .forEach((candidate) => {
-          const target = grouped[candidate.index];
-          target.Group = groupLabel;
-          target.Dupe_Group = groupLabel;
-          target.SortGroup = groupLabel;
-          target.GroupActionKey = actionKey;
-          target.GroupColor = color;
-          target.Is_Dupe = true;
-          target.Is_Dupe_Exotic = target.Rarity === 'Exotic';
-        });
-    }
+    groups
+      .filter((group) => group.length >= 2)
+      .sort((a, b) => maxTotal(candidates, b) - maxTotal(candidates, a))
+      .forEach((group) => discoveredGroups.push({ key, candidates, group, first: candidates[group[0]].row }));
+  }
+
+  discoveredGroups.sort((a, b) => groupSort(a.first, b.first) || maxTotal(b.candidates, b.group) - maxTotal(a.candidates, a.group));
+  const classCounters = new Map();
+  for (const discovered of discoveredGroups) {
+    const className = classKey(discovered.first);
+    const next = (classCounters.get(className) || 0) + 1;
+    classCounters.set(className, next);
+    const groupLabel = labelFor(discovered.first, next);
+    const color = GROUP_COLORS[(next - 1) % GROUP_COLORS.length];
+    const actionKey = `${discovered.key}::${groupLabel}`;
+    discovered.group
+      .map((candidateIndex) => discovered.candidates[candidateIndex])
+      .sort((a, b) => defaultAnalyzerSort(a.row, b.row))
+      .forEach((candidate) => {
+        const target = grouped[candidate.index];
+        target.Group = groupLabel;
+        target.Dupe_Group = groupLabel;
+        target.SortGroup = groupLabel;
+        target.GroupActionKey = actionKey;
+        target.GroupColor = color;
+        target.Is_Dupe = true;
+        target.Is_Dupe_Exotic = target.Rarity === 'Exotic';
+      });
   }
   return grouped;
 }
 
+function labelFor(row, number) {
+  const slotLetter = slotLetterFor(row);
+  return `${number}${slotLetter}`;
+}
+function slotLetterFor(row) {
+  const slot = row.Slot || row.Type || '';
+  const index = SLOT_ORDER.indexOf(slot);
+  return LETTERS[Math.max(0, index >= 0 ? index : 0)] || 'A';
+}
+function groupSort(a, b) {
+  const cls = classKey(a).localeCompare(classKey(b));
+  if (cls) return cls;
+  const slot = slotNumber(a) - slotNumber(b);
+  if (slot) return slot;
+  const rarity = String(a.Rarity || '').localeCompare(String(b.Rarity || ''));
+  if (rarity) return rarity;
+  return String(a.Name || '').localeCompare(String(b.Name || ''));
+}
+function classKey(row) { return normalize(row.Equippable || row.Class || 'Any'); }
 function maxTotal(candidates, group) {
   return Math.max(...group.map((index) => Number(candidates[index].row.Total || 0)));
 }
@@ -79,7 +104,7 @@ function isDuplicateCandidate(a, b, tolerance) {
 
 function baseKey(row) {
   const exoticName = row.Rarity === 'Exotic' ? normalize(row.Name) : 'legendary';
-  return [row.Class || row.Equippable || '', row.Slot || row.Type || '', row.Rarity || '', exoticName].join('|');
+  return [row.Equippable || row.Class || '', row.Slot || row.Type || '', row.Rarity || '', exoticName].join('|');
 }
 
 function topStats(row) {
