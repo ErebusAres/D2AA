@@ -1,8 +1,8 @@
-import { STAT_KEYS, STAT_LABELS, STAT_ICONS, RARITY_ICONS, CLASS_ICONS, SLOT_ICONS, LOCATION_EMOJIS, TAGS } from '../constants.js';
+import { STAT_KEYS, STAT_LABELS, STAT_ICONS, RARITY_ICONS, CLASS_ICONS, SLOT_ICONS, LOCATION_EMOJIS, TAGS, SLOT_ORDER } from '../constants.js';
 import { actionLabel, canRunAction } from '../data/actions.js';
 
 export function renderGrid(container, rows, onTag, onAction) {
-  container.innerHTML = rows.map(renderCard).join('');
+  container.innerHTML = renderSlotSections(rows);
   container.querySelectorAll('[data-action-id]').forEach((button) => {
     button.addEventListener('click', (event) => {
       event.stopPropagation();
@@ -11,15 +11,40 @@ export function renderGrid(container, rows, onTag, onAction) {
   });
 }
 
+function renderSlotSections(rows) {
+  if (!rows.length) return '';
+  const sections = groupBySlot(rows);
+  return sections.map(([slot, items]) => `<section class="armor-slot-section" data-slot-section="${html(slot)}">
+    <div class="slot-divider"><span class="slot-divider-icon">${maskIcon(SLOT_ICONS[slot], slot)}</span><strong>${html(slot)}</strong><em>${items.length}</em></div>
+    <div class="slot-card-grid">${items.map(renderCard).join('')}</div>
+  </section>`).join('');
+}
+
+function groupBySlot(rows) {
+  const buckets = new Map();
+  rows.forEach((row) => {
+    const slot = row.Slot || row.Type || 'Other';
+    if (!buckets.has(slot)) buckets.set(slot, []);
+    buckets.get(slot).push(row);
+  });
+  const ordered = [];
+  SLOT_ORDER.forEach((slot) => { if (buckets.has(slot)) ordered.push([slot, buckets.get(slot)]); });
+  [...buckets.keys()].filter((slot) => !SLOT_ORDER.includes(slot)).sort().forEach((slot) => ordered.push([slot, buckets.get(slot)]));
+  return ordered;
+}
+
 function renderCard(row) {
   const badge = lightBadgeText(row);
   const groupLabel = row.Dupe_Group || row.Group || '';
   const groupActionKey = row.GroupActionKey || `${row.GroupKey || ''}::${groupLabel}`;
+  const isNew = row.RecentStatus === 'new' || row.Tag === 'feed';
   const group = row.Is_Dupe ? `<div class="group-badge ${row.GroupColor || ''}" title="Duplicate group ${html(groupLabel)}"><span>⚠️</span>${row.Is_Dupe_Exotic ? iconImg(RARITY_ICONS.Exotic, 'Exotic duplicate group', 'badge-icon') : ''}${html(groupLabel)}</div>` : '';
+  const newBadge = isNew ? `<div class="new-found-badge" title="Recently found">✨ New</div>` : '';
   const action = actionLabel(row);
-  return `<article class="armor-card ${safeClass(row.Rarity)} ${row.Is_Dupe ? 'is-grouped is-dupe ' + row.GroupColor : ''}" data-card-id="${html(row.Id)}" data-group="${html(groupLabel)}">
+  return `<article class="armor-card ${safeClass(row.Rarity)} ${isNew ? 'is-new-found' : ''} ${row.Is_Dupe ? 'is-grouped is-dupe ' + row.GroupColor : ''}" data-card-id="${html(row.Id)}" data-group="${html(groupLabel)}">
     ${badge ? `<button class="light-tag-badge light-only-badge" type="button" data-tag-trigger data-id="${html(row.Id)}">${badge}</button>` : ''}
     ${group}
+    ${newBadge}
     <div class="card-top">
       <div class="item-icon">${row.Icon ? `<img src="${html(row.Icon)}" alt="" loading="lazy">` : '<span>◇</span>'}</div>
       <button class="card-tag-slot ${row.Tag ? 'has-tag' : 'is-empty'}" type="button" data-tag-trigger data-id="${html(row.Id)}" title="${html(tagTitle(row))}">${tagEmoji(row)}</button>
@@ -61,7 +86,7 @@ function identifierLine(row) {
     maskIcon(SLOT_ICONS[row.Slot], row.Slot),
     iconImg(RARITY_ICONS[row.Rarity], row.Rarity),
     `<span class="location-pill" title="${html(loc)}">${LOCATION_EMOJIS[loc] || LOCATION_EMOJIS.Character || '🎒'} ${html(loc)}</span>`,
-    row.RecentStatus ? `<span class="status-pill">${html(row.RecentStatus)}</span>` : ''
+    row.RecentStatus ? `<span class="status-pill ${row.RecentStatus === 'new' ? 'is-new' : ''}">${row.RecentStatus === 'new' ? '✨ ' : ''}${html(row.RecentStatus)}</span>` : ''
   ].filter(Boolean).join('');
 }
 function lightBadgeText(row) {
