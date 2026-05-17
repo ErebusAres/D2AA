@@ -2,6 +2,14 @@ import { STORAGE_KEYS } from './constants.js';
 import { sortRows } from './data/sort.js';
 
 const listeners = new Set();
+const ARCHETYPE_STATS = [
+  ['Health', 'Health'],
+  ['Melee', 'Melee'],
+  ['Grenade', 'Grenade'],
+  ['Super', 'Super'],
+  ['ClassAbility', 'Class'],
+  ['Weapon', 'Weapon']
+];
 
 export const state = {
   rows: [],
@@ -82,26 +90,38 @@ export function rowMatchesClass(row, className) {
 export function normalizeStoredRow(row) {
   const characterClass = normalizeClassFilter(row.Equippable || row.Class || row.CharacterClass);
   const classAbility = number(row.ClassAbility || (isClassName(row.Class) ? 0 : row.Class));
+  const normalized = { ...row, ClassAbility: classAbility };
   const dismissed = Boolean(state.dismissedRecent[row.Id]);
   return {
-    ...row,
+    ...normalized,
     Class: characterClass === 'all' ? row.Equippable || row.Class || 'Any' : characterClass,
     Equippable: characterClass === 'all' ? row.Equippable || row.Class || 'Any' : characterClass,
-    ClassAbility: classAbility,
     RecentStatus: dismissed && row.RecentStatus === 'new' ? '' : row.RecentStatus,
     RecentlyFound: dismissed ? false : row.RecentlyFound,
-    Archetype: normalizeArchetype(row.Archetype, row.Slot)
+    Archetype: normalizeArchetype(row.Archetype, row.Slot, normalized)
   };
 }
 
 function isClassName(value) { return normalizeClassFilter(value) !== 'all'; }
 function number(value) { const n = Number(String(value ?? '').replace(/[^0-9.-]/g, '')); return Number.isFinite(n) ? n : 0; }
-function normalizeArchetype(value, slot) {
+function normalizeArchetype(value, slot, row = {}) {
   const text = String(value || '').trim();
-  if (!text) return '—';
   const a = text.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
   const s = String(slot || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
-  return a && a !== s ? text : '—';
+  if (text && a !== s && text !== '—' && text !== '-') return text;
+  return deriveArchetype(row);
+}
+function deriveArchetype(row = {}) {
+  let bestLabel = '—';
+  let bestValue = -1;
+  for (const [key, label] of ARCHETYPE_STATS) {
+    const value = number(row[key]);
+    if (value > bestValue) {
+      bestValue = value;
+      bestLabel = label;
+    }
+  }
+  return bestValue > 0 ? bestLabel : '—';
 }
 
 export function loadCachedRows() {
