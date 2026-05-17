@@ -1,4 +1,4 @@
-import { state, subscribe, setState, setRows, updateTag, getFilteredRows, loadCachedRows, clearCache, loadSettings, normalizeClassFilter, rowMatchesClass } from './state.js';
+import { state, subscribe, setState, setRows, updateTag, dismissRecent, getFilteredRows, loadCachedRows, clearCache, loadSettings, normalizeClassFilter, rowMatchesClass } from './state.js';
 import { CLASS_ORDER, SLOT_ORDER } from './constants.js';
 import { parseDimCsv } from './data/dim-csv.js';
 import { applyDuplicateGroups } from './data/duplicate-groups.js';
@@ -82,7 +82,7 @@ function render() {
   renderGrid(els.gridView, filtered, updateTag, handleCardAction, openGroupCompare);
   attachTagPicker(els.gridView, filtered, updateTag);
   renderTable(els.tableBody, filtered, handleCardAction);
-  renderItemFeed(els.feedList, els.feedCount, grouped, updateTag);
+  renderItemFeed(els.feedList, els.feedCount, grouped, updateTag, dismissRecent);
   els.emptyState.hidden = state.rows.length > 0;
   updateSummary(grouped, filtered);
   renderChips();
