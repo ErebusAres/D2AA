@@ -1,9 +1,11 @@
 import { STAT_KEYS, STAT_LABELS, STAT_ICONS, RARITY_ICONS, CLASS_ICONS, SLOT_ICONS, LOCATION_EMOJIS, TAGS } from '../constants.js';
 
+const FEED_LIMIT = 20;
+
 export function renderItemFeed(container, countEl, rows, onTag, onDismissNew, onCompareGroup) {
-  const recent = rows.slice().sort(compareRecent).slice(0, 30);
+  const recent = rows.slice().filter(isFeedCandidate).sort(compareRecent).slice(0, FEED_LIMIT);
   countEl.textContent = String(recent.length);
-  container.innerHTML = recent.map(renderFeedCard).join('');
+  container.innerHTML = recent.length ? recent.map(renderFeedCard).join('') : renderEmptyFeed();
   container.querySelectorAll('[data-feed-tag]').forEach((button) => {
     button.addEventListener('click', () => onTag(button.dataset.id, button.dataset.feedTag));
   });
@@ -15,11 +17,28 @@ export function renderItemFeed(container, countEl, rows, onTag, onDismissNew, on
   });
 }
 
+function isFeedCandidate(row) {
+  return Boolean(
+    row.Tag === 'feed' ||
+    row.RecentStatus ||
+    row.RecentlyFound ||
+    Number(row.FoundAt || 0) > 0
+  );
+}
+
 function compareRecent(a, b) {
-  const aTime = Number(a.FoundAt || Date.parse(a.LastChangedAt || '') || 0);
-  const bTime = Number(b.FoundAt || Date.parse(b.LastChangedAt || '') || 0);
+  const aTime = recentTime(a);
+  const bTime = recentTime(b);
   const statusWeight = (row) => row.RecentStatus === 'new' || row.Tag === 'feed' ? 3 : row.RecentStatus === 'moved' ? 2 : row.RecentStatus === 'changed' ? 1 : 0;
   return statusWeight(b) - statusWeight(a) || bTime - aTime || String(a.Name).localeCompare(String(b.Name));
+}
+
+function recentTime(row) {
+  return Number(row.FoundAt || 0) || Date.parse(row.LastChangedAt || '') || 0;
+}
+
+function renderEmptyFeed() {
+  return `<div class="feed-empty"><strong>No recent item history yet.</strong><span>Run Bungie sync, then newly found, moved, or changed armor will appear here.</span></div>`;
 }
 
 function renderFeedCard(row) {
