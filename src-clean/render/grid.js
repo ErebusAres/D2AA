@@ -34,7 +34,7 @@ function renderCard(row) {
       <div><span>Total</span><strong>${row.Total || 0}</strong></div>
       <div><span>Tier</span><strong class="diamonds">${diamonds(row.Tier, row.TierMax)}</strong></div>
       <div><span>Arch</span><strong title="${html(row.Archetype || '—')}">${html(row.Archetype || '—')}</strong></div>
-      ${STAT_KEYS.map((key) => `<div class="stat-cell stat-${key.toLowerCase()}"><span><img class="stat-icon" src="${html(STAT_ICONS[key])}" alt="${html(STAT_LABELS[key])}" loading="lazy">${html(STAT_LABELS[key])}</span><strong>${row[key] || 0}</strong></div>`).join('')}
+      ${STAT_KEYS.map((key) => `<div class="stat-cell stat-${key.toLowerCase()}" title="${html(STAT_LABELS[key])}: ${row[key] || 0}"><span class="stat-icon-only"><img class="stat-icon" src="${html(STAT_ICONS[key])}" alt="${html(STAT_LABELS[key])}" loading="lazy"></span><strong>${row[key] || 0}</strong></div>`).join('')}
     </div>
     <div class="card-actions">
       <button type="button" data-action-id="${html(row.Id)}" ${canRunAction(row) ? '' : 'disabled'}>${html(action)}</button>
