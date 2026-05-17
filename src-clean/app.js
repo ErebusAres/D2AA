@@ -1,5 +1,5 @@
 import { state, subscribe, setState, setRows, updateTag, dismissRecent, getFilteredRows, loadCachedRows, clearCache, loadSettings, normalizeClassFilter, rowMatchesClass, readJson, writeJson } from './state.js';
-import { CLASS_ORDER, SLOT_ORDER, STORAGE_KEYS } from './constants.js';
+import { CLASS_ORDER, SLOT_ORDER, STORAGE_KEYS, THEME_NAMES, THEME_LABELS } from './constants.js';
 import { parseDimCsv } from './data/dim-csv.js';
 import { applyDuplicateGroups } from './data/duplicate-groups.js';
 import { runItemAction, runGroupPull } from './data/actions.js';
@@ -14,11 +14,12 @@ let lastGroupedRows = [];
 
 function boot() {
   cacheEls();
+  renderThemeButtons();
   loadSettings();
   restoreFeedOpenState();
   bindEvents();
   subscribe(render);
-  document.body.dataset.theme = state.theme;
+  document.body.dataset.theme = normalizeTheme(state.theme);
   loadCachedRows();
   render();
 }
@@ -53,7 +54,20 @@ function bindEvents() {
   [els.classFilter, els.slotFilter, els.rarityFilter].filter(Boolean).forEach((select) => select.addEventListener('change', () => setState({ filters: { class: normalizeClassFilter(els.classFilter.value), slot: els.slotFilter.value, rarity: els.rarityFilter.value } })));
   els.sortBy?.addEventListener('change', () => setState({ sortBy: els.sortBy.value }));
   els.duplicateTolerance?.addEventListener('input', () => setState({ duplicateTolerance: Number(els.duplicateTolerance.value || 5) }));
-  els.themePills?.querySelectorAll('[data-theme]').forEach((button) => button.addEventListener('click', () => setState({ theme: button.dataset.theme })));
+  els.themePills?.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-theme]');
+    if (!button) return;
+    setState({ theme: button.dataset.theme });
+  });
+}
+
+function renderThemeButtons() {
+  if (!els.themePills) return;
+  els.themePills.innerHTML = THEME_NAMES.map((theme) => `<button type="button" data-theme="${html(theme)}"><span class="theme-swatch" aria-hidden="true"></span><b>${html(THEME_LABELS[theme] || theme)}</b></button>`).join('');
+}
+
+function normalizeTheme(theme) {
+  return THEME_NAMES.includes(theme) ? theme : 'calus';
 }
 
 function toggleOptionsPanel() {
@@ -91,7 +105,7 @@ function toggleItemFeed() {
 }
 
 function render() {
-  document.body.dataset.theme = state.theme;
+  document.body.dataset.theme = normalizeTheme(state.theme);
   els.statusText.textContent = state.status;
   els.searchBox.value = state.search;
   els.sortBy.value = state.sortBy;
@@ -187,7 +201,7 @@ function syncViewButtons() {
   document.querySelectorAll('[data-view]').forEach((button) => button.classList.toggle('is-active', button.dataset.view === state.view));
 }
 function syncThemeButtons() {
-  els.themePills?.querySelectorAll('[data-theme]').forEach((button) => button.classList.toggle('is-active', button.dataset.theme === state.theme));
+  els.themePills?.querySelectorAll('[data-theme]').forEach((button) => button.classList.toggle('is-active', button.dataset.theme === normalizeTheme(state.theme)));
 }
 function syncClassToggle() {
   if (!els.classToggle) return;
