@@ -107,11 +107,13 @@ function requestBungieRefresh(reason) {
   }, 1200);
 }
 
-async function copyGroupIds(groupId, button) {
-  const ids = lastGroupedRows.filter((row) => row.Group?.replace(/[A-Z]$/, '') === groupId).map((row) => `id:${row.Id}`);
+async function copyGroupIds(groupKey, button) {
+  const rows = lastGroupedRows.filter((row) => row.Is_Dupe && row.GroupActionKey === groupKey);
+  const ids = rows.map((row) => `id:${row.Id}`);
   if (!ids.length) return setStatus('No group IDs found.');
   if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(ids.join(' or '));
-  setStatus(`Copied ${ids.length} group item IDs.`);
+  const label = rows[0]?.Dupe_Group || rows[0]?.Group || 'group';
+  setStatus(`Copied ${ids.length} item IDs from duplicate group ${label}.`);
   if (button) {
     const original = button.textContent;
     button.textContent = 'Copied';
@@ -130,7 +132,7 @@ function getFilteredRowsFrom(rows) {
 function updateSummary(allRows, shownRows) {
   els.summaryShown.textContent = shownRows.length;
   els.summaryCached.textContent = allRows.length;
-  els.summaryGroups.textContent = new Set(allRows.filter((r) => r.Group).map((r) => r.Group.replace(/[A-Z]$/, ''))).size;
+  els.summaryGroups.textContent = new Set(allRows.filter((r) => r.Is_Dupe).map((r) => r.GroupActionKey)).size;
   els.summaryRecent.textContent = allRows.filter((row) => row.RecentlyFound || row.RecentStatus).length || Math.min(allRows.length, 30);
   const counts = CLASS_ORDER.map((cls) => `${cls[0]}:${allRows.filter((r) => r.Class === cls).length}`).join(' ');
   els.summaryClasses.textContent = counts || '—';
