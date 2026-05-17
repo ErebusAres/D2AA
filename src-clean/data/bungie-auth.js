@@ -21,7 +21,12 @@ export function readJson(key, fallback = {}) {
   catch (_) { return fallback; }
 }
 export function writeJson(key, value) { localStorage.setItem(key, JSON.stringify(value)); }
-function cleanConfig(config) { return Object.fromEntries(Object.entries(config || {}).filter(([, value]) => String(value || '').trim())); }
+function cleanConfig(config) {
+  // Keep user-configurable API key/client id support, but never allow an old stored redirectUri
+  // from beta/hotfix builds to override the currently registered OAuth redirect.
+  const allowed = ['apiKey', 'clientId'];
+  return Object.fromEntries(Object.entries(config || {}).filter(([key, value]) => allowed.includes(key) && String(value || '').trim()));
+}
 export function getBungieConfig() { return { ...PUBLIC_CONFIG, ...cleanConfig(readJson(BUNGIE_STORAGE.config)) }; }
 export function getToken() { return readJson(BUNGIE_STORAGE.token, {}); }
 export function tokenIsValid(token = getToken()) { return Boolean(token.access_token && token.expires_at && token.expires_at > Math.floor(Date.now() / 1000) + 60); }
@@ -57,7 +62,7 @@ export function startLogin() {
   localStorage.setItem(BUNGIE_STORAGE.state, state);
   localStorage.setItem(BUNGIE_STORAGE.returnUrl, returnUrl);
   try { sessionStorage.setItem(BUNGIE_STORAGE.returnUrl, returnUrl); } catch (_) {}
-  const redirectUri = cleanReturnUrl(cfg.redirectUri || returnUrl);
+  const redirectUri = cleanReturnUrl(PUBLIC_CONFIG.redirectUri);
   const url = new URL(AUTH_URL);
   url.searchParams.set('client_id', cfg.clientId);
   url.searchParams.set('response_type', 'code');
@@ -68,7 +73,7 @@ export function startLogin() {
 
 export async function exchangeCode(code) {
   const cfg = getBungieConfig();
-  const redirectUri = cleanReturnUrl(cfg.redirectUri || location.href);
+  const redirectUri = cleanReturnUrl(PUBLIC_CONFIG.redirectUri);
   const body = new URLSearchParams();
   body.set('grant_type', 'authorization_code');
   body.set('code', code);
