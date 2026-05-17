@@ -18,6 +18,7 @@
   <link rel="stylesheet" href="src-clean/styles/recent-and-sections.css" />
   <link rel="stylesheet" href="src-clean/styles/compare-modal.css" />
   <link rel="stylesheet" href="src-clean/styles/item-feed-polish.css" />
+  <link rel="stylesheet" href="src-clean/styles/options-overhaul.css" />
 </head>
 <body data-theme="calus">
   <div class="app-frame">
@@ -27,7 +28,7 @@
       <nav class="class-toggle" id="classToggle" aria-label="Class filter"><button type="button" data-class-filter="all" class="is-active">All</button><button type="button" data-class-filter="Warlock">Warlock <b>0</b></button><button type="button" data-class-filter="Hunter">Hunter <b>0</b></button><button type="button" data-class-filter="Titan">Titan <b>0</b></button></nav>
       <label class="search-wrap" for="searchBox"><span>Search</span><input id="searchBox" type="search" placeholder="Armor name, slot, class, id..." autocomplete="off" /></label>
       <button type="button" id="refreshBtn" class="command-button">Refresh</button>
-      <button type="button" id="menuBtn" class="command-button command-button--primary">Options</button>
+      <button type="button" id="menuBtn" class="command-button command-button--primary" aria-expanded="false" aria-controls="commandPanel">Options</button>
     </header>
     <section class="overview-row" aria-label="Inventory summary"><article><span>Shown</span><strong id="summaryShown">0</strong></article><article><span>Cached</span><strong id="summaryCached">0</strong></article><article><span>Groups</span><strong id="summaryGroups">0</strong></article><article><span>Recent</span><strong id="summaryRecent">0</strong></article><article class="class-overview"><span>Class Mix</span><strong id="summaryClasses">—</strong></article></section>
     <main class="workspace" id="workspace">
