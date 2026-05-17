@@ -6,13 +6,13 @@ const PROFILE_COMPONENTS = [100, 102, 200, 201, 205, 300, 304, 305].join(',');
 const VAULT_BUCKET_HASH = 138197802;
 const CLASS_TYPE = { 0: 'Titan', 1: 'Hunter', 2: 'Warlock' };
 const CLASS_ITEM_BY_CLASS = { Warlock: 'Warlock Bond', Hunter: 'Hunter Cloak', Titan: 'Titan Mark' };
-const STAT_KEYS = ['Health', 'Melee', 'Grenade', 'Super', 'Class', 'Weapon'];
+const STAT_KEYS = ['Health', 'Melee', 'Grenade', 'Super', 'ClassAbility', 'Weapon'];
 const BASE_HASH_TO_COLUMN = {
   392767087: 'Health',
   4244567218: 'Melee',
   1735777505: 'Grenade',
   144602215: 'Super',
-  2996146975: 'Class',
+  2996146975: 'ClassAbility',
   1943323491: 'Weapon'
 };
 const HASH_TO_COLUMN = { ...BASE_HASH_TO_COLUMN };
@@ -149,7 +149,7 @@ async function buildArmorRows(profile, membership, setStatus, background) {
       TierMax: rarity === 'Exotic' ? 2 : 5,
       Power: power,
       Light: power,
-      Archetype: armorArchetype(def),
+      Archetype: armorArchetype(def, socketPlugDefs),
       Icon: bungieIconUrl(def.displayProperties?.icon),
       IconUrl: bungieIconUrl(def.displayProperties?.icon),
       ScreenshotUrl: bungieIconUrl(def.screenshot),
@@ -191,7 +191,7 @@ function columnFromStatName(name) {
   if (n.includes('melee') || n.includes('strength')) return 'Melee';
   if (n.includes('grenade') || n.includes('discipline')) return 'Grenade';
   if (n.includes('super') || n.includes('intellect')) return 'Super';
-  if (n.includes('class') || n.includes('mobility')) return 'Class';
+  if (n.includes('class') || n.includes('mobility')) return 'ClassAbility';
   if (n.includes('weapon') || n.includes('recovery')) return 'Weapon';
   return null;
 }
@@ -303,8 +303,15 @@ function isArmorDef(def) {
   if (!slotForItem(def)) return false;
   return ['Common', 'Uncommon', 'Rare', 'Legendary', 'Exotic'].includes(rarityForItem(def));
 }
-function armorArchetype(def) {
-  const sockets = def.sockets?.socketEntries || [];
-  const intrinsic = sockets.find((socket) => String(socket.socketTypeHash || '') === '3956125808');
-  return def.itemTypeDisplayName || intrinsic?.singleInitialItemHash || 'Armor';
+function armorArchetype(def, plugDefs = []) {
+  const candidates = plugDefs
+    .map((plug) => plug?.displayProperties?.name || '')
+    .map((name) => String(name || '').trim())
+    .filter(Boolean)
+    .filter((name) => !isNonArchetypeName(name));
+  return candidates[0] || def.traitIds?.find((trait) => String(trait).includes('intrinsic')) || '—';
+}
+function isNonArchetypeName(name) {
+  const n = normalizeName(name);
+  return !n || n.includes('empty') || n.includes('artifice') || n.includes('mod') || n.includes('shader') || n.includes('ornament') || n.includes('masterwork') || n.includes('kill tracker') || n.includes('helmet') || n.includes('gauntlet') || n.includes('chest') || n.includes('leg armor') || n.includes('class item');
 }
