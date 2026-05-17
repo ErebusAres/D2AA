@@ -6,13 +6,13 @@ export const STORAGE_KEYS = {
   bungieMeta: 'd2aa_clean_bungie_meta_v1'
 };
 
-export const STAT_KEYS = ['Health', 'Melee', 'Grenade', 'Super', 'Class', 'Weapon'];
+export const STAT_KEYS = ['Health', 'Melee', 'Grenade', 'Super', 'ClassAbility', 'Weapon'];
 export const STAT_LABELS = {
   Health: 'Health',
   Melee: 'Melee',
   Grenade: 'Grenade',
   Super: 'Super',
-  Class: 'Class',
+  ClassAbility: 'Class',
   Weapon: 'Weapons'
 };
 export const STAT_SHORT_LABELS = {
@@ -20,7 +20,7 @@ export const STAT_SHORT_LABELS = {
   Melee: 'MEL',
   Grenade: 'GRN',
   Super: 'SUP',
-  Class: 'CLS',
+  ClassAbility: 'CLS',
   Weapon: 'WPN'
 };
 export const STAT_ICONS = {
@@ -28,7 +28,7 @@ export const STAT_ICONS = {
   Melee: 'https://www.bungie.net/common/destiny2_content/icons/fa534aca76d7f2d7e7b4ba4df4271b42.png',
   Grenade: 'https://www.bungie.net/common/destiny2_content/icons/065cdaabef560e5808e821cefaeaa22c.png',
   Super: 'https://www.bungie.net/common/destiny2_content/icons/585ae4ede9c3da96b34086fccccdc8cd.png',
-  Class: 'https://www.bungie.net/common/destiny2_content/icons/7eb845acb5b3a4a9b7e0b2f05f5c43f1.png',
+  ClassAbility: 'https://www.bungie.net/common/destiny2_content/icons/7eb845acb5b3a4a9b7e0b2f05f5c43f1.png',
   Weapon: 'https://www.bungie.net/common/destiny2_content/icons/bc69675acdae9e6b9a68a02fb4d62e07.png'
 };
 
