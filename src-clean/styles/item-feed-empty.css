@@ -1,0 +1,1 @@
+.feed-empty{min-height:150px;border:1px dashed rgba(255,255,255,.14);border-radius:18px;background:rgba(255,255,255,.035);display:grid;align-content:center;gap:6px;padding:18px;text-align:center;color:var(--muted)}.feed-empty strong{color:var(--text);font-size:14px}.feed-empty span{font-size:12px;line-height:1.35}
