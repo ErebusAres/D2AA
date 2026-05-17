@@ -11,9 +11,7 @@ export const BUNGIE_STORAGE = {
 export const PUBLIC_CONFIG = {
   apiKey: '96e154014bdd44c0a537e482709b7473',
   clientId: '50794',
-  // Bungie app redirect registrations are strict. Use the existing registered bridge,
-  // then beta2.html forwards the OAuth code/state back to the clean page saved in storage.
-  redirectUri: 'https://erebusares.github.io/D2AA/beta2.html'
+  redirectUri: 'https://erebusares.github.io/D2AA/D2AA-clean.html'
 };
 
 let refreshPromise = null;
@@ -59,7 +57,7 @@ export function startLogin() {
   localStorage.setItem(BUNGIE_STORAGE.state, state);
   localStorage.setItem(BUNGIE_STORAGE.returnUrl, returnUrl);
   try { sessionStorage.setItem(BUNGIE_STORAGE.returnUrl, returnUrl); } catch (_) {}
-  const redirectUri = cleanReturnUrl(cfg.redirectUri || 'https://erebusares.github.io/D2AA/beta2.html');
+  const redirectUri = cleanReturnUrl(cfg.redirectUri || returnUrl);
   const url = new URL(AUTH_URL);
   url.searchParams.set('client_id', cfg.clientId);
   url.searchParams.set('response_type', 'code');
@@ -70,7 +68,7 @@ export function startLogin() {
 
 export async function exchangeCode(code) {
   const cfg = getBungieConfig();
-  const redirectUri = cleanReturnUrl(cfg.redirectUri || 'https://erebusares.github.io/D2AA/beta2.html');
+  const redirectUri = cleanReturnUrl(cfg.redirectUri || location.href);
   const body = new URLSearchParams();
   body.set('grant_type', 'authorization_code');
   body.set('code', code);
