@@ -25,6 +25,34 @@ export async function runItemAction(row) {
   return moveToVault(row);
 }
 
+export async function runGroupPull(rows) {
+  const groupRows = Array.isArray(rows) ? rows : [];
+  const bungieRows = groupRows.filter((row) => row.Source === 'Bungie');
+  if (!bungieRows.length) {
+    await copyText(groupRows.map((row) => `id:${row.Id}`).join(' or '));
+    return { message: `Copied ${groupRows.length} DIM item IDs.`, needsRefresh: false };
+  }
+  const pullable = bungieRows.filter((row) => row.IsInVault && canRunAction(row));
+  const alreadyOut = bungieRows.length - pullable.length;
+  if (!pullable.length) return { message: 'No vault items in this group need pulling.', needsRefresh: false };
+
+  const results = [];
+  for (const row of pullable) {
+    try {
+      await pullFromVault(row);
+      results.push({ row, ok: true });
+    } catch (error) {
+      console.error('D2AA group pull failed for item', row, error);
+      results.push({ row, ok: false, error });
+    }
+  }
+  const ok = results.filter((item) => item.ok).length;
+  const failed = results.length - ok;
+  const skipped = alreadyOut > 0 ? ` ${alreadyOut} already not in vault/skipped.` : '';
+  const failText = failed ? ` ${failed} failed.` : '';
+  return { message: `Pulled ${ok}/${pullable.length} vault items from group.${skipped}${failText}`, needsRefresh: ok > 0 };
+}
+
 async function pullFromVault(row) {
   await transferItem(row, false, row.TargetCharacterId);
   return { message: `Pulled ${row.Name} from vault. Refresh to confirm location.`, needsRefresh: true };
