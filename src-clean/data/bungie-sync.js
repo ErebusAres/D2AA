@@ -7,6 +7,7 @@ const VAULT_BUCKET_HASH = 138197802;
 const CLASS_TYPE = { 0: 'Titan', 1: 'Hunter', 2: 'Warlock' };
 const CLASS_ITEM_BY_CLASS = { Warlock: 'Warlock Bond', Hunter: 'Hunter Cloak', Titan: 'Titan Mark' };
 const STAT_KEYS = ['Health', 'Melee', 'Grenade', 'Super', 'ClassAbility', 'Weapon'];
+const ARMOR_ARCHETYPE_NAMES = new Set(['paragon', 'grenadier', 'specialist', 'brawler', 'bulwark', 'gunner']);
 const BASE_HASH_TO_COLUMN = {
   392767087: 'Health',
   4244567218: 'Melee',
@@ -97,7 +98,7 @@ async function buildArmorRows(profile, membership, setStatus, background) {
   });
   const itemDefs = Object.fromEntries(uniqueItemHashes.map((hash, i) => [hash, itemDefsList[i]]));
   const armorItems = allItems.filter((item) => item.itemInstanceId && isArmorDef(itemDefs[toUint32(item.itemHash)]));
-  const uniquePlugHashes = [...new Set(armorItems.flatMap((item) => plugHashesForInstance(socketComponents[item.itemInstanceId])).filter(Boolean))];
+  const uniquePlugHashes = [...new Set(armorItems.flatMap((item) => armorPlugHashes(itemDefs[toUint32(item.itemHash)], socketComponents[item.itemInstanceId])).filter(Boolean))];
   if (!background) setStatus(`Resolving armor plugs: 0/${uniquePlugHashes.length}`);
   const plugDefsList = await mapLimit(uniquePlugHashes, 8, (hash) => getDef('DestinyInventoryItemDefinition', hash), (done, total) => {
     if (!background) setStatus(`Resolving armor plugs: ${done}/${total}`);
@@ -108,7 +109,7 @@ async function buildArmorRows(profile, membership, setStatus, background) {
     const def = itemDefs[toUint32(item.itemHash)];
     const source = Object.keys(statComponents[item.itemInstanceId]?.stats || {}).length ? statComponents[item.itemInstanceId].stats : (def.stats?.stats || {});
     statHashes.push(...Object.keys(source));
-    for (const plugHash of plugHashesForInstance(socketComponents[item.itemInstanceId])) {
+    for (const plugHash of armorPlugHashes(def, socketComponents[item.itemInstanceId])) {
       const plugDef = plugDefs[plugHash];
       if (!isSubtractableArmorBonusPlug(plugDef)) continue;
       for (const stat of plugDef?.investmentStats || []) statHashes.push(stat.statTypeHash);
@@ -129,7 +130,7 @@ async function buildArmorRows(profile, membership, setStatus, background) {
     const equippable = CLASS_TYPE[def.classType];
     const rarity = rarityForItem(def);
     const type = slot === 'Class Item' ? CLASS_ITEM_BY_CLASS[equippable] : slot;
-    const socketPlugDefs = plugHashesForInstance(socketComponents[instanceId]).map((hash) => plugDefs[hash]).filter(Boolean);
+    const socketPlugDefs = armorPlugHashes(def, socketComponents[instanceId]).map((hash) => plugDefs[hash]).filter(Boolean);
     const archetype = armorArchetype(def, socketPlugDefs);
     const statRow = statsForItem(def, statComponents[instanceId], socketBonusTotals(socketPlugDefs, statColumnMap), statColumnMap);
     const targetCharacterId = characterMap[equippable]?.characterId || '';
@@ -231,6 +232,18 @@ function plugHashesForInstance(socketComponent) {
   }
   return hashes;
 }
+function plugHashesForDefinition(def) {
+  const hashes = [];
+  for (const entry of def?.sockets?.socketEntries || []) {
+    if (entry.singleInitialItemHash) hashes.push(toUint32(entry.singleInitialItemHash));
+    for (const item of entry.reusablePlugItems || []) if (item.plugItemHash) hashes.push(toUint32(item.plugItemHash));
+    for (const item of entry.randomizedPlugSet?.reusablePlugItems || []) if (item.plugItemHash) hashes.push(toUint32(item.plugItemHash));
+  }
+  return hashes;
+}
+function armorPlugHashes(def, socketComponent) {
+  return [...new Set([...plugHashesForInstance(socketComponent), ...plugHashesForDefinition(def)].filter(Boolean))];
+}
 function isSubtractableArmorBonusPlug(plugDef) {
   const name = normalizeName(plugDef?.displayProperties?.name);
   const desc = normalizeName(plugDef?.displayProperties?.description);
@@ -319,20 +332,17 @@ function armorArchetype(def, plugDefs = []) {
       trait: firstTrait(plug)
     };
   }
-  const trait = def.traitIds?.find((item) => String(item).includes('intrinsic')) || '';
-  return { name: trait || '—', icon: '', description: '', hash: '', trait };
+  return { name: '—', icon: '', description: '', hash: '', trait: '' };
 }
 function isArmorArchetypePlug(plugDef) {
   const name = String(plugDef?.displayProperties?.name || '').trim();
+  const normalizedName = normalizeName(name);
   if (!name || isNonArchetypeName(name)) return false;
+  if (ARMOR_ARCHETYPE_NAMES.has(normalizedName)) return true;
   const category = normalizeName(plugDef?.plug?.plugCategoryIdentifier);
   const type = normalizeName(plugDef?.itemTypeDisplayName);
   const desc = normalizeName(plugDef?.displayProperties?.description);
-  const trait = normalizeName(firstTrait(plugDef));
-  if (category.includes('intrinsic') || trait.includes('intrinsic')) return true;
-  if (type.includes('armor intrinsic') || type.includes('intrinsic trait')) return true;
-  if (['paragon','grenadier','specialist','brawler','bulwark','gunner'].includes(normalizeName(name))) return true;
-  return desc.includes('archetype') || desc.includes('armor stat');
+  return category.includes('armor archetype') || type.includes('armor archetype') || desc.includes('armor archetype');
 }
 function firstTrait(def) { return def?.traitIds?.find(Boolean) || def?.itemCategoryHashes?.[0] || ''; }
 function isNonArchetypeName(name) {
