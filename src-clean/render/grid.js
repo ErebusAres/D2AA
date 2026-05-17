@@ -29,7 +29,7 @@ function renderCard(row) {
       <div><span>Total</span><strong>${row.Total || 0}</strong></div>
       <div><span>Tier</span><strong class="diamonds">${diamonds(row.Tier, row.TierMax)}</strong></div>
       <div><span>Arch</span><strong title="${html(row.Archetype || '—')}">${html(row.Archetype || '—')}</strong></div>
-      ${STAT_KEYS.map((key) => `<div class="stat-cell stat-${key.toLowerCase()}" title="${html(STAT_LABELS[key])}: ${row[key] || 0}"><span class="stat-icon-only"><img class="stat-icon" src="${html(STAT_ICONS[key])}" alt="${html(STAT_LABELS[key])}" loading="lazy"></span><strong>${row[key] || 0}</strong></div>`).join('')}
+      ${STAT_KEYS.map((key) => statCell(row, key)).join('')}
     </div>
     <div class="card-actions">
       <button type="button" data-action-id="${html(row.Id)}" ${canRunAction(row) ? '' : 'disabled'}>${html(action)}</button>
@@ -38,6 +38,22 @@ function renderCard(row) {
   </article>`;
 }
 
+function statCell(row, key) {
+  const value = Number(row[key] || 0);
+  const quality = statQuality(value);
+  return `<div class="stat-cell stat-${key.toLowerCase()} stat-quality-${quality}" title="${html(STAT_LABELS[key])}: ${value} · ${qualityLabel(quality)}"><span class="stat-icon-only"><img class="stat-icon" src="${html(STAT_ICONS[key])}" alt="${html(STAT_LABELS[key])}" loading="lazy"></span><strong>${value}</strong></div>`;
+}
+function statQuality(value) {
+  if (value >= 25) return 'perfect';
+  if (value >= 20) return 'great';
+  if (value >= 15) return 'good';
+  if (value >= 10) return 'okay';
+  if (value >= 5) return 'bad';
+  return 'poor';
+}
+function qualityLabel(value) {
+  return ({ perfect: 'Perfect', great: 'Great', good: 'Good', okay: 'Okay', bad: 'Bad', poor: 'Poor' })[value] || value;
+}
 function identifierLine(row) {
   const loc = locationLabel(row);
   return [
