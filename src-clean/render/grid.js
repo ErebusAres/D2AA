@@ -59,7 +59,7 @@ function renderCard(row) {
     <div class="card-grid-3x3">
       <div><span>Total</span><strong>${row.Total || 0}</strong></div>
       <div><span>Tier</span><strong class="diamonds">${diamonds(row.Tier, row.TierMax)}</strong></div>
-      <div><span>Arch</span><strong>${archetypeIcon(row)}</strong></div>
+      <div class="arch-cell"><span>Arch</span>${archetypeIcon(row)}</div>
       ${STAT_KEYS.map((key) => statCell(row, key)).join('')}
     </div>
     <div class="card-actions">
