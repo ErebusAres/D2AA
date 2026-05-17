@@ -1,4 +1,4 @@
-import { STAT_KEYS, STAT_LABELS, STAT_ICONS, RARITY_ICONS, CLASS_ICONS, SLOT_ICONS, LOCATION_EMOJIS, TAGS, SLOT_ORDER } from '../constants.js';
+import { STAT_KEYS, STAT_LABELS, STAT_ICONS, RARITY_ICONS, CLASS_ICONS, SLOT_ICONS, LOCATION_EMOJIS, TAGS, SLOT_ORDER, ARMOR_ARCHETYPES, ARCHETYPE_ALIASES } from '../constants.js';
 import { actionLabel, canRunAction } from '../data/actions.js';
 
 export function renderGrid(container, rows, onTag, onAction, onCompareGroup) {
@@ -59,7 +59,7 @@ function renderCard(row) {
     <div class="card-grid-3x3">
       <div><span>Total</span><strong>${row.Total || 0}</strong></div>
       <div><span>Tier</span><strong class="diamonds">${diamonds(row.Tier, row.TierMax)}</strong></div>
-      <div><span>Arch</span><strong title="${html(row.Archetype || '—')}">${html(row.Archetype || '—')}</strong></div>
+      <div><span>Arch</span><strong>${archetypeIcon(row)}</strong></div>
       ${STAT_KEYS.map((key) => statCell(row, key)).join('')}
     </div>
     <div class="card-actions">
@@ -67,6 +67,19 @@ function renderCard(row) {
       ${row.Is_Dupe ? `<button type="button" data-action-id="group:${html(groupActionKey)}">Pull group</button>` : ''}
     </div>
   </article>`;
+}
+
+function archetypeIcon(row) {
+  const name = normalizeArchetypeName(row.Archetype);
+  const meta = ARMOR_ARCHETYPES[name];
+  if (!meta) return `<span class="arch-unknown" title="${html(row.Archetype || 'Unknown archetype')}">◇</span>`;
+  const primaryIcon = STAT_ICONS[meta.primary] || '';
+  const secondaryIcon = STAT_ICONS[meta.secondary] || '';
+  const title = `${meta.label}: ${STAT_LABELS[meta.primary]} / ${STAT_LABELS[meta.secondary]}`;
+  return `<span class="arch-icon arch-${safeClass(meta.label)}" title="${html(title)}" aria-label="${html(title)}"><img src="${html(primaryIcon)}" alt="" loading="lazy">${secondaryIcon ? `<img src="${html(secondaryIcon)}" alt="" loading="lazy">` : ''}</span>`;
+}
+function normalizeArchetypeName(value) {
+  return ARCHETYPE_ALIASES[String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, '')] || String(value || '').trim();
 }
 
 function statCell(row, key) {
