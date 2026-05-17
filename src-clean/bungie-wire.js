@@ -1,6 +1,6 @@
 import { state, setState, setRows } from './state.js';
-import { connectBungie, initializeBungieSync, scheduleSemiLiveRefresh, shouldRefreshOnFocus, syncBungieInventory } from './data/bungie-sync.js';
-import { isSignedIn } from './data/bungie-auth.js';
+import { connectBungie, initializeBungieSync, scheduleSemiLiveRefresh, shouldRefreshOnFocus, syncBungieInventory } from './data/bungie-sync.js?v=clean62';
+import { isSignedIn } from './data/bungie-auth.js?v=clean62';
 
 const setStatus = (status) => setState({ status });
 const hasRows = () => state.rows.length > 0;
