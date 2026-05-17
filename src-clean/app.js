@@ -31,7 +31,9 @@ function bindEvents() {
   els.searchBox?.addEventListener('input', () => setState({ search: els.searchBox.value }));
   document.querySelectorAll('[data-view]').forEach((button) => button.addEventListener('click', () => setState({ view: button.dataset.view })));
   els.classToggle?.querySelectorAll('[data-class-filter]').forEach((button) => button.addEventListener('click', () => setClassFilter(button.dataset.classFilter || 'all')));
-  els.menuBtn?.addEventListener('click', () => els.commandPanel.classList.toggle('is-open'));
+  els.menuBtn?.addEventListener('click', toggleOptionsPanel);
+  document.addEventListener('pointerdown', closeOptionsOnOutsideClick);
+  document.addEventListener('keydown', closeOptionsOnEscape);
   els.feedToggle?.addEventListener('click', toggleItemFeed);
   els.uploadCsvBtn?.addEventListener('click', () => els.csvFile.click());
   els.csvFile?.addEventListener('change', async () => {
@@ -52,6 +54,23 @@ function bindEvents() {
   els.sortBy?.addEventListener('change', () => setState({ sortBy: els.sortBy.value }));
   els.duplicateTolerance?.addEventListener('input', () => setState({ duplicateTolerance: Number(els.duplicateTolerance.value || 5) }));
   els.themePills?.querySelectorAll('[data-theme]').forEach((button) => button.addEventListener('click', () => setState({ theme: button.dataset.theme })));
+}
+
+function toggleOptionsPanel() {
+  setOptionsPanelOpen(!els.commandPanel?.classList.contains('is-open'));
+}
+function setOptionsPanelOpen(open) {
+  els.commandPanel?.classList.toggle('is-open', open);
+  document.body.classList.toggle('options-open', open);
+  els.menuBtn?.setAttribute('aria-expanded', String(open));
+}
+function closeOptionsOnOutsideClick(event) {
+  if (!document.body.classList.contains('options-open')) return;
+  if (els.commandPanel?.contains(event.target) || els.menuBtn?.contains(event.target)) return;
+  setOptionsPanelOpen(false);
+}
+function closeOptionsOnEscape(event) {
+  if (event.key === 'Escape') setOptionsPanelOpen(false);
 }
 
 function setClassFilter(className) {
