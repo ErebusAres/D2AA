@@ -94,4 +94,12 @@ export const TAGS = [
   { value: 'archive', label: 'Archive', emoji: '📦', picker: true }
 ];
 
-export const THEME_NAMES = ['calus', 'void', 'arc', 'solar'];
+export const THEME_NAMES = ['calus', 'taken', 'trials', 'void', 'iron', 'vanguard'];
+export const THEME_LABELS = {
+  calus: 'Calus',
+  taken: 'Taken',
+  trials: 'Trials',
+  void: 'Void',
+  iron: 'Iron',
+  vanguard: 'Vanguard'
+};
