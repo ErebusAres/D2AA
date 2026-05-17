@@ -11,7 +11,9 @@ export const BUNGIE_STORAGE = {
 export const PUBLIC_CONFIG = {
   apiKey: '96e154014bdd44c0a537e482709b7473',
   clientId: '50794',
-  redirectUri: 'https://erebusares.github.io/D2AA/D2AA-clean.html'
+  // Bungie app redirect registrations are strict. Use the existing registered bridge,
+  // then beta2.html forwards the OAuth code/state back to the clean page saved in storage.
+  redirectUri: 'https://erebusares.github.io/D2AA/beta2.html'
 };
 
 let refreshPromise = null;
@@ -56,7 +58,8 @@ export function startLogin() {
   const returnUrl = cleanReturnUrl(location.href);
   localStorage.setItem(BUNGIE_STORAGE.state, state);
   localStorage.setItem(BUNGIE_STORAGE.returnUrl, returnUrl);
-  const redirectUri = cleanReturnUrl(cfg.redirectUri || returnUrl);
+  try { sessionStorage.setItem(BUNGIE_STORAGE.returnUrl, returnUrl); } catch (_) {}
+  const redirectUri = cleanReturnUrl(cfg.redirectUri || 'https://erebusares.github.io/D2AA/beta2.html');
   const url = new URL(AUTH_URL);
   url.searchParams.set('client_id', cfg.clientId);
   url.searchParams.set('response_type', 'code');
@@ -67,7 +70,7 @@ export function startLogin() {
 
 export async function exchangeCode(code) {
   const cfg = getBungieConfig();
-  const redirectUri = cleanReturnUrl(cfg.redirectUri || location.href);
+  const redirectUri = cleanReturnUrl(cfg.redirectUri || 'https://erebusares.github.io/D2AA/beta2.html');
   const body = new URLSearchParams();
   body.set('grant_type', 'authorization_code');
   body.set('code', code);
@@ -105,6 +108,7 @@ export async function handleOAuthRedirect() {
   if (expectedState && returnedState !== expectedState) throw new Error('Bungie sign-in failed: OAuth state mismatch.');
   await exchangeCode(code);
   localStorage.removeItem(BUNGIE_STORAGE.state);
+  try { sessionStorage.removeItem(BUNGIE_STORAGE.returnUrl); } catch (_) {}
   url.searchParams.delete('code');
   url.searchParams.delete('state');
   const cleanCurrentUrl = url.toString();
