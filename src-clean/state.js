@@ -1,4 +1,4 @@
-import { STORAGE_KEYS } from './constants.js';
+import { STORAGE_KEYS, ARCHETYPE_ALIASES } from './constants.js';
 import { sortRows } from './data/sort.js';
 
 const listeners = new Set();
@@ -106,13 +106,13 @@ function isClassName(value) { return normalizeClassFilter(value) !== 'all'; }
 function number(value) { const n = Number(String(value ?? '').replace(/[^0-9.-]/g, '')); return Number.isFinite(n) ? n : 0; }
 function normalizeArchetype(value, slot, row = {}) {
   const text = String(value || '').trim();
-  const a = text.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
-  const s = String(slot || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
-  if (text && a !== s && text !== '—' && text !== '-') return text;
-  return deriveArchetype(row);
+  const a = normalizeKey(text);
+  const s = normalizeKey(slot);
+  if (text && a !== s && text !== '—' && text !== '-') return archetypeNameFrom(text) || text;
+  return archetypeNameFrom(deriveArchetype(row)) || '—';
 }
 function deriveArchetype(row = {}) {
-  let bestLabel = '—';
+  let bestLabel = '';
   let bestValue = -1;
   for (const [key, label] of ARCHETYPE_STATS) {
     const value = number(row[key]);
@@ -121,8 +121,12 @@ function deriveArchetype(row = {}) {
       bestLabel = label;
     }
   }
-  return bestValue > 0 ? bestLabel : '—';
+  return bestValue > 0 ? bestLabel : '';
 }
+function archetypeNameFrom(value) {
+  return ARCHETYPE_ALIASES[normalizeKey(value)] || '';
+}
+function normalizeKey(value) { return String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, ''); }
 
 export function loadCachedRows() {
   const cached = readJson(STORAGE_KEYS.rows, []);
