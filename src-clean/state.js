@@ -1,4 +1,5 @@
 import { STORAGE_KEYS } from './constants.js';
+import { sortRows } from './data/sort.js';
 
 const listeners = new Set();
 
@@ -7,7 +8,7 @@ export const state = {
   view: 'grid',
   search: '',
   filters: { class: 'all', slot: 'all', rarity: 'all' },
-  sortBy: 'recent',
+  sortBy: 'default',
   duplicateTolerance: 5,
   theme: 'calus',
   tags: readJson(STORAGE_KEYS.tags, {}),
@@ -41,18 +42,14 @@ export function updateTag(id, tag) {
 
 export function getFilteredRows() {
   const q = state.search.trim().toLowerCase();
-  let rows = state.rows.filter((row) => {
+  const rows = state.rows.filter((row) => {
     if (state.filters.class !== 'all' && row.Class !== state.filters.class) return false;
     if (state.filters.slot !== 'all' && row.Slot !== state.filters.slot) return false;
     if (state.filters.rarity !== 'all' && row.Rarity !== state.filters.rarity) return false;
     if (!q) return true;
-    return [row.Name, row.Id, row.Slot, row.Class, row.Rarity, row.Archetype].some((value) => String(value || '').toLowerCase().includes(q));
+    return [row.Name, row.Id, row.Slot, row.Type, row.Class, row.Rarity, row.Archetype].some((value) => String(value || '').toLowerCase().includes(q));
   });
-  if (state.sortBy === 'totalDesc') rows = rows.slice().sort((a,b) => b.Total - a.Total);
-  else if (state.sortBy === 'nameAsc') rows = rows.slice().sort((a,b) => a.Name.localeCompare(b.Name));
-  else if (state.sortBy === 'slotAsc') rows = rows.slice().sort((a,b) => String(a.Slot).localeCompare(String(b.Slot)) || b.Total - a.Total);
-  else rows = rows.slice().sort((a,b) => (b.FoundAt || 0) - (a.FoundAt || 0) || a._index - b._index);
-  return rows;
+  return sortRows(rows, state.sortBy);
 }
 
 export function loadCachedRows() {
@@ -146,10 +143,11 @@ function persistSettings() {
 
 export function loadSettings() {
   const settings = readJson(STORAGE_KEYS.settings, {});
+  const savedSort = settings.sortBy === 'recent' ? 'default' : settings.sortBy;
   Object.assign(state, {
     view: settings.view || state.view,
     theme: settings.theme || state.theme,
-    sortBy: settings.sortBy || state.sortBy,
+    sortBy: savedSort || state.sortBy,
     duplicateTolerance: Number.isFinite(Number(settings.duplicateTolerance)) ? Number(settings.duplicateTolerance) : state.duplicateTolerance,
     filters: { ...state.filters, ...(settings.filters || {}) }
   });
