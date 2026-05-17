@@ -72,10 +72,17 @@ function renderCard(row) {
 function archetypeIcon(row) {
   const name = normalizeArchetypeName(row.Archetype);
   const meta = ARMOR_ARCHETYPES[name];
-  if (!meta) return `<span class="arch-unknown" title="${html(row.Archetype || 'Unknown archetype')}">◇</span>`;
-  const statLabel = STAT_LABELS[meta.stat] || meta.stat || '';
-  const title = `${meta.label}${statLabel ? ` · ${statLabel}` : ''}`;
-  return `<span class="arch-icon arch-${safeClass(meta.label)}" title="${html(title)}" aria-label="${html(title)}"><span>${html(meta.icon || '◇')}</span></span>`;
+  const label = name || row.Archetype || 'Unknown archetype';
+  const statLabel = meta?.stat ? STAT_LABELS[meta.stat] : '';
+  const description = row.ArchetypeDescription ? ` — ${row.ArchetypeDescription}` : '';
+  const title = `${label}${statLabel ? ` · ${statLabel}` : ''}${description}`;
+  if (row.ArchetypeIcon) {
+    return `<span class="arch-icon arch-api arch-${safeClass(label)}" title="${html(title)}" aria-label="${html(title)}"><img src="${html(row.ArchetypeIcon)}" alt="${html(label)}" loading="lazy"></span>`;
+  }
+  if (meta?.icon) {
+    return `<span class="arch-icon arch-fallback arch-${safeClass(meta.label)}" title="${html(title)}" aria-label="${html(title)}"><span>${html(meta.icon)}</span></span>`;
+  }
+  return `<span class="arch-unknown" title="${html(row.Archetype || 'Unknown archetype')}">◇</span>`;
 }
 function normalizeArchetypeName(value) {
   return ARCHETYPE_ALIASES[String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, '')] || String(value || '').trim();
