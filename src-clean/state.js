@@ -47,8 +47,11 @@ export function updateTag(id, tag) {
   const nextTag = state.tags[id] === tag ? '' : tag;
   if (nextTag) state.tags[id] = nextTag;
   else delete state.tags[id];
-  state.rows = state.rows.map((row) => row.Id === id ? { ...row, Tag: nextTag } : row);
+  if (nextTag) state.dismissedRecent[id] = Date.now();
+  state.rows = state.rows.map((row) => row.Id === id ? { ...row, Tag: nextTag, ...(nextTag ? { RecentStatus: '', RecentlyFound: false } : {}) } : row);
   writeJson(STORAGE_KEYS.tags, state.tags);
+  writeJson(STORAGE_KEYS.dismissedRecent, state.dismissedRecent);
+  saveRows(state.rows);
   emit();
 }
 
