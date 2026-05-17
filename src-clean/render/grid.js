@@ -22,8 +22,8 @@ function renderCard(row) {
   const groupId = row.Group ? row.Group.replace(/[A-Z]$/, '') : '';
   const group = row.Group ? `<div class="group-badge ${row.GroupColor || ''}">${row.Group}</div>` : '';
   const action = actionLabel(row);
-  return `<article class="armor-card ${safeClass(row.Rarity)} ${row.Group ? 'is-grouped ' + row.GroupColor : ''}">
-    ${badge ? `<button class="light-tag-badge" type="button" data-id="${html(row.Id)}" data-tag-choice="${html(row.Tag || '')}">${badge}</button>` : ''}
+  return `<article class="armor-card ${safeClass(row.Rarity)} ${row.Group ? 'is-grouped ' + row.GroupColor : ''}" data-card-id="${html(row.Id)}">
+    ${badge ? `<button class="light-tag-badge" type="button" data-tag-trigger data-id="${html(row.Id)}">${badge}</button>` : ''}
     ${group}
     <div class="card-top">
       <div class="item-icon">${row.Icon ? `<img src="${html(row.Icon)}" alt="" loading="lazy">` : '<span>◇</span>'}</div>
