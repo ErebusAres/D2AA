@@ -1,8 +1,21 @@
 import { STAT_KEYS } from '../constants.js';
 import { defaultAnalyzerSort, slotNumber } from './sort.js';
 
+const GROUP_COLORS = ['group-1', 'group-2', 'group-3', 'group-4', 'group-5', 'group-6'];
+const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+
 export function applyDuplicateGroups(rows, tolerance = 5) {
-  const grouped = rows.map((row) => ({ ...row, Group: '', SortGroup: 'ZZ', GroupKey: baseKey(row), GroupColor: '' }));
+  const grouped = rows.map((row) => ({
+    ...row,
+    Group: '',
+    Dupe_Group: 'X',
+    SortGroup: 'ZZ',
+    GroupKey: baseKey(row),
+    GroupActionKey: '',
+    GroupColor: '',
+    Is_Dupe: false,
+    Is_Dupe_Exotic: false
+  }));
   const byKey = new Map();
   grouped.forEach((row, index) => {
     const key = baseKey(row);
@@ -10,7 +23,7 @@ export function applyDuplicateGroups(rows, tolerance = 5) {
     byKey.get(key).push({ row, index, key, top: topStats(row) });
   });
 
-  for (const candidates of byKey.values()) {
+  for (const [key, candidates] of byKey.entries()) {
     const assigned = new Set();
     const groups = [];
     for (let i = 0; i < candidates.length; i++) {
@@ -26,22 +39,28 @@ export function applyDuplicateGroups(rows, tolerance = 5) {
       }
       groups.push(group);
     }
+
     groups.sort((a, b) => maxTotal(candidates, b) - maxTotal(candidates, a));
     let dupeGroupIndex = 0;
     for (const group of groups) {
       if (group.length < 2) continue;
       const first = candidates[group[0]].row;
-      const groupLabel = `${slotNumber(first)}${String.fromCharCode(65 + dupeGroupIndex++)}`;
-      const color = `group-${(dupeGroupIndex % 6) || 6}`;
+      const groupLabel = `${slotNumber(first)}${LETTERS[Math.min(dupeGroupIndex, LETTERS.length - 1)]}`;
+      const color = GROUP_COLORS[dupeGroupIndex % GROUP_COLORS.length];
+      const actionKey = `${key}::${groupLabel}`;
+      dupeGroupIndex++;
       group
         .map((candidateIndex) => candidates[candidateIndex])
         .sort((a, b) => defaultAnalyzerSort(a.row, b.row))
-        .forEach((candidate, letterIndex) => {
+        .forEach((candidate) => {
           const target = grouped[candidate.index];
-          target.Group = `${groupLabel}${String.fromCharCode(65 + letterIndex)}`;
+          target.Group = groupLabel;
+          target.Dupe_Group = groupLabel;
           target.SortGroup = groupLabel;
+          target.GroupActionKey = actionKey;
           target.GroupColor = color;
           target.Is_Dupe = true;
+          target.Is_Dupe_Exotic = target.Rarity === 'Exotic';
         });
     }
   }
@@ -60,7 +79,7 @@ function isDuplicateCandidate(a, b, tolerance) {
 
 function baseKey(row) {
   const exoticName = row.Rarity === 'Exotic' ? normalize(row.Name) : 'legendary';
-  return [row.Class, row.Slot, row.Rarity, exoticName].join('|');
+  return [row.Class || row.Equippable || '', row.Slot || row.Type || '', row.Rarity || '', exoticName].join('|');
 }
 
 function topStats(row) {
