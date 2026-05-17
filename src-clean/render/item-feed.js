@@ -18,13 +18,9 @@ export function renderItemFeed(container, countEl, rows, onTag, onDismissNew, on
 }
 
 function isFeedCandidate(row) {
-  return Boolean(
-    row.Tag === 'feed' ||
-    row.RecentStatus ||
-    row.RecentlyFound ||
-    Number(row.FoundAt || 0) > 0 ||
-    Number(row.ActivityAt || 0) > 0
-  );
+  // Do not show every item that merely has a historical FoundAt timestamp.
+  // Feed is for active DIM-like live activity: newly seen, moved, changed, or manually pinned to feed.
+  return Boolean(row.Tag === 'feed' || row.RecentStatus || row.RecentlyFound);
 }
 
 function compareRecent(a, b) {
@@ -38,7 +34,7 @@ function recentTime(row) {
 }
 
 function renderEmptyFeed() {
-  return `<div class="feed-empty"><strong>No recent item history yet.</strong><span>Run Bungie sync, then newly found, moved, or changed armor will appear here.</span></div>`;
+  return `<div class="feed-empty"><strong>No live item activity.</strong><span>Newly found, moved, or changed armor will appear here after Bungie sync detects it.</span></div>`;
 }
 
 function renderFeedCard(row) {
