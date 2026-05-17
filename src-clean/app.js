@@ -22,12 +22,13 @@ function boot() {
 }
 
 function cacheEls() {
-  ['statusText','searchBox','refreshBtn','menuBtn','commandPanel','gridView','tableView','tableBody','emptyState','summaryShown','summaryCached','summaryGroups','summaryRecent','summaryClasses','activeChips','csvFile','uploadCsvBtn','restoreCacheBtn','clearCacheBtn','classFilter','slotFilter','rarityFilter','sortBy','duplicateTolerance','duplicateToleranceOut','themePills','feedList','feedCount','feedToggle','itemFeed'].forEach((id) => els[id] = document.getElementById(id));
+  ['statusText','searchBox','refreshBtn','menuBtn','commandPanel','classToggle','gridView','tableView','tableBody','emptyState','summaryShown','summaryCached','summaryGroups','summaryRecent','summaryClasses','activeChips','csvFile','uploadCsvBtn','restoreCacheBtn','clearCacheBtn','classFilter','slotFilter','rarityFilter','sortBy','duplicateTolerance','duplicateToleranceOut','themePills','feedList','feedCount','feedToggle','itemFeed'].forEach((id) => els[id] = document.getElementById(id));
 }
 
 function bindEvents() {
   els.searchBox?.addEventListener('input', () => setState({ search: els.searchBox.value }));
   document.querySelectorAll('[data-view]').forEach((button) => button.addEventListener('click', () => setState({ view: button.dataset.view })));
+  els.classToggle?.querySelectorAll('[data-class-filter]').forEach((button) => button.addEventListener('click', () => setClassFilter(button.dataset.classFilter || 'all')));
   els.menuBtn?.addEventListener('click', () => els.commandPanel.classList.toggle('is-open'));
   els.feedToggle?.addEventListener('click', toggleItemFeed);
   els.uploadCsvBtn?.addEventListener('click', () => els.csvFile.click());
@@ -51,6 +52,10 @@ function bindEvents() {
   els.themePills?.querySelectorAll('[data-theme]').forEach((button) => button.addEventListener('click', () => setState({ theme: button.dataset.theme })));
 }
 
+function setClassFilter(className) {
+  setState({ filters: { ...state.filters, class: className || 'all' } });
+}
+
 function toggleItemFeed() {
   const open = !els.itemFeed.classList.contains('is-open');
   els.itemFeed.classList.toggle('is-open', open);
@@ -67,6 +72,7 @@ function render() {
   syncViewButtons();
   syncThemeButtons();
   syncFilterOptions();
+  syncClassToggle();
   const grouped = applyDuplicateGroups(state.rows, state.duplicateTolerance);
   lastGroupedRows = grouped;
   const filtered = getFilteredRowsFrom(grouped);
@@ -144,6 +150,17 @@ function syncViewButtons() {
 function syncThemeButtons() {
   els.themePills?.querySelectorAll('[data-theme]').forEach((button) => button.classList.toggle('is-active', button.dataset.theme === state.theme));
 }
+function syncClassToggle() {
+  if (!els.classToggle) return;
+  const counts = countByClass(state.rows);
+  els.classToggle.querySelectorAll('[data-class-filter]').forEach((button) => {
+    const cls = button.dataset.classFilter || 'all';
+    button.classList.toggle('is-active', state.filters.class === cls);
+    const count = cls === 'all' ? state.rows.length : counts[cls] || 0;
+    const badge = button.querySelector('b');
+    if (badge) badge.textContent = String(count);
+  });
+}
 function syncFilterOptions() {
   fillSelect(els.classFilter, ['all', ...unique(state.rows.map((r) => r.Class))], state.filters.class);
   fillSelect(els.slotFilter, ['all', ...SLOT_ORDER.filter((slot) => state.rows.some((r) => r.Slot === slot)), ...unique(state.rows.map((r) => r.Slot)).filter((slot) => !SLOT_ORDER.includes(slot))], state.filters.slot);
@@ -163,6 +180,12 @@ function renderChips() {
   els.activeChips.innerHTML = chips.map((chip) => `<span>${html(chip)}</span>`).join('');
 }
 function unique(values) { return [...new Set(values.filter(Boolean))].sort(); }
+function countByClass(rows) {
+  return rows.reduce((acc, row) => {
+    if (row.Class) acc[row.Class] = (acc[row.Class] || 0) + 1;
+    return acc;
+  }, {});
+}
 function setStatus(status) { setState({ status }); }
 function html(value) { return String(value ?? '').replace(/[&<>"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[char])); }
 
