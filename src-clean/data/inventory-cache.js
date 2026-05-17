@@ -6,7 +6,6 @@ const DB_VERSION = 1;
 const STORE = 'keyval';
 const IDB_ROWS_KEY = 'bungieRows';
 const IDB_META_KEY = 'bungieMeta';
-const RECENT_WINDOW_MS = 10 * 60 * 1000;
 
 export async function getCachedBungieInventory() {
   const idbRows = await idbGet(IDB_ROWS_KEY).catch(() => null);
@@ -29,10 +28,10 @@ export async function saveBungieInventory(rows, reason = 'sync') {
   const hasPrevious = previousById.size > 0;
   const savedAt = new Date().toISOString();
   const discoveredBase = Date.now();
-  const cleanRows = rows.map((row, index) => markRecentChange({ ...row, Source: 'Bungie', FromCache: false }, previousById, savedAt, hasPrevious, discoveredBase + index));
+  const cleanRows = rows.map((row, index) => markNewlyObtained({ ...row, Source: 'Bungie', FromCache: false }, previousById, savedAt, hasPrevious, discoveredBase + index));
   const slimRows = cleanRows.map(slimRowForStorage);
   const changes = summarizeChanges(slimRows);
-  const meta = { savedAt, count: slimRows.length, reason, version: 6, store: 'indexeddb', ...changes };
+  const meta = { savedAt, count: slimRows.length, reason, version: 7, store: 'indexeddb', ...changes };
   try {
     await idbSet(IDB_ROWS_KEY, slimRows);
     await idbSet(IDB_META_KEY, meta);
@@ -51,7 +50,7 @@ export async function saveBungieInventory(rows, reason = 'sync') {
 export async function loadBungieInventoryFromCache() {
   const cache = await getCachedBungieInventory();
   if (!cache.hasRows) return null;
-  return { rows: cache.rows.map(clearExpiredRecent).map((row) => ({ ...row, Source: row.Source || 'Bungie', FromCache: true })), meta: cache.meta };
+  return { rows: cache.rows.map((row) => ({ ...row, Source: row.Source || 'Bungie', FromCache: true })), meta: cache.meta };
 }
 
 export async function clearBungieInventoryCache() {
@@ -102,39 +101,34 @@ async function idbDelete(key) {
   });
 }
 
-function markRecentChange(row, previousById, savedAt, hasPrevious, discoveredAt) {
+function markNewlyObtained(row, previousById, savedAt, hasPrevious, discoveredAt) {
   const old = previousById.get(String(row.Id));
   if (!old) {
     return hasPrevious
-      ? { ...row, RecentStatus: 'new', RecentlyFound: true, FoundAt: discoveredAt, LastChangedAt: savedAt }
-      : { ...row, RecentStatus: '', RecentlyFound: false, FoundAt: 0, LastChangedAt: savedAt };
+      ? { ...row, RecentStatus: 'new', RecentlyFound: true, FoundAt: discoveredAt, ActivityAt: discoveredAt, LastChangedAt: savedAt }
+      : { ...row, RecentStatus: '', RecentlyFound: false, FoundAt: 0, ActivityAt: 0, LastChangedAt: savedAt };
   }
-  const oldLoc = locationKey(old);
-  const newLoc = locationKey(row);
-  const statChanged = Number(old.Total || 0) !== Number(row.Total || 0) || Number(old.Power || 0) !== Number(row.Power || 0) || Number(old.Tier || 0) !== Number(row.Tier || 0);
-  const moved = oldLoc !== newLoc;
-  const status = moved ? 'moved' : statChanged ? 'changed' : '';
-  if (!status) return clearExpiredRecent({ ...row, FoundAt: Number(old.FoundAt || 0), LastChangedAt: old.LastChangedAt });
-  return { ...row, RecentStatus: status, RecentlyFound: true, FoundAt: Number(old.FoundAt || 0), LastChangedAt: savedAt, ActivityAt: discoveredAt };
-}
 
-function clearExpiredRecent(row) {
-  const time = Number(row.ActivityAt || row.FoundAt || Date.parse(row.LastChangedAt || '') || 0);
-  if (!row.RecentStatus || !time) return { ...row, RecentStatus: '', RecentlyFound: false };
-  if (Date.now() - time > RECENT_WINDOW_MS) return { ...row, RecentStatus: '', RecentlyFound: false };
-  return row;
+  // DIM-like Item Feed behavior: preserve newly-obtained markers until the item falls
+  // past the 20-item feed cap, the user dismisses it, or the user assigns a tag.
+  // Moves/stat changes should update inventory state but should not appear in Item Feed.
+  const keepNew = old.RecentStatus === 'new' || old.RecentlyFound;
+  return {
+    ...row,
+    RecentStatus: keepNew ? 'new' : '',
+    RecentlyFound: Boolean(keepNew),
+    FoundAt: Number(old.FoundAt || 0),
+    ActivityAt: Number(old.ActivityAt || old.FoundAt || 0),
+    LastChangedAt: old.LastChangedAt || savedAt
+  };
 }
 
 function summarizeChanges(rows) {
   return {
     added: rows.filter((row) => row.RecentStatus === 'new').length,
-    moved: rows.filter((row) => row.RecentStatus === 'moved').length,
-    changed: rows.filter((row) => row.RecentStatus === 'changed').length
+    moved: 0,
+    changed: 0
   };
-}
-
-function locationKey(row) {
-  return [row.OwnerCharacterId || '', row.IsInVault ? 'vault' : 'char', row.IsEquipped ? 'equipped' : 'stored'].join('|');
 }
 
 export function formatCacheTime(meta) {
