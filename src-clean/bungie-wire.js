@@ -1,7 +1,7 @@
 import { state, setState, setRows, updateTag } from './state.js';
 import { connectBungie, initializeBungieSync, scheduleSemiLiveRefresh, shouldRefreshOnFocus, syncBungieInventory } from './data/bungie-sync.js?v=clean62';
 import { isSignedIn } from './data/bungie-auth.js?v=clean62';
-import { syncDimTags, clearDimApiKey } from './data/dim-tags.js?v=1.1';
+import { syncDimTags, clearDimApiKey } from './data/dim-tags.js?v=1.2';
 
 const setStatus = (status) => setState({ status });
 const hasRows = () => state.rows.length > 0;
@@ -21,39 +21,17 @@ function bindBungieControls() {
   document.addEventListener('click', (event) => {
     const button = event.target.closest?.('#bungieLoginBtn,#bungieSyncBtn,#refreshBtn,#dimTagSyncBtn,#dimTagResetBtn');
     if (!button) return;
-    if (button.id === 'bungieLoginBtn') {
-      event.preventDefault();
-      connectBungie();
-      return;
-    }
-    if (button.id === 'bungieSyncBtn') {
-      event.preventDefault();
-      runSync('manual-sync');
-      return;
-    }
-    if (button.id === 'refreshBtn') {
-      event.preventDefault();
-      runSync('refresh-button');
-      return;
-    }
-    if (button.id === 'dimTagSyncBtn') {
-      event.preventDefault();
-      runDimTagSync(button);
-      return;
-    }
-    if (button.id === 'dimTagResetBtn') {
-      event.preventDefault();
-      clearDimApiKey();
-      setStatus('DIM API key/token cleared from this browser.');
-    }
+    if (button.id === 'bungieLoginBtn') { event.preventDefault(); connectBungie(); return; }
+    if (button.id === 'bungieSyncBtn') { event.preventDefault(); runSync('manual-sync'); return; }
+    if (button.id === 'refreshBtn') { event.preventDefault(); runSync('refresh-button'); return; }
+    if (button.id === 'dimTagSyncBtn') { event.preventDefault(); runDimTagSync(button); return; }
+    if (button.id === 'dimTagResetBtn') { event.preventDefault(); clearDimApiKey(); setStatus('DIM API key/token cleared from this browser.'); }
   });
   window.addEventListener('d2aa:bungie-sync-request', (event) => {
     const detail = event.detail || {};
     runSync(detail.reason || 'app-request', Boolean(detail.background));
   });
-  document.addEventListener('visibilitychange', () => {
-    if (!document.hidden && shouldRefreshOnFocus()) requestLiveRefresh('focus-refresh');
-  });
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && shouldRefreshOnFocus()) requestLiveRefresh('focus-refresh'); });
   window.addEventListener('online', () => requestLiveRefresh('network-online'));
 }
 
