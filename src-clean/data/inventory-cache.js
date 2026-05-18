@@ -7,6 +7,8 @@ const STORE = 'keyval';
 const IDB_ROWS_KEY = 'bungieRows';
 const IDB_META_KEY = 'bungieMeta';
 const SEEN_LEDGER_KEY = 'd2aa_clean_seen_item_ids_v1';
+const SEEN_LEDGER_LIMIT = 260;
+const OLD_OVERSIZED_KEYS = ['d2aa_clean_rows_v1', 'd2aa_clean_bungie_rows_v1'];
 
 export async function getCachedBungieInventory() {
   const idbRows = await idbGet(IDB_ROWS_KEY).catch(() => null);
@@ -34,7 +36,7 @@ export async function saveBungieInventory(rows, reason = 'sync') {
   const slimRows = cleanRows.map(slimRowForStorage);
   writeSeenLedger(slimRows, seenLedger);
   const changes = summarizeChanges(slimRows);
-  const meta = { savedAt, count: slimRows.length, reason, version: 8, store: 'indexeddb', ...changes };
+  const meta = { savedAt, count: slimRows.length, reason, version: 9, store: 'indexeddb', ...changes };
   try {
     await idbSet(IDB_ROWS_KEY, slimRows);
     await idbSet(IDB_META_KEY, meta);
@@ -115,9 +117,6 @@ function markNewlyObtained(row, previousById, seenLedger, savedAt, hasPrevious, 
       : { ...row, RecentStatus: '', RecentlyFound: false, FoundAt: 0, ActivityAt: 0, LastChangedAt: savedAt };
   }
 
-  // DIM-like Item Feed behavior: preserve newly-obtained markers until the item falls
-  // past the 20-item feed cap, the user dismisses it, or the user assigns a tag.
-  // Moves/stat changes should update inventory state but should not appear in Item Feed.
   const keepNew = old?.RecentStatus === 'new' || old?.RecentlyFound || seen?.recent === true;
   const foundAt = Number(old?.FoundAt || seen?.foundAt || 0);
   return {
@@ -137,17 +136,45 @@ function readSeenLedger() {
 
 function writeSeenLedger(rows, previousLedger = {}) {
   const next = {};
-  for (const row of rows) {
-    const id = String(row.Id || '');
-    if (!id) continue;
-    next[id] = {
-      foundAt: Number(row.FoundAt || previousLedger[id]?.foundAt || 0),
-      activityAt: Number(row.ActivityAt || previousLedger[id]?.activityAt || row.FoundAt || 0),
-      lastChangedAt: row.LastChangedAt || previousLedger[id]?.lastChangedAt || '',
-      recent: row.RecentStatus === 'new' || row.RecentlyFound === true
+  const candidates = rows
+    .filter((row) => row?.Id)
+    .map((row) => {
+      const id = String(row.Id || '');
+      const prev = previousLedger[id] || {};
+      const foundAt = Number(row.FoundAt || prev.foundAt || 0);
+      const activityAt = Number(row.ActivityAt || prev.activityAt || row.FoundAt || 0);
+      const recent = row.RecentStatus === 'new' || row.RecentlyFound === true;
+      return { id, foundAt, activityAt, lastChangedAt: row.LastChangedAt || prev.lastChangedAt || '', recent };
+    })
+    .sort((a, b) => Number(b.recent) - Number(a.recent) || b.activityAt - a.activityAt || b.foundAt - a.foundAt)
+    .slice(0, SEEN_LEDGER_LIMIT);
+
+  for (const item of candidates) {
+    next[item.id] = {
+      foundAt: item.foundAt,
+      activityAt: item.activityAt,
+      lastChangedAt: item.lastChangedAt,
+      recent: item.recent
     };
   }
-  writeJson(SEEN_LEDGER_KEY, next);
+
+  try {
+    writeJson(SEEN_LEDGER_KEY, next);
+  } catch (error) {
+    console.warn('D2AA seen-item ledger write skipped because localStorage is full.', error);
+    clearOversizedLocalStorage();
+    try { writeJson(SEEN_LEDGER_KEY, Object.fromEntries(Object.entries(next).slice(0, 80))); }
+    catch (_) { try { localStorage.removeItem(SEEN_LEDGER_KEY); } catch (__) {} }
+  }
+}
+
+function clearOversizedLocalStorage() {
+  for (const key of OLD_OVERSIZED_KEYS) {
+    try {
+      const value = localStorage.getItem(key) || '';
+      if (value.length > 500000) localStorage.removeItem(key);
+    } catch (_) {}
+  }
 }
 
 function summarizeChanges(rows) {
