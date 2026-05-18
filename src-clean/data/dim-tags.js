@@ -7,7 +7,6 @@ const DIM_TAG_STORAGE = {
   token: 'd2aa_dim_api_token_v1',
   lastSync: 'd2aa_dim_tags_last_sync_v1'
 };
-const DIM_APP_NAME = 'd2aa-clean';
 const DIM_VERSION = 'D2AA-clean';
 
 export async function syncDimTags({ setStatus } = {}) {
@@ -39,7 +38,7 @@ export async function ensureDimApiKey() {
   const response = await dimUnauthenticated('/new_app', {
     method: 'POST',
     body: {
-      id: DIM_APP_NAME,
+      id: window.location.hostname || 'localhost',
       bungieApiKey: cfg.apiKey,
       origin: window.location.origin
     }
