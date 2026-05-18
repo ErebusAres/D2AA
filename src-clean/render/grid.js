@@ -44,7 +44,7 @@ function renderCard(row) {
   const groupLabel = row.Dupe_Group || row.Group || '';
   const groupActionKey = row.GroupActionKey || `${row.GroupKey || ''}::${groupLabel}`;
   const isNew = row.RecentStatus === 'new' || row.Tag === 'feed';
-  const group = row.Is_Dupe ? `<button type="button" class="group-badge ${row.GroupColor || ''}" title="Compare duplicate group ${html(groupLabel)}" data-compare-group="${html(groupActionKey)}"><span>⚖️</span>${row.Is_Dupe_Exotic ? iconImg(RARITY_ICONS.Exotic, 'Exotic duplicate group', 'badge-icon') : ''}${html(groupLabel)}</button>` : '';
+  const group = row.Is_Dupe ? `<button type="button" class="group-badge ${row.GroupColor || ''}" title="Compare duplicate group ${html(groupLabel)}" data-compare-group="${html(groupActionKey)}">${row.Is_Dupe_Exotic ? iconImg(RARITY_ICONS.Exotic, 'Exotic duplicate group', 'badge-icon') : ''}${html(groupLabel)}</button>` : '';
   const newBadge = isNew ? `<div class="new-found-badge" title="Recently found">✨ New</div>` : '';
   const action = actionLabel(row);
   return `<article class="armor-card ${safeClass(row.Rarity)} ${isNew ? 'is-new-found' : ''} ${row.Is_Dupe ? 'is-grouped is-dupe ' + row.GroupColor : ''}" data-card-id="${html(row.Id)}" data-group="${html(groupLabel)}">
