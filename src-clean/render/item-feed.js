@@ -31,15 +31,28 @@ function latestSyncedRows(rows) {
 }
 
 function compareLatestSynced(a, b) {
-  const aTime = recentTime(a);
-  const bTime = recentTime(b);
-  return bTime - aTime || Number(b._index ?? 0) - Number(a._index ?? 0) || String(a.Name).localeCompare(String(b.Name));
+  const timeDiff = recentTime(b) - recentTime(a);
+  if (timeDiff) return timeDiff;
+  const idDiff = compareInstanceIdsDesc(a.Id, b.Id);
+  if (idDiff) return idDiff;
+  return Number(b._index ?? 0) - Number(a._index ?? 0) || String(a.Name).localeCompare(String(b.Name));
+}
+
+function compareInstanceIdsDesc(a, b) {
+  const left = digitsOnly(a);
+  const right = digitsOnly(b);
+  if (left.length !== right.length) return right.length - left.length;
+  return right.localeCompare(left);
+}
+
+function digitsOnly(value) {
+  return String(value || '').split('').filter((char) => char >= '0' && char <= '9').join('').replace(/^0+/, '');
 }
 
 function compareRecent(a, b) {
   const aTime = recentTime(a);
   const bTime = recentTime(b);
-  return bTime - aTime || String(a.Name).localeCompare(String(b.Name));
+  return bTime - aTime || compareInstanceIdsDesc(a.Id, b.Id) || String(a.Name).localeCompare(String(b.Name));
 }
 
 function recentTime(row) {
@@ -55,14 +68,13 @@ function renderFeedCard(row, fallback = false) {
   const groupLabel = row.Dupe_Group || row.Group || '';
   const groupKey = row.GroupActionKey || '';
   const groupButton = row.Is_Dupe ? `<button type="button" class="feed-group-badge ${row.GroupColor || ''}" title="Compare duplicate group ${html(groupLabel)}" data-feed-compare-group="${html(groupKey)}">${html(groupLabel)}</button>` : '';
-  const status = fallback ? `<small class="feed-status latest">latest</small>` : `<small class="feed-status new">✨ new</small>`;
   const dismiss = fallback ? '' : `<button type="button" class="feed-dismiss-new" data-id="${html(row.Id)}" data-dismiss-new title="Dismiss new marker" aria-label="Dismiss new marker for ${html(row.Name)}">×</button>`;
   const loc = locationLabel(row);
   const tagButtons = TAGS.filter((tag) => tag.picker && tag.value).map((tag) => `<button type="button" class="feed-tag-btn ${row.Tag === tag.value ? 'is-active' : ''}" title="${html(row.Tag === tag.value ? `Remove ${tag.label}` : tag.label)}" aria-label="${html(row.Tag === tag.value ? `Remove ${tag.label}` : `Tag ${row.Name} as ${tag.label}`)}" data-id="${html(row.Id)}" data-feed-tag="${html(tag.value)}"><span>${tag.emoji}</span></button>`).join('');
   return `<article class="feed-card ${feedNew ? 'is-new is-new-found' : 'is-latest'} ${row.Is_Dupe ? `is-feed-grouped ${row.GroupColor || ''}` : ''}" data-feed-card-id="${html(row.Id)}" data-feed-group="${html(groupLabel)}">
     ${dismiss}${groupButton}
     <div class="feed-icon">${row.Icon ? `<img src="${html(row.Icon)}" alt="" loading="lazy">` : '<span>◇</span>'}${row.Power || row.Light ? `<b>${row.Power || row.Light}</b>` : ''}${feedNew ? '<i class="feed-new-spark">✨</i>' : ''}</div>
-    <div class="feed-main"><div class="feed-title-line"><strong title="${html(row.Name)}">${html(row.Name)}</strong>${status}</div><span class="feed-meta-icons" aria-label="${html(`${row.Class} ${row.Slot} ${row.Rarity} ${loc}`)}">${iconImg(CLASS_ICONS[row.Class], row.Class)}${maskIcon(SLOT_ICONS[row.Slot], row.Slot)}${iconImg(RARITY_ICONS[row.Rarity], row.Rarity)}${locationIcon(loc)}</span><div class="feed-stats">${STAT_KEYS.map((key) => statChip(row, key)).join('')}</div><div class="feed-tags">${tagButtons}</div></div>
+    <div class="feed-main"><div class="feed-title-line"><strong title="${html(row.Name)}">${html(row.Name)}</strong></div><span class="feed-meta-icons" aria-label="${html(`${row.Class} ${row.Slot} ${row.Rarity} ${loc}`)}">${iconImg(CLASS_ICONS[row.Class], row.Class)}${maskIcon(SLOT_ICONS[row.Slot], row.Slot)}${iconImg(RARITY_ICONS[row.Rarity], row.Rarity)}${locationIcon(loc)}</span><div class="feed-stats">${STAT_KEYS.map((key) => statChip(row, key)).join('')}</div><div class="feed-tags">${tagButtons}</div></div>
   </article>`;
 }
 function statChip(row, key) {
