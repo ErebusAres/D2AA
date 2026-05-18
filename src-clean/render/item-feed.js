@@ -32,12 +32,11 @@ function recentTime(row) {
 }
 
 function renderEmptyFeed() {
-  return `<div class="feed-empty"><strong>No newly obtained armor.</strong><span>New armor detected by Bungie sync will stay here until it falls past the latest 20, you dismiss it, or you assign a tag.</span></div>`;
+  return `<div class="feed-empty"><strong>No newly obtained armor.</strong><br><span>New armor detected by Bungie sync will stay here until it falls past the latest 20, you dismiss it, or you assign a tag.</span></div>`;
 }
 
 function renderFeedCard(row) {
   const feedNew = true;
-  const statusText = 'new';
   const groupLabel = row.Dupe_Group || row.Group || '';
   const groupKey = row.GroupActionKey || '';
   const groupButton = row.Is_Dupe ? `<button type="button" class="feed-group-badge ${row.GroupColor || ''}" title="Compare duplicate group ${html(groupLabel)}" data-feed-compare-group="${html(groupKey)}">${html(groupLabel)}</button>` : '';
