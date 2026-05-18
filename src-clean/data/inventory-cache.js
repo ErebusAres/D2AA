@@ -6,6 +6,7 @@ const DB_VERSION = 1;
 const STORE = 'keyval';
 const IDB_ROWS_KEY = 'bungieRows';
 const IDB_META_KEY = 'bungieMeta';
+const SEEN_LEDGER_KEY = 'd2aa_clean_seen_item_ids_v1';
 
 export async function getCachedBungieInventory() {
   const idbRows = await idbGet(IDB_ROWS_KEY).catch(() => null);
@@ -25,13 +26,15 @@ export async function getCachedBungieInventory() {
 export async function saveBungieInventory(rows, reason = 'sync') {
   const previous = (await getCachedBungieInventory()).rows;
   const previousById = new Map(previous.map((row) => [String(row.Id), row]));
-  const hasPrevious = previousById.size > 0;
+  const seenLedger = readSeenLedger();
+  const hasPrevious = previousById.size > 0 || Object.keys(seenLedger).length > 0;
   const savedAt = new Date().toISOString();
   const discoveredBase = Date.now();
-  const cleanRows = rows.map((row, index) => markNewlyObtained({ ...row, Source: 'Bungie', FromCache: false }, previousById, savedAt, hasPrevious, discoveredBase + index));
+  const cleanRows = rows.map((row, index) => markNewlyObtained({ ...row, Source: 'Bungie', FromCache: false }, previousById, seenLedger, savedAt, hasPrevious, discoveredBase + index));
   const slimRows = cleanRows.map(slimRowForStorage);
+  writeSeenLedger(slimRows, seenLedger);
   const changes = summarizeChanges(slimRows);
-  const meta = { savedAt, count: slimRows.length, reason, version: 7, store: 'indexeddb', ...changes };
+  const meta = { savedAt, count: slimRows.length, reason, version: 8, store: 'indexeddb', ...changes };
   try {
     await idbSet(IDB_ROWS_KEY, slimRows);
     await idbSet(IDB_META_KEY, meta);
@@ -58,6 +61,7 @@ export async function clearBungieInventoryCache() {
   await idbDelete(IDB_META_KEY).catch(() => {});
   localStorage.removeItem(STORAGE_KEYS.bungieRows);
   localStorage.removeItem(STORAGE_KEYS.bungieMeta);
+  localStorage.removeItem(SEEN_LEDGER_KEY);
 }
 
 function openDb() {
@@ -101,9 +105,11 @@ async function idbDelete(key) {
   });
 }
 
-function markNewlyObtained(row, previousById, savedAt, hasPrevious, discoveredAt) {
-  const old = previousById.get(String(row.Id));
-  if (!old) {
+function markNewlyObtained(row, previousById, seenLedger, savedAt, hasPrevious, discoveredAt) {
+  const id = String(row.Id);
+  const old = previousById.get(id);
+  const seen = seenLedger[id];
+  if (!old && !seen) {
     return hasPrevious
       ? { ...row, RecentStatus: 'new', RecentlyFound: true, FoundAt: discoveredAt, ActivityAt: discoveredAt, LastChangedAt: savedAt }
       : { ...row, RecentStatus: '', RecentlyFound: false, FoundAt: 0, ActivityAt: 0, LastChangedAt: savedAt };
@@ -112,15 +118,36 @@ function markNewlyObtained(row, previousById, savedAt, hasPrevious, discoveredAt
   // DIM-like Item Feed behavior: preserve newly-obtained markers until the item falls
   // past the 20-item feed cap, the user dismisses it, or the user assigns a tag.
   // Moves/stat changes should update inventory state but should not appear in Item Feed.
-  const keepNew = old.RecentStatus === 'new' || old.RecentlyFound;
+  const keepNew = old?.RecentStatus === 'new' || old?.RecentlyFound || seen?.recent === true;
+  const foundAt = Number(old?.FoundAt || seen?.foundAt || 0);
   return {
     ...row,
     RecentStatus: keepNew ? 'new' : '',
     RecentlyFound: Boolean(keepNew),
-    FoundAt: Number(old.FoundAt || 0),
-    ActivityAt: Number(old.ActivityAt || old.FoundAt || 0),
-    LastChangedAt: old.LastChangedAt || savedAt
+    FoundAt: foundAt,
+    ActivityAt: Number(old?.ActivityAt || old?.FoundAt || seen?.activityAt || foundAt || 0),
+    LastChangedAt: old?.LastChangedAt || seen?.lastChangedAt || savedAt
   };
+}
+
+function readSeenLedger() {
+  const value = readJson(SEEN_LEDGER_KEY, {});
+  return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+}
+
+function writeSeenLedger(rows, previousLedger = {}) {
+  const next = {};
+  for (const row of rows) {
+    const id = String(row.Id || '');
+    if (!id) continue;
+    next[id] = {
+      foundAt: Number(row.FoundAt || previousLedger[id]?.foundAt || 0),
+      activityAt: Number(row.ActivityAt || previousLedger[id]?.activityAt || row.FoundAt || 0),
+      lastChangedAt: row.LastChangedAt || previousLedger[id]?.lastChangedAt || '',
+      recent: row.RecentStatus === 'new' || row.RecentlyFound === true
+    };
+  }
+  writeJson(SEEN_LEDGER_KEY, next);
 }
 
 function summarizeChanges(rows) {
