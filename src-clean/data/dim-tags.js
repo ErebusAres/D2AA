@@ -1,5 +1,5 @@
 import { getMembership } from './bungie-api.js';
-import { ensureValidToken } from './bungie-auth.js';
+import { ensureValidToken, getBungieConfig } from './bungie-auth.js';
 
 const DIM_API_HOST = 'https://api.destinyitemmanager.com';
 const DIM_TAG_STORAGE = {
@@ -7,12 +7,12 @@ const DIM_TAG_STORAGE = {
   token: 'd2aa_dim_api_token_v1',
   lastSync: 'd2aa_dim_tags_last_sync_v1'
 };
+const DIM_APP_NAME = 'd2aa-clean';
 const DIM_VERSION = 'D2AA-clean';
 
 export async function syncDimTags({ setStatus } = {}) {
-  const apiKey = ensureDimApiKey();
-  if (!apiKey) throw new Error('DIM tag sync canceled. No DIM API key was saved.');
   setStatus?.('Connecting to DIM Sync...');
+  const apiKey = await ensureDimApiKey();
   const membership = await getMembership();
   const token = await getDimAuthToken(apiKey, membership.membershipId);
   setStatus?.('Pulling DIM tags...');
@@ -31,13 +31,23 @@ export async function syncDimTags({ setStatus } = {}) {
   return { tags, count: Object.keys(tags).length, membershipId: membership.membershipId };
 }
 
-export function ensureDimApiKey() {
+export async function ensureDimApiKey() {
   const existing = getDimApiKey();
   if (existing) return existing;
-  const value = window.prompt('Paste DIM API key for read-only DIM tag sync. This is stored locally in this browser only.');
-  if (!value?.trim()) return '';
-  localStorage.setItem(DIM_TAG_STORAGE.apiKey, value.trim());
-  return value.trim();
+  const cfg = getBungieConfig();
+  if (!cfg.apiKey) throw new Error('Missing Bungie API key; cannot register DIM API app.');
+  const response = await dimUnauthenticated('/new_app', {
+    method: 'POST',
+    body: {
+      id: DIM_APP_NAME,
+      bungieApiKey: cfg.apiKey,
+      origin: window.location.origin
+    }
+  });
+  const dimKey = response?.app?.dimApiKey;
+  if (!dimKey) throw new Error('DIM API registration did not return a DIM API key.');
+  localStorage.setItem(DIM_TAG_STORAGE.apiKey, dimKey);
+  return dimKey;
 }
 
 export function clearDimApiKey() {
@@ -69,6 +79,20 @@ async function getDimAuthToken(apiKey, membershipId) {
   };
   localStorage.setItem(DIM_TAG_STORAGE.token, JSON.stringify(normalized));
   return normalized.accessToken;
+}
+
+async function dimUnauthenticated(path, { method = 'GET', body = null } = {}) {
+  const response = await fetch(`${DIM_API_HOST}${path}`, {
+    method,
+    headers: body ? { 'Content-Type': 'application/json' } : {},
+    body: body ? JSON.stringify(body) : undefined
+  });
+  const json = await response.json().catch(() => ({}));
+  if (!response.ok || json?.error) {
+    const message = json?.message || json?.error || `DIM API request failed (${response.status}).`;
+    throw new Error(message);
+  }
+  return json;
 }
 
 async function dimApi(path, { method = 'GET', apiKey, token = '', params = null, body = null } = {}) {
