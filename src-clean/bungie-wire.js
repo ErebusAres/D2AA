@@ -1,16 +1,18 @@
 import { state, setState, setRows, updateTag } from './state.js';
 import { connectBungie, initializeBungieSync, scheduleSemiLiveRefresh, shouldRefreshOnFocus, syncBungieInventory } from './data/bungie-sync.js?v=clean62';
 import { isSignedIn } from './data/bungie-auth.js?v=clean62';
-import { syncDimTags, clearDimApiKey } from './data/dim-tags.js?v=1.4';
+import { syncDimTags, clearDimApiKey } from './data/dim-tags.js?v=1.5';
 
 const setStatus = (status) => setState({ status });
 const hasRows = () => state.rows.length > 0;
 const ROW_CACHE_KEY = 'd2aa_clean_rows_v1';
 const LIVE_REFRESH_MS = 60000;
+const ITEM_FEED_CHECK_MS = 60000;
 const LIVE_MIN_GAP_MS = 25000;
 
 let lastLiveRefreshAt = 0;
 let liveRefreshTimer = null;
+let itemFeedPollTimer = null;
 let controlsBound = false;
 
 function bindBungieControls() {
@@ -31,7 +33,17 @@ function bindBungieControls() {
     const detail = event.detail || {};
     runSync(detail.reason || 'app-request', Boolean(detail.background));
   });
-  document.addEventListener('visibilitychange', () => { if (!document.hidden && shouldRefreshOnFocus()) requestLiveRefresh('focus-refresh'); });
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) {
+      if (shouldRefreshOnFocus()) requestLiveRefresh('focus-refresh');
+      scheduleItemFeedPoll(5000);
+    }
+  });
+  window.addEventListener('focus', () => {
+    if (shouldRefreshOnFocus()) requestLiveRefresh('window-focus-refresh');
+    scheduleItemFeedPoll(5000);
+  });
+  window.addEventListener('blur', () => scheduleItemFeedPoll());
   window.addEventListener('online', () => requestLiveRefresh('network-online'));
 }
 
@@ -45,6 +57,7 @@ async function runSync(reason, background = false) {
     clearOversizedGenericCache();
     scheduleSemiLiveRefresh({ setStatus, setRows, hasRows, delay: LIVE_REFRESH_MS });
     scheduleLivePulse();
+    scheduleItemFeedPoll();
     if (background && startedVisibleRows && result.meta) {
       const changed = Number(result.meta.added || 0) + Number(result.meta.moved || 0) + Number(result.meta.changed || 0);
       if (!changed) setStatus(`Live state current. Last checked ${new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}.`);
@@ -116,7 +129,7 @@ function canRunLiveDimSync() {
 
 function requestLiveRefresh(reason) {
   if (!isSignedIn()) return refreshLoginState();
-  if (document.hidden || !navigator.onLine) return;
+  if (!isPageLive()) return scheduleItemFeedPoll();
   if (Date.now() - lastLiveRefreshAt < LIVE_MIN_GAP_MS) return;
   runSync(reason, true);
 }
@@ -128,6 +141,19 @@ function scheduleLivePulse() {
     requestLiveRefresh('live-state-pulse');
     scheduleLivePulse();
   }, LIVE_REFRESH_MS);
+}
+
+function scheduleItemFeedPoll(delay = ITEM_FEED_CHECK_MS) {
+  clearTimeout(itemFeedPollTimer);
+  if (!isSignedIn()) return;
+  itemFeedPollTimer = setTimeout(() => {
+    if (isPageLive()) requestLiveRefresh('item-feed-new-item-poll');
+    scheduleItemFeedPoll();
+  }, delay);
+}
+
+function isPageLive() {
+  return !document.hidden && navigator.onLine && (document.hasFocus?.() ?? true);
 }
 
 function refreshLoginState() {
@@ -160,6 +186,7 @@ async function bootBungieSidecar() {
     await initializeBungieSync({ setStatus, setRows, hasRows });
     refreshLoginState();
     scheduleLivePulse();
+    scheduleItemFeedPoll(ITEM_FEED_CHECK_MS);
   } catch (error) {
     console.error('D2AA clean Bungie sidecar failed', error);
     setStatus(error.message || String(error));
