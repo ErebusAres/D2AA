@@ -53,7 +53,7 @@ export function applyDuplicateGroups(rows, tolerance = 5) {
     const className = classKey(discovered.first);
     const next = (classCounters.get(className) || 0) + 1;
     classCounters.set(className, next);
-    const groupLabel = labelFor(discovered.first, next);
+    const groupLabel = labelFor(next);
     const color = GROUP_COLORS[(next - 1) % GROUP_COLORS.length];
     const actionKey = `${discovered.key}::${groupLabel}`;
     discovered.group
@@ -73,14 +73,11 @@ export function applyDuplicateGroups(rows, tolerance = 5) {
   return grouped;
 }
 
-function labelFor(row, number) {
-  const slotLetter = slotLetterFor(row);
-  return `${number}${slotLetter}`;
-}
-function slotLetterFor(row) {
-  const slot = row.Slot || row.Type || '';
-  const index = SLOT_ORDER.indexOf(slot);
-  return LETTERS[Math.max(0, index >= 0 ? index : 0)] || 'A';
+function labelFor(number) {
+  const n = Math.max(1, Number(number || 1));
+  const bucket = Math.floor((n - 1) / LETTERS.length) + 1;
+  const letter = LETTERS[(n - 1) % LETTERS.length] || 'A';
+  return `${bucket}${letter}`;
 }
 function groupSort(a, b) {
   const cls = classKey(a).localeCompare(classKey(b));
