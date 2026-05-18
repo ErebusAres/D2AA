@@ -1,7 +1,7 @@
 import { state, setState, setRows, updateTag } from './state.js';
 import { connectBungie, initializeBungieSync, scheduleSemiLiveRefresh, shouldRefreshOnFocus, syncBungieInventory } from './data/bungie-sync.js?v=clean62';
 import { isSignedIn } from './data/bungie-auth.js?v=clean62';
-import { syncDimTags, clearDimApiKey } from './data/dim-tags.js?v=1.5';
+import { syncDimTags, clearDimApiKey } from './data/dim-tags.js?v=1.6';
 
 const setStatus = (status) => setState({ status });
 const hasRows = () => state.rows.length > 0;
@@ -14,6 +14,7 @@ let lastLiveRefreshAt = 0;
 let liveRefreshTimer = null;
 let itemFeedPollTimer = null;
 let controlsBound = false;
+let activeSyncReason = '';
 
 function bindBungieControls() {
   if (controlsBound) return;
@@ -37,31 +38,42 @@ function bindBungieControls() {
     if (!document.hidden) {
       if (shouldRefreshOnFocus()) requestLiveRefresh('focus-refresh');
       scheduleItemFeedPoll(5000);
+    } else {
+      setFeedPolling(false);
     }
   });
   window.addEventListener('focus', () => {
     if (shouldRefreshOnFocus()) requestLiveRefresh('window-focus-refresh');
     scheduleItemFeedPoll(5000);
   });
-  window.addEventListener('blur', () => scheduleItemFeedPoll());
+  window.addEventListener('blur', () => { setFeedPolling(false); scheduleItemFeedPoll(); });
   window.addEventListener('online', () => requestLiveRefresh('network-online'));
+  window.addEventListener('offline', () => setFeedPolling(false));
 }
 
 async function runSync(reason, background = false) {
+  if (activeSyncReason) return;
+  activeSyncReason = reason;
+  setFeedPolling(true, reason);
   clearOversizedGenericCache();
   const startedVisibleRows = state.rows.length;
-  const result = await syncBungieInventory({ setStatus, setRows, reason, background });
-  refreshLoginState();
-  if (result) {
-    lastLiveRefreshAt = Date.now();
-    clearOversizedGenericCache();
-    scheduleSemiLiveRefresh({ setStatus, setRows, hasRows, delay: LIVE_REFRESH_MS });
-    scheduleLivePulse();
-    scheduleItemFeedPoll();
-    if (background && startedVisibleRows && result.meta) {
-      const changed = Number(result.meta.added || 0) + Number(result.meta.moved || 0) + Number(result.meta.changed || 0);
-      if (!changed) setStatus(`Live state current. Last checked ${new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}.`);
+  try {
+    const result = await syncBungieInventory({ setStatus, setRows, reason, background });
+    refreshLoginState();
+    if (result) {
+      lastLiveRefreshAt = Date.now();
+      clearOversizedGenericCache();
+      scheduleSemiLiveRefresh({ setStatus, setRows, hasRows, delay: LIVE_REFRESH_MS });
+      scheduleLivePulse();
+      scheduleItemFeedPoll();
+      if (background && startedVisibleRows && result.meta) {
+        const changed = Number(result.meta.added || 0) + Number(result.meta.moved || 0) + Number(result.meta.changed || 0);
+        if (!changed) setStatus(`Live state current. Last checked ${new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}.`);
+      }
     }
+  } finally {
+    activeSyncReason = '';
+    setFeedPolling(false);
   }
 }
 
@@ -150,6 +162,12 @@ function scheduleItemFeedPoll(delay = ITEM_FEED_CHECK_MS) {
     if (isPageLive()) requestLiveRefresh('item-feed-new-item-poll');
     scheduleItemFeedPoll();
   }, delay);
+}
+
+function setFeedPolling(active, reason = '') {
+  document.body.classList.toggle('feed-polling', Boolean(active));
+  const feed = document.getElementById('itemFeed');
+  if (feed) feed.dataset.pollingReason = active ? reason : '';
 }
 
 function isPageLive() {
