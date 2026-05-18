@@ -1,7 +1,7 @@
 import { state, setState, setRows, updateTag } from './state.js';
 import { connectBungie, initializeBungieSync, scheduleSemiLiveRefresh, shouldRefreshOnFocus, syncBungieInventory } from './data/bungie-sync.js?v=clean62';
 import { isSignedIn } from './data/bungie-auth.js?v=clean62';
-import { syncDimTags, clearDimApiKey } from './data/dim-tags.js?v=1.3';
+import { syncDimTags, clearDimApiKey } from './data/dim-tags.js?v=1.4';
 
 const setStatus = (status) => setState({ status });
 const hasRows = () => state.rows.length > 0;
@@ -24,8 +24,8 @@ function bindBungieControls() {
     if (button.id === 'bungieLoginBtn') { event.preventDefault(); connectBungie(); return; }
     if (button.id === 'bungieSyncBtn') { event.preventDefault(); runSync('manual-sync'); return; }
     if (button.id === 'refreshBtn') { event.preventDefault(); runSync('refresh-button'); return; }
-    if (button.id === 'dimTagSyncBtn') { event.preventDefault(); runDimTagSync(button); return; }
-    if (button.id === 'dimTagResetBtn') { event.preventDefault(); clearDimApiKey(); setStatus('DIM API key/token cleared from this browser.'); }
+    if (button.id === 'dimTagSyncBtn') { event.preventDefault(); if (!button.disabled) runDimTagSync(button); return; }
+    if (button.id === 'dimTagResetBtn') { event.preventDefault(); clearDimApiKey(); setStatus('DIM API key/token cleared from this browser.'); updateDimSyncAvailability(); }
   });
   window.addEventListener('d2aa:bungie-sync-request', (event) => {
     const detail = event.detail || {};
@@ -70,7 +70,7 @@ async function runDimTagSync(button) {
     console.error('D2AA DIM tag sync failed', error);
     setStatus(error.message || String(error));
   } finally {
-    if (button) setTimeout(() => { button.innerHTML = original; }, 1200);
+    if (button) setTimeout(() => { button.innerHTML = original; updateDimSyncAvailability(); }, 1200);
   }
 }
 
@@ -83,7 +83,6 @@ function ensureDimSyncButton() {
   button.id = 'dimTagSyncBtn';
   button.type = 'button';
   button.className = sync?.className || 'option-button';
-  button.innerHTML = '<b>Sync DIM Tags</b><small>Pull favorite/keep/junk/infuse/archive</small>';
   host.appendChild(button);
   const reset = document.createElement('button');
   reset.id = 'dimTagResetBtn';
@@ -91,6 +90,28 @@ function ensureDimSyncButton() {
   reset.className = sync?.className || 'option-button';
   reset.innerHTML = '<b>Reset DIM Key</b><small>Clear local DIM API token</small>';
   host.appendChild(reset);
+  updateDimSyncAvailability();
+}
+
+function updateDimSyncAvailability() {
+  const button = document.getElementById('dimTagSyncBtn');
+  if (!button) return;
+  if (canRunLiveDimSync()) {
+    button.disabled = false;
+    button.title = '';
+    button.innerHTML = '<b>Sync DIM Tags</b><small>Pull favorite/keep/junk/infuse/archive</small>';
+  } else {
+    button.disabled = true;
+    button.title = 'DIM blocks automatic app registration from GitHub Pages. Use DIM CSV import for tags unless D2AA gets a pre-approved DIM API key.';
+    button.innerHTML = '<b>DIM Tags Unavailable</b><small>Use DIM CSV import for tags</small>';
+  }
+}
+
+function canRunLiveDimSync() {
+  const host = window.location.hostname || 'localhost';
+  const hasKey = Boolean(localStorage.getItem('d2aa_dim_api_key_v1') || localStorage.getItem('dimApiKey') || window.D2AA_DIM_API_KEY);
+  const localHost = host === 'localhost' || host === '127.0.0.1' || host === 'xd' || host.endsWith('.lan') || host.endsWith('.internal') || host.startsWith('10.') || host.startsWith('100.') || host.startsWith('192.168.') || /^172\.(1[6-9]|2\d|3[0-1])\./.test(host);
+  return hasKey || localHost;
 }
 
 function requestLiveRefresh(reason) {
@@ -122,6 +143,7 @@ function refreshLoginState() {
   }
   if (sync) sync.disabled = false;
   document.body.classList.toggle('bungie-signed-in', signedIn);
+  updateDimSyncAvailability();
 }
 
 function clearOversizedGenericCache() {
