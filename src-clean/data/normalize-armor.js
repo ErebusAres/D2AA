@@ -9,7 +9,9 @@ const columnAliases = {
   Power: ['Power', 'Light', 'Power Level'],
   Tier: ['Tier', 'GearTier', 'Gear Tier'],
   Archetype: ['Archetype', 'Plug Archetype', 'Intrinsic', 'Armor Archetype'],
-  Icon: ['Icon', 'Icon Url', 'IconUrl']
+  Icon: ['Icon', 'Icon Url', 'IconUrl'],
+  Tag: ['Tag', 'Tags', 'DIM Tag', 'Dim Tag', 'dimTag'],
+  Notes: ['Notes', 'Note', 'DIM Notes', 'Dim Notes']
 };
 
 const statAliases = {
@@ -46,6 +48,8 @@ export function normalizeArmorRow(raw, index = 0, source = 'DIM') {
     Total: total,
     Source: source,
     FoundAt: Date.now() - index,
+    Tag: normalizeDimTag(row.Tag),
+    Notes: String(row.Notes || ''),
     ...Object.fromEntries(STAT_KEYS.map((key) => [key, number(row[key])]))
   };
 }
@@ -81,6 +85,16 @@ function normalizeArchetype(value, slot) {
   const text = String(value || '').trim();
   if (!text || text === slot || normalizeName(text) === normalizeName(slot)) return '—';
   return text;
+}
+function normalizeDimTag(value) {
+  const key = normalizeName(value).replace(/\s+/g, '');
+  if (!key || key === 'none' || key === 'notag' || key === 'untagged') return '';
+  if (['favorite', 'favourite', 'fav', 'heart'].includes(key)) return 'favorite';
+  if (['keep', 'keeper'].includes(key)) return 'keep';
+  if (['junk', 'trash', 'delete', 'shard', 'dismantle'].includes(key)) return 'junk';
+  if (['infuse', 'infusion', 'upgrade'].includes(key)) return 'infuse';
+  if (['archive', 'archived', 'store'].includes(key)) return 'archive';
+  return '';
 }
 function normalizeTier(value, total, rarity) {
   const match = String(value || '').match(/(\d+)/);
