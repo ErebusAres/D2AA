@@ -3,22 +3,30 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
   <title>D2 Armor Analyzer Clean Rebuild - By ErebusAres</title>
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
-  <link rel="stylesheet" href="src-clean/styles/app.css" />
-  <link rel="stylesheet" href="src-clean/styles/layout-pass.css" />
-  <link rel="stylesheet" href="src-clean/styles/ux-reset.css" />
-  <link rel="stylesheet" href="src-clean/styles/duplicate-groups.css" />
-  <link rel="stylesheet" href="src-clean/styles/stat-icons.css" />
-  <link rel="stylesheet" href="src-clean/styles/stat-quality.css" />
-  <link rel="stylesheet" href="src-clean/styles/card-tags.css" />
-  <link rel="stylesheet" href="src-clean/styles/polish-pass.css" />
-  <link rel="stylesheet" href="src-clean/styles/class-toggle.css" />
-  <link rel="stylesheet" href="src-clean/styles/themes-impact.css" />
-  <link rel="stylesheet" href="src-clean/styles/recent-and-sections.css" />
-  <link rel="stylesheet" href="src-clean/styles/compare-modal.css" />
-  <link rel="stylesheet" href="src-clean/styles/item-feed-polish.css" />
-  <link rel="stylesheet" href="src-clean/styles/options-lite.css" />
+  <script>
+    window.D2AA_ASSET_STAMP = Date.now().toString(36);
+    [
+      'src-clean/styles/app.css',
+      'src-clean/styles/layout-pass.css',
+      'src-clean/styles/ux-reset.css',
+      'src-clean/styles/duplicate-groups.css',
+      'src-clean/styles/stat-icons.css',
+      'src-clean/styles/stat-quality.css',
+      'src-clean/styles/card-tags.css',
+      'src-clean/styles/polish-pass.css',
+      'src-clean/styles/class-toggle.css',
+      'src-clean/styles/themes-impact.css',
+      'src-clean/styles/recent-and-sections.css',
+      'src-clean/styles/compare-modal.css',
+      'src-clean/styles/item-feed-polish.css',
+      'src-clean/styles/options-lite.css'
+    ].forEach((href) => document.write(`<link rel="stylesheet" href="${href}?t=${window.D2AA_ASSET_STAMP}" />`));
+  </script>
 </head>
 <body data-theme="calus">
   <div class="app-frame">
@@ -47,7 +55,10 @@
     </main>
     <aside class="item-feed" id="itemFeed" aria-label="Item Feed"><button type="button" class="feed-tab" id="feedToggle">Item Feed</button><div class="feed-shell"><div class="feed-head"><strong>Latest Items</strong><span id="feedCount">0</span></div><div class="feed-list" id="feedList"></div></div></aside>
   </div>
-  <script type="module" src="src-clean/app.js"></script>
-  <script type="module" src="src-clean/bungie-wire.js?v=clean63"></script>
+  <script type="module">
+    const assetStamp = window.D2AA_ASSET_STAMP || Date.now().toString(36);
+    await import(`./src-clean/app.js?t=${assetStamp}`);
+    await import(`./src-clean/bungie-wire.js?t=${assetStamp}`);
+  </script>
 </body>
 </html>
