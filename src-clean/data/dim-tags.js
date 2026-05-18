@@ -34,6 +34,14 @@ export async function ensureDimApiKey() {
   const existing = getDimApiKey();
   if (existing) return existing;
   const cfg = getBungieConfig();
+  const configured = cfg.dimApiKey || window.D2AA_DIM_API_KEY || '';
+  if (configured) {
+    localStorage.setItem(DIM_TAG_STORAGE.apiKey, configured);
+    return configured;
+  }
+  if (!canAutoRegisterDimApp()) {
+    throw new Error('DIM blocks automatic app registration from public hosts like GitHub Pages. D2AA needs a pre-approved DIM API key before live DIM tag sync can work here. CSV tag import still works.');
+  }
   if (!cfg.apiKey) throw new Error('Missing Bungie API key; cannot register DIM API app.');
   const response = await dimUnauthenticated('/new_app', {
     method: 'POST',
@@ -56,6 +64,11 @@ export function clearDimApiKey() {
 
 function getDimApiKey() {
   return localStorage.getItem(DIM_TAG_STORAGE.apiKey) || localStorage.getItem('dimApiKey') || '';
+}
+
+function canAutoRegisterDimApp() {
+  const host = window.location.hostname || 'localhost';
+  return host === 'localhost' || host === '127.0.0.1' || host === 'xd' || host.endsWith('.lan') || host.endsWith('.internal') || host.startsWith('10.') || host.startsWith('100.') || host.startsWith('192.168.') || host.startsWith('172.16.') || host.startsWith('172.17.') || host.startsWith('172.18.') || host.startsWith('172.19.') || host.startsWith('172.20.') || host.startsWith('172.21.') || host.startsWith('172.22.') || host.startsWith('172.23.') || host.startsWith('172.24.') || host.startsWith('172.25.') || host.startsWith('172.26.') || host.startsWith('172.27.') || host.startsWith('172.28.') || host.startsWith('172.29.') || host.startsWith('172.30.') || host.startsWith('172.31.');
 }
 
 async function getDimAuthToken(apiKey, membershipId) {
