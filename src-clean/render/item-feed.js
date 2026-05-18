@@ -3,9 +3,11 @@ import { STAT_KEYS, STAT_LABELS, STAT_ICONS, RARITY_ICONS, CLASS_ICONS, SLOT_ICO
 const FEED_LIMIT = 20;
 
 export function renderItemFeed(container, countEl, rows, onTag, onDismissNew, onCompareGroup) {
-  const recent = rows.slice().filter(isFeedCandidate).sort(compareRecent).slice(0, FEED_LIMIT);
-  countEl.textContent = String(recent.length);
-  container.innerHTML = recent.length ? recent.map(renderFeedCard).join('') : renderEmptyFeed();
+  const newlyFound = rows.slice().filter(isFeedCandidate).sort(compareRecent).slice(0, FEED_LIMIT);
+  const showingFallback = newlyFound.length === 0;
+  const feedRows = showingFallback ? latestSyncedRows(rows) : newlyFound;
+  countEl.textContent = String(feedRows.length);
+  container.innerHTML = feedRows.length ? feedRows.map((row) => renderFeedCard(row, showingFallback)).join('') : renderEmptyFeed();
   container.querySelectorAll('[data-feed-tag]').forEach((button) => {
     button.addEventListener('click', () => onTag(button.dataset.id, button.dataset.feedTag));
   });
@@ -21,6 +23,19 @@ function isFeedCandidate(row) {
   return row.RecentStatus === 'new' || row.RecentlyFound === true;
 }
 
+function latestSyncedRows(rows) {
+  return rows.slice()
+    .filter((row) => row && row.Id)
+    .sort(compareLatestSynced)
+    .slice(0, FEED_LIMIT);
+}
+
+function compareLatestSynced(a, b) {
+  const aTime = recentTime(a);
+  const bTime = recentTime(b);
+  return bTime - aTime || Number(b._index ?? 0) - Number(a._index ?? 0) || String(a.Name).localeCompare(String(b.Name));
+}
+
 function compareRecent(a, b) {
   const aTime = recentTime(a);
   const bTime = recentTime(b);
@@ -32,19 +47,19 @@ function recentTime(row) {
 }
 
 function renderEmptyFeed() {
-  return `<div class="feed-empty"><strong>No newly obtained armor.</strong><br><span>New armor detected by Bungie sync will stay here until it falls past the latest 20, you dismiss it, or you assign a tag.</span></div>`;
+  return `<div class="feed-empty"><strong>No armor loaded yet.</strong><br><span>Sync with Bungie or upload a DIM CSV to populate the item feed.</span></div>`;
 }
 
-function renderFeedCard(row) {
-  const feedNew = true;
+function renderFeedCard(row, fallback = false) {
+  const feedNew = !fallback;
   const groupLabel = row.Dupe_Group || row.Group || '';
   const groupKey = row.GroupActionKey || '';
   const groupButton = row.Is_Dupe ? `<button type="button" class="feed-group-badge ${row.GroupColor || ''}" title="Compare duplicate group ${html(groupLabel)}" data-feed-compare-group="${html(groupKey)}">${html(groupLabel)}</button>` : '';
-  const status = `<small class="feed-status new">✨ new</small>`;
-  const dismiss = `<button type="button" class="feed-dismiss-new" data-id="${html(row.Id)}" data-dismiss-new title="Dismiss new marker" aria-label="Dismiss new marker for ${html(row.Name)}">×</button>`;
+  const status = fallback ? `<small class="feed-status latest">latest</small>` : `<small class="feed-status new">✨ new</small>`;
+  const dismiss = fallback ? '' : `<button type="button" class="feed-dismiss-new" data-id="${html(row.Id)}" data-dismiss-new title="Dismiss new marker" aria-label="Dismiss new marker for ${html(row.Name)}">×</button>`;
   const loc = locationLabel(row);
   const tagButtons = TAGS.filter((tag) => tag.picker && tag.value).map((tag) => `<button type="button" class="feed-tag-btn ${row.Tag === tag.value ? 'is-active' : ''}" title="${html(row.Tag === tag.value ? `Remove ${tag.label}` : tag.label)}" aria-label="${html(row.Tag === tag.value ? `Remove ${tag.label}` : `Tag ${row.Name} as ${tag.label}`)}" data-id="${html(row.Id)}" data-feed-tag="${html(tag.value)}"><span>${tag.emoji}</span></button>`).join('');
-  return `<article class="feed-card is-new is-new-found ${row.Is_Dupe ? `is-feed-grouped ${row.GroupColor || ''}` : ''}" data-feed-card-id="${html(row.Id)}" data-feed-group="${html(groupLabel)}">
+  return `<article class="feed-card ${feedNew ? 'is-new is-new-found' : 'is-latest'} ${row.Is_Dupe ? `is-feed-grouped ${row.GroupColor || ''}` : ''}" data-feed-card-id="${html(row.Id)}" data-feed-group="${html(groupLabel)}">
     ${dismiss}${groupButton}
     <div class="feed-icon">${row.Icon ? `<img src="${html(row.Icon)}" alt="" loading="lazy">` : '<span>◇</span>'}${row.Power || row.Light ? `<b>${row.Power || row.Light}</b>` : ''}${feedNew ? '<i class="feed-new-spark">✨</i>' : ''}</div>
     <div class="feed-main"><div class="feed-title-line"><strong title="${html(row.Name)}">${html(row.Name)}</strong>${status}</div><span class="feed-meta-icons" aria-label="${html(`${row.Class} ${row.Slot} ${row.Rarity} ${loc}`)}">${iconImg(CLASS_ICONS[row.Class], row.Class)}${maskIcon(SLOT_ICONS[row.Slot], row.Slot)}${iconImg(RARITY_ICONS[row.Rarity], row.Rarity)}${locationIcon(loc)}</span><div class="feed-stats">${STAT_KEYS.map((key) => statChip(row, key)).join('')}</div><div class="feed-tags">${tagButtons}</div></div>
