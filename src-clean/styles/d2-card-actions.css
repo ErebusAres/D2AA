@@ -1,0 +1,78 @@
+/* Scoped Destiny-style armor card action controls only.
+   Touches card action buttons and the adjacent tag button visual language; no card sizing, badges, stats, feed, nav, or category bars. */
+.armor-card .card-actions{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:8px!important;
+  margin-top:12px!important;
+}
+.armor-card .card-actions button{
+  position:relative!important;
+  min-height:28px!important;
+  padding:0 11px!important;
+  border:1px solid rgba(255,255,255,.105)!important;
+  border-radius:4px!important;
+  background:linear-gradient(180deg,rgba(255,255,255,.065),rgba(255,255,255,.025))!important;
+  color:#eee7d7!important;
+  font-size:10px!important;
+  line-height:1!important;
+  font-weight:900!important;
+  letter-spacing:.075em!important;
+  text-transform:uppercase!important;
+  cursor:pointer!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.045),0 8px 14px rgba(0,0,0,.16)!important;
+  overflow:hidden!important;
+}
+.armor-card .card-actions button::before{
+  content:""!important;
+  position:absolute!important;
+  left:0!important;
+  top:6px!important;
+  bottom:6px!important;
+  width:2px!important;
+  background:var(--gold,#f2cc70)!important;
+  opacity:.58!important;
+  box-shadow:0 0 8px color-mix(in srgb,var(--gold,#f2cc70) 28%,transparent)!important;
+}
+.armor-card .card-actions button:hover:not(:disabled){
+  border-color:color-mix(in srgb,var(--gold,#f2cc70) 46%,rgba(255,255,255,.14))!important;
+  background:linear-gradient(180deg,rgba(242,204,112,.13),rgba(255,255,255,.035))!important;
+  transform:translateY(-1px)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 10px 18px rgba(0,0,0,.20),0 0 12px color-mix(in srgb,var(--gold,#f2cc70) 12%,transparent)!important;
+}
+.armor-card .card-actions button:active:not(:disabled){
+  transform:translateY(0)!important;
+}
+.armor-card .card-actions button:disabled{
+  opacity:.42!important;
+  cursor:not-allowed!important;
+  filter:saturate(.72)!important;
+}
+.armor-card .card-actions button[data-action-id^="group:"]{
+  border-color:color-mix(in srgb,var(--group-color,var(--gold,#f2cc70)) 36%,rgba(255,255,255,.10))!important;
+  color:color-mix(in srgb,var(--group-color,var(--gold,#f2cc70)) 74%,white)!important;
+}
+.armor-card .card-actions button[data-action-id^="group:"]::before{
+  background:var(--group-color,var(--gold,#f2cc70))!important;
+  box-shadow:0 0 8px var(--group-glow,rgba(255,216,107,.22))!important;
+}
+.armor-card .card-tag-slot{
+  border-radius:5px!important;
+  border-color:color-mix(in srgb,var(--gold,#f2cc70) 30%,rgba(255,255,255,.10))!important;
+  background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(0,0,0,.16))!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.045),0 7px 13px rgba(0,0,0,.16)!important;
+}
+.armor-card .card-tag-slot.is-empty{
+  opacity:.82!important;
+  color:color-mix(in srgb,var(--gold,#f2cc70) 72%,white)!important;
+}
+.armor-card .card-tag-slot:hover{
+  border-color:color-mix(in srgb,var(--gold,#f2cc70) 55%,rgba(255,255,255,.14))!important;
+  background:linear-gradient(180deg,rgba(242,204,112,.15),rgba(255,255,255,.035))!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.055),0 8px 16px rgba(0,0,0,.20),0 0 10px color-mix(in srgb,var(--gold,#f2cc70) 13%,transparent)!important;
+}
+@media(max-width:640px){
+  .armor-card .card-actions{gap:6px!important;margin-top:10px!important}
+  .armor-card .card-actions button{min-height:27px!important;padding:0 9px!important;font-size:9px!important;letter-spacing:.055em!important}
+}
