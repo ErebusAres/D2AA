@@ -230,10 +230,8 @@ function renderChips() {
   const chips = [];
   if (state.search) chips.push(`Search: ${state.search}`);
   Object.entries(state.filters).forEach(([key, value]) => {
-    if (key === 'class') {
-      const cls = normalizeClassFilter(value);
-      if (cls !== 'all') chips.push(`class: ${cls}`);
-    } else if (value !== 'all') chips.push(`${key}: ${value}`);
+    if (key === 'class') return;
+    if (value !== 'all') chips.push(`${key}: ${value}`);
   });
   if (state.duplicateTolerance !== 5) chips.push(`Tolerance: ±${state.duplicateTolerance}`);
   els.activeChips.innerHTML = chips.map((chip) => `<span>${html(chip)}</span>`).join('');
