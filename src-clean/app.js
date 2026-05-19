@@ -9,10 +9,14 @@ import { renderItemFeed } from './render/item-feed.js';
 import { attachTagPicker } from './render/tag-picker.js';
 import { openCompareModal } from './render/compare-modal.js';
 
+const RUNTIME_VERSION = '1.29';
 const els = {};
 let lastGroupedRows = [];
 
 function boot() {
+  window.D2AA_VERSION = RUNTIME_VERSION;
+  const versionBadge = document.querySelector('.d2aa-version-badge');
+  if (versionBadge) versionBadge.textContent = `v${RUNTIME_VERSION}`;
   cacheEls();
   renderThemeButtons();
   loadSettings();
@@ -78,172 +82,3 @@ function setOptionsPanelOpen(open) {
   document.body.classList.toggle('options-open', open);
   els.menuBtn?.setAttribute('aria-expanded', String(open));
 }
-function closeOptionsOnOutsideClick(event) {
-  if (!document.body.classList.contains('options-open')) return;
-  if (els.commandPanel?.contains(event.target) || els.menuBtn?.contains(event.target)) return;
-  setOptionsPanelOpen(false);
-}
-function closeOptionsOnEscape(event) {
-  if (event.key === 'Escape') setOptionsPanelOpen(false);
-}
-
-function setClassFilter(className) {
-  setState({ filters: { ...state.filters, class: normalizeClassFilter(className) } });
-}
-
-function restoreFeedOpenState() {
-  const open = readJson(STORAGE_KEYS.feedOpen, false) === true;
-  els.itemFeed?.classList.toggle('is-open', open);
-  document.body.classList.toggle('feed-open', open);
-}
-
-function toggleItemFeed() {
-  const open = !els.itemFeed.classList.contains('is-open');
-  els.itemFeed.classList.toggle('is-open', open);
-  document.body.classList.toggle('feed-open', open);
-  writeJson(STORAGE_KEYS.feedOpen, open);
-}
-
-function render() {
-  document.body.dataset.theme = normalizeTheme(state.theme);
-  els.statusText.textContent = state.status;
-  els.searchBox.value = state.search;
-  els.sortBy.value = state.sortBy;
-  if (els.duplicateTolerance) els.duplicateTolerance.value = state.duplicateTolerance;
-  if (els.duplicateToleranceOut) els.duplicateToleranceOut.textContent = `±${state.duplicateTolerance}`;
-  syncViewButtons();
-  syncThemeButtons();
-  syncFilterOptions();
-  syncClassToggle();
-  const grouped = applyDuplicateGroups(state.rows, state.duplicateTolerance);
-  lastGroupedRows = grouped;
-  const filtered = getFilteredRowsFrom(grouped);
-  els.gridView.hidden = state.view !== 'grid';
-  els.tableView.hidden = state.view !== 'table';
-  renderGrid(els.gridView, filtered, updateTag, handleCardAction, openGroupCompare);
-  attachTagPicker(els.gridView, filtered, updateTag);
-  renderTable(els.tableBody, filtered, handleCardAction);
-  renderItemFeed(els.feedList, els.feedCount, grouped, updateTag, dismissRecent, openGroupCompare);
-  attachTagPicker(els.feedList, grouped, updateTag);
-  els.emptyState.hidden = state.rows.length > 0;
-  updateSummary(grouped, filtered);
-  renderChips();
-}
-
-async function handleCardAction(actionId, button) {
-  if (actionId.startsWith('group:')) return pullGroup(actionId.slice(6), button);
-  const row = lastGroupedRows.find((item) => String(item.Id) === String(actionId));
-  if (!row) return setStatus('Could not find that item in current state.');
-  const original = button?.textContent || '';
-  if (button) button.textContent = 'Working...';
-  try {
-    const result = await runItemAction(row);
-    setStatus(result.message || 'Action complete.');
-    if (button) button.textContent = 'Done';
-    if (result.needsRefresh) requestBungieRefresh('post-action-refresh');
-  } catch (error) {
-    console.error('D2AA clean item action failed', error);
-    setStatus(error.message || String(error));
-    if (button) button.textContent = 'Failed';
-  } finally {
-    if (button) setTimeout(() => { button.textContent = original; }, 1200);
-  }
-}
-
-function openGroupCompare(groupKey) {
-  const rows = lastGroupedRows.filter((row) => row.Is_Dupe && row.GroupActionKey === groupKey);
-  if (!rows.length) return setStatus('No duplicate group found to compare.');
-  openCompareModal(rows, { onTag: updateTag, onPullGroup: (groupRows, button) => pullGroup(groupRows[0]?.GroupActionKey || groupKey, button) });
-}
-
-async function pullGroup(groupKey, button) {
-  const rows = lastGroupedRows.filter((row) => row.Is_Dupe && row.GroupActionKey === groupKey);
-  if (!rows.length) return setStatus('No group items found.');
-  const original = button?.textContent || '';
-  if (button) button.textContent = 'Pulling...';
-  try {
-    const result = await runGroupPull(rows);
-    setStatus(result.message || 'Group action complete.');
-    if (button) button.textContent = 'Done';
-    if (result.needsRefresh) requestBungieRefresh('post-group-pull-refresh');
-  } catch (error) {
-    console.error('D2AA clean group pull failed', error);
-    setStatus(error.message || String(error));
-    if (button) button.textContent = 'Failed';
-  } finally {
-    if (button) setTimeout(() => { button.textContent = original; }, 1400);
-  }
-}
-
-function requestBungieRefresh(reason) {
-  setTimeout(() => {
-    window.dispatchEvent(new CustomEvent('d2aa:bungie-sync-request', { detail: { reason, background: true } }));
-  }, 1200);
-}
-
-function getFilteredRowsFrom(rows) {
-  const oldRows = state.rows;
-  state.rows = rows;
-  const result = getFilteredRows();
-  state.rows = oldRows;
-  return result;
-}
-
-function updateSummary(allRows, shownRows) {
-  els.summaryShown.textContent = shownRows.length;
-  els.summaryCached.textContent = allRows.length;
-  els.summaryGroups.textContent = new Set(allRows.filter((r) => r.Is_Dupe).map((r) => r.GroupActionKey)).size;
-  els.summaryRecent.textContent = allRows.filter((row) => row.RecentlyFound || row.RecentStatus).length || Math.min(allRows.length, 30);
-  const counts = CLASS_ORDER.map((cls) => `${cls[0]}:${allRows.filter((r) => rowMatchesClass(r, cls)).length}`).join(' ');
-  els.summaryClasses.textContent = counts || '—';
-}
-
-function syncViewButtons() {
-  document.querySelectorAll('[data-view]').forEach((button) => button.classList.toggle('is-active', button.dataset.view === state.view));
-}
-function syncThemeButtons() {
-  els.themePills?.querySelectorAll('[data-theme]').forEach((button) => button.classList.toggle('is-active', button.dataset.theme === normalizeTheme(state.theme)));
-}
-function syncClassToggle() {
-  if (!els.classToggle) return;
-  const counts = countByClass(state.rows);
-  els.classToggle.querySelectorAll('[data-class-filter]').forEach((button) => {
-    const cls = normalizeClassFilter(button.dataset.classFilter || 'all');
-    button.classList.toggle('is-active', normalizeClassFilter(state.filters.class) === cls);
-    const count = cls === 'all' ? state.rows.length : counts[cls] || 0;
-    const badge = button.querySelector('b');
-    if (badge) badge.textContent = String(count);
-  });
-}
-function syncFilterOptions() {
-  fillSelect(els.classFilter, ['all', ...CLASS_ORDER.filter((cls) => state.rows.some((row) => rowMatchesClass(row, cls)))], normalizeClassFilter(state.filters.class));
-  fillSelect(els.slotFilter, ['all', ...SLOT_ORDER.filter((slot) => state.rows.some((r) => r.Slot === slot)), ...unique(state.rows.map((r) => r.Slot)).filter((slot) => !SLOT_ORDER.includes(slot))], state.filters.slot);
-  fillSelect(els.rarityFilter, ['all', ...unique(state.rows.map((r) => r.Rarity))], state.filters.rarity);
-}
-function fillSelect(select, values, selected) {
-  if (!select) return;
-  const current = select.value || selected;
-  select.innerHTML = values.map((value) => `<option value="${html(value)}">${value === 'all' ? 'All' : html(value)}</option>`).join('');
-  select.value = values.includes(selected) ? selected : values.includes(current) ? current : 'all';
-}
-function renderChips() {
-  const chips = [];
-  if (state.search) chips.push(`Search: ${state.search}`);
-  Object.entries(state.filters).forEach(([key, value]) => {
-    if (key === 'class') return;
-    if (value !== 'all') chips.push(`${key}: ${value}`);
-  });
-  if (state.duplicateTolerance !== 5) chips.push(`Tolerance: ±${state.duplicateTolerance}`);
-  els.activeChips.innerHTML = chips.map((chip) => `<span>${html(chip)}</span>`).join('');
-}
-function unique(values) { return [...new Set(values.filter(Boolean))].sort(); }
-function countByClass(rows) {
-  return CLASS_ORDER.reduce((acc, cls) => {
-    acc[cls] = rows.filter((row) => rowMatchesClass(row, cls)).length;
-    return acc;
-  }, {});
-}
-function setStatus(status) { setState({ status }); }
-function html(value) { return String(value ?? '').replace(/[&<>"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[char])); }
-
-boot();
