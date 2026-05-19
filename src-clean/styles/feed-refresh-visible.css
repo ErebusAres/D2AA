@@ -1,10 +1,11 @@
 .feed-refresh-indicator{
   position:relative!important;
-  width:28px!important;
-  height:14px!important;
-  min-width:28px!important;
+  flex:0 0 26px!important;
+  width:26px!important;
+  height:26px!important;
+  min-width:26px!important;
   margin-left:auto!important;
-  margin-right:8px!important;
+  margin-right:10px!important;
   padding:0!important;
   border:0!important;
   border-radius:999px!important;
@@ -16,49 +17,65 @@
   visibility:hidden!important;
   pointer-events:none!important;
 }
-.feed-refresh-indicator span,
-.feed-refresh-indicator::before,
-.feed-refresh-indicator::after{
-  content:""!important;
+.feed-refresh-indicator span{
   position:absolute!important;
-  top:50%!important;
-  width:5px!important;
-  height:5px!important;
-  margin-top:-2.5px!important;
+  inset:5px!important;
+  display:block!important;
   border-radius:999px!important;
-  background:var(--gold,#f2cc70)!important;
-  box-shadow:0 0 10px rgba(255,216,107,.18)!important;
-  opacity:.28!important;
+  background:radial-gradient(circle,rgba(255,216,107,.95) 0 2px,transparent 2.5px),conic-gradient(from 0deg,transparent 0 70deg,rgba(255,216,107,.92) 72deg 96deg,transparent 98deg 360deg)!important;
   color:transparent!important;
   font-size:0!important;
   line-height:0!important;
+  filter:drop-shadow(0 0 8px rgba(255,216,107,.28))!important;
+  transform-origin:center!important;
 }
-.feed-refresh-indicator::before{left:4px!important;}
-.feed-refresh-indicator span{left:11.5px!important;display:block!important;}
-.feed-refresh-indicator::after{left:19px!important;}
+.feed-refresh-indicator::before{
+  content:""!important;
+  position:absolute!important;
+  inset:2px!important;
+  border-radius:999px!important;
+  border:1px solid rgba(255,216,107,.28)!important;
+  border-top-color:rgba(255,216,107,.86)!important;
+  border-right-color:rgba(255,216,107,.52)!important;
+  box-shadow:0 0 16px rgba(255,216,107,.10),inset 0 0 10px rgba(255,216,107,.05)!important;
+}
+.feed-refresh-indicator::after{
+  content:""!important;
+  position:absolute!important;
+  inset:8px!important;
+  border-radius:999px!important;
+  border:1px solid rgba(255,255,255,.16)!important;
+  background:rgba(6,7,12,.72)!important;
+}
 .feed-polling .feed-refresh-indicator{
   opacity:1!important;
   visibility:visible!important;
 }
-.feed-polling .feed-refresh-indicator::before{animation:d2aa-feed-pulse .9s ease-in-out infinite!important;}
-.feed-polling .feed-refresh-indicator span{animation:d2aa-feed-pulse .9s ease-in-out .12s infinite!important;}
-.feed-polling .feed-refresh-indicator::after{animation:d2aa-feed-pulse .9s ease-in-out .24s infinite!important;}
+.feed-polling .feed-refresh-indicator::before{animation:d2aa-feed-orbit 1.05s linear infinite!important;}
+.feed-polling .feed-refresh-indicator span{animation:d2aa-feed-orbit .82s linear reverse infinite!important;}
 .feed-head::before{display:none!important;content:none!important;}
+.feed-head #feedCount{
+  flex:0 0 auto!important;
+  margin-left:0!important;
+}
 .feed-tab::after{display:none!important;content:none!important;}
 .feed-polling .feed-tab::after{
   content:""!important;
   display:block!important;
   position:absolute!important;
-  top:10px!important;
+  top:9px!important;
   left:50%!important;
-  width:18px!important;
-  height:3px!important;
-  margin-left:-9px!important;
+  width:14px!important;
+  height:14px!important;
+  margin-left:-7px!important;
   border-radius:999px!important;
-  border:0!important;
-  background:linear-gradient(90deg,transparent,var(--gold,#f2cc70),transparent)!important;
-  opacity:.84!important;
-  animation:d2aa-feed-tab-pulse .9s ease-in-out infinite!important;
+  border:1px solid rgba(255,216,107,.28)!important;
+  border-top-color:rgba(255,216,107,.95)!important;
+  border-right-color:rgba(255,216,107,.52)!important;
+  background:radial-gradient(circle,rgba(255,216,107,.78) 0 1.5px,transparent 2px)!important;
+  opacity:.92!important;
+  animation:d2aa-feed-orbit .9s linear infinite!important;
+  box-shadow:0 0 12px rgba(255,216,107,.16)!important;
 }
 .item-feed .feed-dismiss-new{
   right:6px!important;
@@ -91,5 +108,4 @@
 .item-feed .feed-card.is-feed-grouped .feed-group-badge{
   right:34px!important;
 }
-@keyframes d2aa-feed-pulse{0%,100%{opacity:.24;transform:scale(.72)}45%{opacity:1;transform:scale(1.15)}}
-@keyframes d2aa-feed-tab-pulse{0%,100%{opacity:.34;transform:scaleX(.55)}50%{opacity:.95;transform:scaleX(1)}}
+@keyframes d2aa-feed-orbit{to{transform:rotate(360deg)}}
