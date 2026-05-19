@@ -1,34 +1,83 @@
-/* Scoped cleanup for armor-card NEW indicators only.
-   Keeps one clean inline NEW pill and hides the redundant floating badge that overlaps the icon/header area. */
-.armor-card .new-found-badge{
-  display:none!important;
-}
-.armor-card .status-pill.is-new{
-  height:18px!important;
-  padding:0 7px!important;
-  border-radius:4px!important;
-  border:1px solid color-mix(in srgb,var(--gold,#f2cc70) 38%,rgba(255,255,255,.10))!important;
-  background:linear-gradient(180deg,rgba(242,204,112,.13),rgba(242,204,112,.045))!important;
-  color:#ffe39a!important;
-  font-size:9px!important;
-  line-height:18px!important;
+/* Scoped cleanup for armor-card top badges only.
+   Aligns Light / NEW / Group as one balanced top row and removes the duplicate inline NEW pill. */
+.armor-card .light-tag-badge,
+.armor-card .group-badge{
+  top:10px!important;
+  height:24px!important;
+  min-width:50px!important;
+  box-sizing:border-box!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:4px!important;
+  padding:0 8px!important;
+  border-radius:5px!important;
+  font-size:11px!important;
+  line-height:1!important;
   font-weight:950!important;
-  letter-spacing:.06em!important;
-  text-transform:uppercase!important;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 0 8px color-mix(in srgb,var(--gold,#f2cc70) 12%,transparent)!important;
+  letter-spacing:.035em!important;
+  z-index:3!important;
 }
-.armor-card .status-pill.is-new::before{
+.armor-card .light-tag-badge{
+  left:12px!important;
+  border:1px solid rgba(232,197,106,.48)!important;
+  background:linear-gradient(180deg,rgba(7,7,9,.98),rgba(0,0,0,.90))!important;
+  color:var(--gold,#f2cc70)!important;
+  box-shadow:0 0 0 1px rgba(0,0,0,.45),0 0 10px color-mix(in srgb,var(--gold,#f2cc70) 12%,transparent)!important;
+}
+.armor-card .group-badge{
+  right:12px!important;
+  text-align:center!important;
+}
+.armor-card .group-badge .badge-icon{
+  width:12px!important;
+  height:12px!important;
+  flex:0 0 auto!important;
+}
+.armor-card .new-found-badge{
+  position:absolute!important;
+  top:10px!important;
+  left:50%!important;
+  right:auto!important;
+  transform:translateX(-50%)!important;
+  height:24px!important;
+  min-width:62px!important;
+  box-sizing:border-box!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:4px!important;
+  padding:0 8px!important;
+  border-radius:5px!important;
+  border:1px solid color-mix(in srgb,var(--gold,#f2cc70) 54%,rgba(255,255,255,.10))!important;
+  background:linear-gradient(180deg,rgba(10,10,12,.98),rgba(0,0,0,.91))!important;
+  color:#ffe39a!important;
+  font-size:10px!important;
+  line-height:1!important;
+  font-weight:950!important;
+  letter-spacing:.07em!important;
+  text-transform:uppercase!important;
+  box-shadow:0 0 0 1px rgba(0,0,0,.48),0 5px 10px rgba(0,0,0,.30),0 0 10px color-mix(in srgb,var(--gold,#f2cc70) 16%,transparent)!important;
+  z-index:3!important;
+  pointer-events:none!important;
+}
+.armor-card .new-found-badge::before{
   content:""!important;
   width:4px!important;
   height:4px!important;
   border-radius:999px!important;
   background:var(--gold,#f2cc70)!important;
-  box-shadow:0 0 7px color-mix(in srgb,var(--gold,#f2cc70) 36%,transparent)!important;
+  box-shadow:0 0 7px color-mix(in srgb,var(--gold,#f2cc70) 38%,transparent)!important;
+}
+.armor-card .identifier-icons .status-pill.is-new{
+  display:none!important;
 }
 .armor-card.is-new-found .item-icon{
   border-color:color-mix(in srgb,var(--gold,#f2cc70) 42%,rgba(255,255,255,.14))!important;
   box-shadow:0 0 14px color-mix(in srgb,var(--gold,#f2cc70) 14%,transparent)!important;
 }
 @media(max-width:640px){
-  .armor-card .status-pill.is-new{height:17px!important;line-height:17px!important;font-size:8px!important;padding:0 6px!important}
+  .armor-card .light-tag-badge,
+  .armor-card .group-badge{height:22px!important;min-width:46px!important;font-size:10px!important;padding:0 7px!important}
+  .armor-card .new-found-badge{height:22px!important;min-width:56px!important;font-size:9px!important;padding:0 7px!important}
 }
