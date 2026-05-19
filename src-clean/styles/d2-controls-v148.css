@@ -1,0 +1,187 @@
+/* v1.48 D2 control/table consistency pass.
+   Visual-only polish for utility controls, table view, dialogs, and focus states. */
+button,
+select,
+input,
+.action-card,
+.card-tag-slot,
+.feed-dismiss,
+.feed-refresh-btn,
+.compare-tags button{
+  -webkit-tap-highlight-color:transparent!important;
+}
+button:focus-visible,
+select:focus-visible,
+input:focus-visible,
+.action-card:focus-visible,
+.card-tag-slot:focus-visible,
+.feed-dismiss:focus-visible,
+.feed-refresh-btn:focus-visible,
+.compare-tags button:focus-visible{
+  outline:2px solid color-mix(in srgb,var(--gold,#e8c56a) 72%,white)!important;
+  outline-offset:2px!important;
+  box-shadow:0 0 0 1px rgba(0,0,0,.72),0 0 16px color-mix(in srgb,var(--gold,#e8c56a) 24%,transparent)!important;
+}
+.command-button,
+.view-toggle button,
+.class-toggle button,
+.action-card,
+.card-actions button,
+.compare-head-actions button,
+.feed-tab,
+.feed-refresh-btn,
+.feed-dismiss{
+  transition:border-color .14s ease,background .14s ease,color .14s ease,transform .14s ease,box-shadow .14s ease!important;
+}
+.command-button:hover,
+.view-toggle button:hover,
+.class-toggle button:hover,
+.action-card:hover,
+.card-actions button:hover,
+.compare-head-actions button:hover,
+.feed-refresh-btn:hover,
+.feed-dismiss:hover{
+  transform:translateY(-1px)!important;
+}
+.command-button:active,
+.view-toggle button:active,
+.class-toggle button:active,
+.action-card:active,
+.card-actions button:active,
+.compare-head-actions button:active,
+.feed-refresh-btn:active,
+.feed-dismiss:active{
+  transform:translateY(0)!important;
+  filter:brightness(.96)!important;
+}
+.armor-table-wrap{
+  overflow:hidden!important;
+}
+.armor-table{
+  border-collapse:separate!important;
+  border-spacing:0!important;
+}
+.armor-table thead th{
+  position:sticky!important;
+  top:0!important;
+  z-index:2!important;
+  height:40px!important;
+  font-size:10px!important;
+  font-weight:950!important;
+  white-space:nowrap!important;
+}
+.armor-table tbody tr{
+  transition:background .14s ease,box-shadow .14s ease!important;
+}
+.armor-table tbody tr:hover{
+  box-shadow:inset 2px 0 0 color-mix(in srgb,var(--gold,#e8c56a) 68%,transparent)!important;
+}
+.armor-table td{
+  height:42px!important;
+  vertical-align:middle!important;
+  color:#d9d2e2!important;
+}
+.armor-table td:first-child{
+  color:#fff3d3!important;
+  font-weight:900!important;
+}
+.armor-table button,
+.armor-table .tag-button,
+.armor-table .tag-pill{
+  border-radius:8px 3px 8px 3px!important;
+  border:1px solid rgba(255,255,255,.10)!important;
+  background:linear-gradient(180deg,rgba(255,255,255,.060),rgba(0,0,0,.14))!important;
+  color:#f1e9d7!important;
+  font-weight:900!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 6px 12px rgba(0,0,0,.14)!important;
+}
+.armor-table button:hover,
+.armor-table .tag-button:hover{
+  border-color:color-mix(in srgb,var(--gold,#e8c56a) 42%,rgba(255,255,255,.14))!important;
+  color:#ffe39a!important;
+}
+select,
+input[type="search"],
+input[type="text"],
+input[type="number"]{
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.030)!important;
+}
+select:hover,
+input[type="search"]:hover,
+input[type="text"]:hover,
+input[type="number"]:hover{
+  border-color:rgba(255,255,255,.16)!important;
+}
+.panel-card select option{
+  background:#11131f!important;
+  color:#f0ebf7!important;
+}
+.theme-pills button,
+.theme-pills .theme-pill{
+  position:relative!important;
+  overflow:hidden!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 6px 13px rgba(0,0,0,.15)!important;
+}
+.theme-pills button::after,
+.theme-pills .theme-pill::after{
+  content:""!important;
+  position:absolute!important;
+  left:8px!important;
+  right:8px!important;
+  top:0!important;
+  height:1px!important;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.22),transparent)!important;
+  opacity:.58!important;
+  pointer-events:none!important;
+}
+.modal,
+.dialog,
+.popover,
+.tag-menu,
+.context-menu{
+  border-radius:14px 4px 14px 4px!important;
+  border:1px solid rgba(255,255,255,.10)!important;
+  background:linear-gradient(180deg,rgba(16,17,27,.985),rgba(7,8,14,.965))!important;
+  box-shadow:0 20px 54px rgba(0,0,0,.48),inset 0 1px 0 rgba(255,255,255,.045)!important;
+}
+.tag-menu button,
+.context-menu button,
+.popover button{
+  border-radius:8px 3px 8px 3px!important;
+}
+.feed-dismiss{
+  border-radius:7px 3px 7px 3px!important;
+  border:1px solid rgba(255,255,255,.12)!important;
+  background:linear-gradient(180deg,rgba(255,255,255,.065),rgba(0,0,0,.18))!important;
+  color:#d9d3e4!important;
+}
+.feed-dismiss:hover{
+  border-color:rgba(255,216,107,.42)!important;
+  color:#ffe39a!important;
+  background:linear-gradient(180deg,rgba(255,216,107,.14),rgba(255,255,255,.035))!important;
+}
+.feed-refresh-btn,
+.feed-refresh-icon,
+.live-refresh-indicator{
+  border-color:rgba(255,216,107,.28)!important;
+}
+.stat-chip,
+.stat-pill,
+.quality-pill,
+.location-pill,
+.status-pill{
+  border-radius:7px 2px 7px 2px!important;
+}
+.armor-card:hover .card-top,
+.feed-card:hover,
+.feed-item:hover,
+.latest-card:hover{
+  border-color:color-mix(in srgb,var(--gold,#e8c56a) 28%,rgba(255,255,255,.12))!important;
+}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{transition:none!important;animation:none!important;scroll-behavior:auto!important}
+}
+@media(max-width:720px){
+  .armor-table thead th{height:36px!important;font-size:9px!important}
+  .armor-table td{height:39px!important}
+}
