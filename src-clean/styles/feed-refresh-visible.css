@@ -51,8 +51,8 @@
   opacity:1!important;
   visibility:visible!important;
 }
-.feed-polling .feed-refresh-indicator::before{animation:d2aa-feed-orbit 1.05s linear infinite!important;}
-.feed-polling .feed-refresh-indicator span{animation:d2aa-feed-orbit .82s linear reverse infinite!important;}
+.feed-polling .feed-refresh-indicator::before{animation:d2aa-feed-orbit 1.85s linear infinite!important;}
+.feed-polling .feed-refresh-indicator span{animation:d2aa-feed-orbit 1.45s linear reverse infinite!important;}
 .feed-head::before{display:none!important;content:none!important;}
 .feed-head #feedCount{
   flex:0 0 auto!important;
@@ -74,7 +74,7 @@
   border-right-color:rgba(255,216,107,.52)!important;
   background:radial-gradient(circle,rgba(255,216,107,.78) 0 1.5px,transparent 2px)!important;
   opacity:.92!important;
-  animation:d2aa-feed-orbit .9s linear infinite!important;
+  animation:d2aa-feed-orbit 1.65s linear infinite!important;
   box-shadow:0 0 12px rgba(255,216,107,.16)!important;
 }
 .item-feed .feed-dismiss-new{
