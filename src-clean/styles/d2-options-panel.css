@@ -1,0 +1,137 @@
+/* Scoped Destiny-style options panel polish.
+   Touches only the slide-out options panel and controls inside it. No cards, feed, nav layout, category bars, or grid changes. */
+.side-panel{
+  border-radius:16px 6px 16px 6px!important;
+  border-color:rgba(255,255,255,.12)!important;
+  background:
+    linear-gradient(180deg,rgba(15,16,26,.99),rgba(8,9,16,.985)),
+    linear-gradient(90deg,rgba(242,204,112,.05),transparent 40%)!important;
+  box-shadow:0 20px 55px rgba(0,0,0,.52),inset 0 1px 0 rgba(255,255,255,.04)!important;
+}
+.side-panel::before{
+  content:""!important;
+  position:sticky!important;
+  top:0!important;
+  display:block!important;
+  height:1px!important;
+  margin:-10px -10px 8px!important;
+  background:linear-gradient(90deg,transparent,var(--gold,#f2cc70),transparent)!important;
+  opacity:.45!important;
+  z-index:1!important;
+  pointer-events:none!important;
+}
+.panel-card{
+  position:relative!important;
+  overflow:hidden!important;
+  border-radius:12px 4px 12px 4px!important;
+  border-color:rgba(255,255,255,.10)!important;
+  background:linear-gradient(180deg,rgba(255,255,255,.052),rgba(255,255,255,.024))!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 9px 18px rgba(0,0,0,.16)!important;
+}
+.panel-card::before{
+  content:""!important;
+  position:absolute!important;
+  left:0!important;
+  top:10px!important;
+  bottom:10px!important;
+  width:2px!important;
+  border-radius:999px!important;
+  background:var(--gold,#f2cc70)!important;
+  opacity:.52!important;
+  box-shadow:0 0 8px color-mix(in srgb,var(--gold,#f2cc70) 22%,transparent)!important;
+  pointer-events:none!important;
+}
+.panel-card h2{
+  color:#f5e8b5!important;
+  font-weight:950!important;
+  letter-spacing:.16em!important;
+}
+.panel-card h2::before{
+  width:8px!important;
+  height:8px!important;
+  border-radius:2px!important;
+  transform:rotate(45deg)!important;
+  background:var(--gold,#f2cc70)!important;
+  box-shadow:0 0 9px color-mix(in srgb,var(--gold,#f2cc70) 28%,transparent)!important;
+}
+.action-card{
+  position:relative!important;
+  overflow:hidden!important;
+  border-radius:9px 4px 9px 4px!important;
+  border-color:rgba(255,255,255,.105)!important;
+  background:linear-gradient(90deg,rgba(255,255,255,.048),rgba(255,255,255,.018) 68%,transparent)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 7px 14px rgba(0,0,0,.15)!important;
+}
+.action-card::before{
+  content:""!important;
+  position:absolute!important;
+  left:0!important;
+  top:8px!important;
+  bottom:8px!important;
+  width:2px!important;
+  background:var(--gold,#f2cc70)!important;
+  opacity:.42!important;
+  pointer-events:none!important;
+}
+.action-card:hover{
+  border-color:color-mix(in srgb,var(--gold,#f2cc70) 38%,rgba(255,255,255,.14))!important;
+  background:linear-gradient(90deg,rgba(242,204,112,.105),rgba(255,255,255,.025) 68%,transparent)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 10px 18px rgba(0,0,0,.20),0 0 11px color-mix(in srgb,var(--gold,#f2cc70) 10%,transparent)!important;
+}
+.action-card span{
+  border-radius:7px 3px 7px 3px!important;
+  border:1px solid color-mix(in srgb,var(--gold,#f2cc70) 26%,rgba(255,255,255,.08))!important;
+  background:linear-gradient(180deg,rgba(242,204,112,.14),rgba(0,0,0,.22))!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.04)!important;
+}
+.action-card--danger::before{
+  background:#ff6b7a!important;
+  opacity:.58!important;
+}
+.action-card--danger span{
+  border-color:rgba(255,107,122,.28)!important;
+  background:linear-gradient(180deg,rgba(255,107,122,.14),rgba(0,0,0,.22))!important;
+}
+.panel-card label{
+  text-transform:uppercase!important;
+  letter-spacing:.075em!important;
+  color:#bdb6c8!important;
+}
+.panel-card select,
+.panel-card input[type="range"]{
+  border-radius:7px 3px 7px 3px!important;
+  border-color:rgba(255,255,255,.11)!important;
+  background-color:rgba(0,0,0,.28)!important;
+}
+.panel-card select:focus-visible,
+.panel-card input[type="range"]:focus-visible,
+.action-card:focus-visible,
+.theme-pills button:focus-visible{
+  outline:1px solid color-mix(in srgb,var(--gold,#f2cc70) 70%,white)!important;
+  outline-offset:2px!important;
+}
+#duplicateToleranceOut{
+  display:inline-grid!important;
+  place-items:center!important;
+  min-height:24px!important;
+  width:max-content!important;
+  min-width:48px!important;
+  padding:0 8px!important;
+  border-radius:5px!important;
+  border:1px solid color-mix(in srgb,var(--gold,#f2cc70) 34%,rgba(255,255,255,.10))!important;
+  background:linear-gradient(180deg,rgba(242,204,112,.12),rgba(255,255,255,.025))!important;
+  color:#ffe39a!important;
+  font-size:11px!important;
+  font-weight:950!important;
+}
+.theme-pills button{
+  border-radius:7px 3px 7px 3px!important;
+  border-color:rgba(255,255,255,.105)!important;
+  background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(0,0,0,.14))!important;
+  text-transform:uppercase!important;
+  letter-spacing:.05em!important;
+}
+.theme-pills button.is-active{
+  border-color:color-mix(in srgb,var(--gold,#f2cc70) 45%,rgba(255,255,255,.12))!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.055),0 0 10px color-mix(in srgb,var(--gold,#f2cc70) 12%,transparent)!important;
+}
