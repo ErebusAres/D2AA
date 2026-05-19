@@ -1,0 +1,204 @@
+/* v1.46 overall Destiny HUD consistency pass.
+   Visual-only layer for command bar, options drawer, chips, and empty surfaces. */
+.command-bar{
+  gap:10px!important;
+  align-items:center!important;
+}
+.command-summary article,
+.active-chips span,
+.results-inline-chips span{
+  border-radius:8px 3px 8px 3px!important;
+  border:1px solid rgba(255,255,255,.095)!important;
+  background:linear-gradient(180deg,rgba(255,255,255,.060),rgba(0,0,0,.145))!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.040),0 7px 14px rgba(0,0,0,.14)!important;
+}
+.command-summary article{
+  min-height:38px!important;
+  position:relative!important;
+  overflow:hidden!important;
+}
+.command-summary article::before{
+  content:""!important;
+  position:absolute!important;
+  left:0!important;
+  top:7px!important;
+  bottom:7px!important;
+  width:2px!important;
+  background:color-mix(in srgb,var(--gold,#e8c56a) 66%,transparent)!important;
+  opacity:.56!important;
+}
+.command-summary article span{
+  color:#9f98aa!important;
+  font-weight:900!important;
+  letter-spacing:.11em!important;
+}
+.command-summary article strong{
+  color:#fff1c7!important;
+  text-shadow:0 1px 0 rgba(0,0,0,.50)!important;
+}
+.view-toggle,
+.class-toggle{
+  padding:2px!important;
+  border-radius:10px 3px 10px 3px!important;
+  background:rgba(0,0,0,.18)!important;
+  border:1px solid rgba(255,255,255,.055)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.026)!important;
+}
+.view-toggle button.is-active,
+.class-toggle button.is-active{
+  border-color:color-mix(in srgb,var(--gold,#e8c56a) 40%,rgba(255,255,255,.12))!important;
+  background:linear-gradient(180deg,rgba(232,197,106,.18),rgba(255,255,255,.035))!important;
+  color:#ffe39a!important;
+}
+.command-button--primary,
+#refreshBtn{
+  position:relative!important;
+  overflow:hidden!important;
+}
+.command-button--primary::before,
+#refreshBtn::before{
+  content:""!important;
+  position:absolute!important;
+  inset:0!important;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.075),transparent)!important;
+  transform:translateX(-120%)!important;
+  transition:transform .28s ease!important;
+  pointer-events:none!important;
+}
+.command-button--primary:hover::before,
+#refreshBtn:hover::before{
+  transform:translateX(120%)!important;
+}
+.search-wrap{
+  min-height:39px!important;
+}
+.search-wrap span{
+  color:#a8a0b2!important;
+  letter-spacing:.105em!important;
+}
+.search-wrap input::placeholder{
+  color:rgba(214,207,225,.50)!important;
+}
+.side-panel{
+  border-color:rgba(255,255,255,.095)!important;
+  background:
+    linear-gradient(180deg,rgba(13,14,23,.965),rgba(7,8,14,.945)),
+    radial-gradient(circle at 30% 0,color-mix(in srgb,var(--accent,#b28cff) 12%,transparent),transparent 42%)!important;
+  box-shadow:0 20px 48px rgba(0,0,0,.34),inset 0 1px 0 rgba(255,255,255,.040)!important;
+}
+.side-panel::before{
+  content:""!important;
+  position:absolute!important;
+  left:12px!important;
+  right:12px!important;
+  top:0!important;
+  height:1px!important;
+  background:linear-gradient(90deg,transparent,color-mix(in srgb,var(--gold,#e8c56a) 46%,transparent),transparent)!important;
+  opacity:.70!important;
+  pointer-events:none!important;
+}
+.panel-card{
+  position:relative!important;
+  overflow:hidden!important;
+  border-radius:13px 4px 13px 4px!important;
+  border-color:rgba(255,255,255,.085)!important;
+  background:linear-gradient(180deg,rgba(255,255,255,.054),rgba(0,0,0,.135))!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.035),0 10px 20px rgba(0,0,0,.16)!important;
+}
+.panel-card::before{
+  content:""!important;
+  position:absolute!important;
+  left:0!important;
+  top:12px!important;
+  bottom:12px!important;
+  width:2px!important;
+  background:var(--gold,#e8c56a)!important;
+  opacity:.38!important;
+}
+.panel-card h2{
+  color:#fff1c8!important;
+  font-size:12px!important;
+  letter-spacing:.15em!important;
+  text-transform:uppercase!important;
+}
+.panel-card label{
+  color:#c7bfce!important;
+  font-weight:850!important;
+}
+.panel-card select,
+.panel-card input[type="range"]{
+  accent-color:var(--gold,#e8c56a)!important;
+}
+.panel-card select{
+  border-radius:8px 3px 8px 3px!important;
+  border-color:rgba(255,255,255,.11)!important;
+  background-color:rgba(0,0,0,.28)!important;
+  color:#f2edf8!important;
+}
+.action-card{
+  border-radius:10px 3px 10px 3px!important;
+  border-color:rgba(255,255,255,.10)!important;
+  background:linear-gradient(180deg,rgba(255,255,255,.060),rgba(0,0,0,.14))!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 8px 16px rgba(0,0,0,.15)!important;
+}
+.action-card:hover{
+  border-color:color-mix(in srgb,var(--gold,#e8c56a) 36%,rgba(255,255,255,.14))!important;
+  background:linear-gradient(180deg,rgba(232,197,106,.13),rgba(255,255,255,.035))!important;
+}
+.action-card span:first-child{
+  border-radius:7px 2px 7px 2px!important;
+  background:rgba(0,0,0,.25)!important;
+  color:#ffe39a!important;
+  border:1px solid rgba(232,197,106,.22)!important;
+}
+.action-card b{
+  color:#fff4dc!important;
+}
+.action-card small,
+.muted.compact{
+  color:#aaa2b5!important;
+}
+.theme-pills button,
+.theme-pills .theme-pill{
+  border-radius:8px 3px 8px 3px!important;
+}
+.active-chips,
+.results-inline-chips{
+  gap:8px!important;
+}
+.active-chips span,
+.results-inline-chips span{
+  min-height:28px!important;
+  padding:6px 10px!important;
+  color:#d8d1e1!important;
+  font-size:11px!important;
+  font-weight:900!important;
+  letter-spacing:.045em!important;
+}
+.empty-state{
+  border-radius:18px 5px 18px 5px!important;
+  border:1px solid rgba(255,255,255,.09)!important;
+  background:
+    radial-gradient(circle at 50% 0,color-mix(in srgb,var(--gold,#e8c56a) 12%,transparent),transparent 34%),
+    linear-gradient(180deg,rgba(255,255,255,.050),rgba(0,0,0,.16))!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.040),0 16px 34px rgba(0,0,0,.24)!important;
+}
+.empty-state h2{
+  color:#fff1c7!important;
+  text-transform:uppercase!important;
+  letter-spacing:.06em!important;
+}
+.empty-state p{
+  color:#c7bfce!important;
+}
+.results-panel{
+  border-radius:18px 5px 18px 5px!important;
+}
+@media(max-width:1100px){
+  .command-summary article{min-height:34px!important}
+  .active-chips span,.results-inline-chips span{min-height:26px!important;padding:5px 8px!important}
+}
+@media(max-width:720px){
+  .side-panel{border-radius:14px 4px 14px 4px!important}
+  .panel-card{border-radius:11px 3px 11px 3px!important}
+}
