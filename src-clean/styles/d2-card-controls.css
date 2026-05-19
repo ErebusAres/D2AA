@@ -64,7 +64,6 @@
 }
 
 /* v1.39 global Destiny HUD atmosphere. Visual-only, no behavior changes. */
-.d2aa-version-badge::after{content:"v1.39"!important}
 body{
   background:
     radial-gradient(ellipse at 52% -18%,color-mix(in srgb,var(--gold,#e8c56a) 18%,transparent),transparent 34%),
@@ -182,7 +181,6 @@ body::after{
 }
 
 /* v1.40 grid card readability + depth cleanup. Visual-only. */
-.d2aa-version-badge::after{content:"v1.40"!important}
 .armor-card{
   background:
     linear-gradient(180deg,rgba(17,18,28,.94),rgba(8,9,15,.92)),
@@ -258,4 +256,55 @@ body::after{
 .results-inline-chips span{
   background:linear-gradient(180deg,rgba(255,255,255,.060),rgba(0,0,0,.18))!important;
   color:#d4cdde!important;
+}
+
+/* v1.42 brand status pin + compact layout. */
+.d2aa-version-badge::after{content:"v1.42"!important}
+.brand-chip{
+  min-width:214px!important;
+  max-width:270px!important;
+  padding:8px 62px 8px 12px!important;
+}
+.brand-chip > div{
+  min-width:0!important;
+}
+.brand-chip strong{
+  display:block!important;
+  max-width:100%!important;
+  padding-right:4px!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+}
+.brand-chip #statusText{
+  display:block!important;
+  max-width:100%!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+  color:#cfc7d9!important;
+  font-size:11px!important;
+  letter-spacing:.01em!important;
+}
+.brand-status-time{
+  position:absolute!important;
+  right:8px!important;
+  top:7px!important;
+  min-width:43px!important;
+  max-width:52px!important;
+  height:18px!important;
+  display:grid!important;
+  place-items:center!important;
+  border:1px solid color-mix(in srgb,var(--gold,#e8c56a) 34%,rgba(255,255,255,.10))!important;
+  border-radius:6px 2px 6px 2px!important;
+  background:rgba(0,0,0,.24)!important;
+  color:#f1d37d!important;
+  font-size:10px!important;
+  font-weight:900!important;
+  line-height:1!important;
+  letter-spacing:.015em!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.035),0 0 10px color-mix(in srgb,var(--gold,#e8c56a) 10%,transparent)!important;
+}
+@media(max-width:980px){
+  .brand-chip{max-width:240px!important;min-width:200px!important}
 }
