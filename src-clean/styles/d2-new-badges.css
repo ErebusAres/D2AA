@@ -1,0 +1,56 @@
+/* Scoped cleanup for armor-card NEW indicators only.
+   Fixes the floating/stacked look after the D2 header pass without touching card layout or feed layout. */
+.armor-card .new-found-badge{
+  top:28px!important;
+  left:16px!important;
+  height:18px!important;
+  min-width:48px!important;
+  padding:0 7px!important;
+  gap:3px!important;
+  border-radius:4px!important;
+  border:1px solid color-mix(in srgb,var(--gold,#f2cc70) 58%,rgba(255,255,255,.10))!important;
+  background:linear-gradient(180deg,rgba(10,10,12,.96),rgba(0,0,0,.90))!important;
+  color:#ffe39a!important;
+  font-size:9px!important;
+  line-height:1!important;
+  font-weight:950!important;
+  letter-spacing:.075em!important;
+  text-transform:uppercase!important;
+  box-shadow:0 0 0 1px rgba(0,0,0,.55),0 5px 10px rgba(0,0,0,.34),0 0 10px color-mix(in srgb,var(--gold,#f2cc70) 18%,transparent)!important;
+  transform:none!important;
+  z-index:4!important;
+}
+.armor-card .new-found-badge::before{
+  content:""!important;
+  width:4px!important;
+  height:4px!important;
+  border-radius:999px!important;
+  background:var(--gold,#f2cc70)!important;
+  box-shadow:0 0 7px color-mix(in srgb,var(--gold,#f2cc70) 38%,transparent)!important;
+}
+.armor-card .new-found-badge::first-letter{
+  font-size:0!important;
+}
+.armor-card .status-pill.is-new{
+  height:18px!important;
+  padding:0 6px!important;
+  border-radius:4px!important;
+  border-color:color-mix(in srgb,var(--gold,#f2cc70) 34%,rgba(255,255,255,.10))!important;
+  background:linear-gradient(180deg,rgba(242,204,112,.12),rgba(242,204,112,.045))!important;
+  color:#ffe39a!important;
+  font-size:9px!important;
+  line-height:18px!important;
+  font-weight:900!important;
+  letter-spacing:.055em!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.045)!important;
+}
+.armor-card.is-new-found .item-icon{
+  border-color:color-mix(in srgb,var(--gold,#f2cc70) 42%,rgba(255,255,255,.14))!important;
+}
+.armor-card.is-new-found .card-top{
+  padding-top:7px!important;
+}
+@media(max-width:640px){
+  .armor-card .new-found-badge{top:27px!important;left:14px!important;height:17px!important;min-width:44px!important;font-size:8px!important;padding:0 6px!important}
+  .armor-card .status-pill.is-new{height:17px!important;line-height:17px!important;font-size:8px!important}
+}
