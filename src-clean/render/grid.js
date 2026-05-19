@@ -58,8 +58,8 @@ function renderCard(row) {
     </div>
     <div class="card-grid-3x3">
       <div><span>Total</span><strong>${row.Total || 0}</strong></div>
-      <div><span>Tier</span><strong class="diamonds">${diamonds(row.Tier, row.TierMax)}</strong></div>
-      <div class="arch-cell"><span>Arch</span>${archetypeIcon(row)}</div>
+      <div class="tier-cell"><span>Tier</span><strong class="diamonds" title="Tier ${html(row.Tier || 0)}">${diamonds(row.Tier, row.TierMax)}</strong></div>
+      <div class="arch-cell">${archetypeIcon(row)}</div>
       ${STAT_KEYS.map((key) => statCell(row, key)).join('')}
     </div>
     <div class="card-actions">
@@ -135,7 +135,7 @@ function maskIcon(src, label) {
 function diamonds(tier, max = 5) {
   const m = Number(max || 5);
   const n = Math.max(0, Math.min(m, Number(tier || 0)));
-  return '◆'.repeat(n) + '◇'.repeat(Math.max(0, m - n));
+  return '◆'.repeat(n);
 }
 function safeClass(value) { return String(value || '').toLowerCase().replace(/[^a-z0-9_-]+/g, '-'); }
 function html(value) {
