@@ -7,6 +7,7 @@ export function renderItemFeed(container, countEl, rows, onTag, onDismissNew, on
   const showingFallback = newlyFound.length === 0;
   const feedRows = showingFallback ? latestSyncedRows(rows) : newlyFound;
   countEl.textContent = String(feedRows.length);
+  ensureFeedRefreshIndicator(countEl);
   container.innerHTML = feedRows.length ? feedRows.map((row) => renderFeedCard(row, showingFallback)).join('') : renderEmptyFeed();
   container.querySelectorAll('[data-feed-tag]').forEach((button) => {
     button.addEventListener('click', () => onTag(button.dataset.id, button.dataset.feedTag));
@@ -17,6 +18,18 @@ export function renderItemFeed(container, countEl, rows, onTag, onDismissNew, on
   container.querySelectorAll('[data-feed-compare-group]').forEach((button) => {
     button.addEventListener('click', () => onCompareGroup?.(button.dataset.feedCompareGroup));
   });
+}
+
+function ensureFeedRefreshIndicator(countEl) {
+  const head = countEl?.closest?.('.feed-head');
+  if (!head || head.querySelector('.feed-refresh-indicator')) return;
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'feed-refresh-indicator';
+  button.title = 'Live feed checks every minute while this page is active';
+  button.setAttribute('aria-label', 'Item feed live refresh status');
+  button.innerHTML = '<span aria-hidden="true">↻</span>';
+  countEl.before(button);
 }
 
 function isFeedCandidate(row) {
