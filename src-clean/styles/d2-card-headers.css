@@ -104,3 +104,163 @@
   .armor-card .card-top{padding:5px 7px 5px 5px!important;border-radius:10px 5px 10px 5px!important}
   .armor-card .item-title h3{font-size:14px!important}
 }
+
+/* v1.34 scoped grid cards page polish. Visual-only: grid surface, card shell, stat frame rhythm. */
+.d2aa-version-badge::after{content:"v1.34"!important}
+.results-panel{
+  position:relative!important;
+  overflow:hidden!important;
+  border-color:rgba(255,255,255,.085)!important;
+  background:
+    radial-gradient(circle at 24% 0%,color-mix(in srgb,var(--accent,#b28cff) 10%,transparent),transparent 32%),
+    linear-gradient(180deg,rgba(18,20,34,.78),rgba(9,10,17,.82))!important;
+}
+.results-panel::before{
+  content:""!important;
+  position:absolute!important;
+  left:14px!important;
+  right:14px!important;
+  top:0!important;
+  height:1px!important;
+  background:linear-gradient(90deg,transparent,color-mix(in srgb,var(--gold,#f2cc70) 58%,transparent),transparent)!important;
+  opacity:.62!important;
+  pointer-events:none!important;
+}
+.results-inline-chips span{
+  border-radius:7px 3px 7px 3px!important;
+  border-color:rgba(255,255,255,.095)!important;
+  background:linear-gradient(180deg,rgba(255,255,255,.052),rgba(0,0,0,.14))!important;
+  color:#c8c0d2!important;
+  font-size:10px!important;
+  font-weight:850!important;
+  letter-spacing:.06em!important;
+  text-transform:uppercase!important;
+}
+.armor-grid-view{
+  position:relative!important;
+  gap:15px!important;
+  align-items:start!important;
+}
+.slot-card-grid{
+  display:grid!important;
+  grid-template-columns:repeat(auto-fill,minmax(282px,1fr))!important;
+  gap:15px!important;
+  align-items:start!important;
+}
+.armor-card{
+  isolation:isolate!important;
+  border-radius:16px 5px 16px 5px!important;
+  border-color:rgba(255,255,255,.10)!important;
+  background:
+    linear-gradient(180deg,rgba(255,255,255,.062),rgba(255,255,255,.024)),
+    linear-gradient(135deg,color-mix(in srgb,var(--gold,#f2cc70) 4%,transparent),transparent 38%)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.040),0 15px 34px rgba(0,0,0,.28)!important;
+}
+.armor-card::before{
+  content:""!important;
+  position:absolute!important;
+  inset:0!important;
+  border-radius:inherit!important;
+  background:
+    linear-gradient(90deg,color-mix(in srgb,var(--gold,#f2cc70) 24%,transparent),transparent 22%),
+    linear-gradient(180deg,rgba(255,255,255,.030),transparent 28%)!important;
+  opacity:.42!important;
+  pointer-events:none!important;
+  z-index:-1!important;
+}
+.armor-card::after{
+  content:""!important;
+  position:absolute!important;
+  left:0!important;
+  top:44px!important;
+  bottom:16px!important;
+  width:2px!important;
+  border-radius:999px!important;
+  background:linear-gradient(180deg,var(--gold,#f2cc70),transparent)!important;
+  opacity:.36!important;
+  box-shadow:0 0 10px color-mix(in srgb,var(--gold,#f2cc70) 18%,transparent)!important;
+  pointer-events:none!important;
+}
+.armor-card:hover{
+  border-color:color-mix(in srgb,var(--gold,#f2cc70) 30%,rgba(255,255,255,.11))!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.048),0 18px 40px rgba(0,0,0,.32),0 0 20px color-mix(in srgb,var(--gold,#f2cc70) 7%,transparent)!important;
+  filter:brightness(1.025)!important;
+}
+.armor-card.exotic{
+  border-color:color-mix(in srgb,var(--gold,#f2cc70) 42%,rgba(255,255,255,.10))!important;
+}
+.armor-card.is-grouped{
+  border-color:color-mix(in srgb,var(--group-color,var(--accent,#b28cff)) 42%,rgba(255,255,255,.10))!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.045),0 15px 34px rgba(0,0,0,.30),0 0 24px var(--group-glow,rgba(255,216,107,.12))!important;
+}
+.armor-card.is-grouped::after{
+  background:linear-gradient(180deg,var(--group-color,var(--gold,#f2cc70)),transparent)!important;
+  opacity:.58!important;
+  box-shadow:0 0 12px var(--group-glow,rgba(255,216,107,.22))!important;
+}
+.armor-card .light-tag-badge,
+.armor-card .group-badge,
+.armor-card .new-found-badge{
+  height:24px!important;
+  min-width:42px!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  padding:0 8px!important;
+  border-radius:7px 3px 7px 3px!important;
+  font-size:10px!important;
+  line-height:1!important;
+  letter-spacing:.045em!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 6px 13px rgba(0,0,0,.24)!important;
+}
+.armor-card .light-tag-badge{background:rgba(5,5,6,.88)!important;color:#ffe39a!important}.armor-card .new-found-badge{left:50%!important;top:12px!important;transform:translateX(-50%)!important;white-space:nowrap!important;color:#ffe39a!important;background:linear-gradient(180deg,rgba(242,204,112,.16),rgba(0,0,0,.36))!important;border:1px solid rgba(242,204,112,.36)!important}
+.card-grid-3x3{
+  gap:7px!important;
+  margin-top:12px!important;
+}
+.card-grid-3x3 > div{
+  position:relative!important;
+  overflow:hidden!important;
+  border-radius:8px 3px 8px 3px!important;
+  border-color:rgba(255,255,255,.09)!important;
+  background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(0,0,0,.18))!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.035)!important;
+}
+.card-grid-3x3 > div:not(.stat-cell)::before{
+  content:""!important;
+  position:absolute!important;
+  left:0!important;
+  top:8px!important;
+  bottom:8px!important;
+  width:2px!important;
+  background:var(--gold,#f2cc70)!important;
+  opacity:.35!important;
+}
+.card-grid-3x3 > div:not(.stat-cell) span{
+  letter-spacing:.095em!important;
+  font-weight:850!important;
+}
+.card-grid-3x3 > div:not(.stat-cell) strong{
+  color:#f6eed8!important;
+  font-weight:950!important;
+}
+.card-grid-3x3 .arch-cell .arch-image,
+.card-grid-3x3 .arch-cell .arch-missing{
+  width:22px!important;
+  height:22px!important;
+  display:grid!important;
+  place-items:center!important;
+  object-fit:contain!important;
+  filter:drop-shadow(0 0 7px rgba(255,216,107,.12))!important;
+}
+.empty-state{
+  border:1px solid rgba(255,255,255,.08)!important;
+  border-radius:16px 5px 16px 5px!important;
+  background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.018))!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.035)!important;
+}
+.empty-state h2{color:#f4ecd9!important}.empty-state p{color:#aaa1c2!important}
+@media(max-width:720px){
+  .slot-card-grid{grid-template-columns:1fr!important;gap:12px!important}
+  .armor-card{border-radius:14px 5px 14px 5px!important}
+}
