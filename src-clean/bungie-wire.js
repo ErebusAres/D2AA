@@ -9,10 +9,13 @@ const ROW_CACHE_KEY = 'd2aa_clean_rows_v1';
 const LIVE_REFRESH_MS = 60000;
 const ITEM_FEED_CHECK_MS = 60000;
 const LIVE_MIN_GAP_MS = 25000;
+const MIN_FEED_SPINNER_MS = 2800;
 
 let lastLiveRefreshAt = 0;
 let liveRefreshTimer = null;
 let itemFeedPollTimer = null;
+let feedPollingClearTimer = null;
+let feedPollingStartedAt = 0;
 let controlsBound = false;
 let activeSyncReason = '';
 
@@ -39,16 +42,16 @@ function bindBungieControls() {
       if (shouldRefreshOnFocus()) requestLiveRefresh('focus-refresh');
       scheduleItemFeedPoll(5000);
     } else {
-      setFeedPolling(false);
+      setFeedPolling(false, '', true);
     }
   });
   window.addEventListener('focus', () => {
     if (shouldRefreshOnFocus()) requestLiveRefresh('window-focus-refresh');
     scheduleItemFeedPoll(5000);
   });
-  window.addEventListener('blur', () => { setFeedPolling(false); scheduleItemFeedPoll(); });
+  window.addEventListener('blur', () => { setFeedPolling(false, '', true); scheduleItemFeedPoll(); });
   window.addEventListener('online', () => requestLiveRefresh('network-online'));
-  window.addEventListener('offline', () => setFeedPolling(false));
+  window.addEventListener('offline', () => setFeedPolling(false, '', true));
 }
 
 async function runSync(reason, background = false) {
@@ -164,10 +167,31 @@ function scheduleItemFeedPoll(delay = ITEM_FEED_CHECK_MS) {
   }, delay);
 }
 
-function setFeedPolling(active, reason = '') {
-  document.body.classList.toggle('feed-polling', Boolean(active));
+function setFeedPolling(active, reason = '', immediate = false) {
+  clearTimeout(feedPollingClearTimer);
   const feed = document.getElementById('itemFeed');
-  if (feed) feed.dataset.pollingReason = active ? reason : '';
+
+  if (active) {
+    feedPollingStartedAt = Date.now();
+    document.body.classList.add('feed-polling');
+    if (feed) feed.dataset.pollingReason = reason || 'syncing';
+    return;
+  }
+
+  const clear = () => {
+    document.body.classList.remove('feed-polling');
+    if (feed) feed.dataset.pollingReason = '';
+    feedPollingStartedAt = 0;
+  };
+
+  if (immediate || !feedPollingStartedAt) {
+    clear();
+    return;
+  }
+
+  const elapsed = Date.now() - feedPollingStartedAt;
+  const remaining = Math.max(0, MIN_FEED_SPINNER_MS - elapsed);
+  feedPollingClearTimer = setTimeout(clear, remaining);
 }
 
 function isPageLive() {
