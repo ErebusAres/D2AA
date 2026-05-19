@@ -125,3 +125,42 @@
 .feed-new-spark{
   display:none!important;
 }
+
+/* v1.36 grid card top badge overlap fix. Loaded last, so it intentionally overrides earlier card badge/header positioning. */
+.d2aa-version-badge::after{content:"v1.36"!important}
+.armor-card{
+  padding-top:40px!important;
+}
+.armor-card .card-top{
+  margin:0 -2px 0!important;
+}
+.armor-card .light-tag-badge,
+.armor-card .light-only-badge,
+.armor-card .group-badge,
+.armor-card .new-found-badge{
+  top:10px!important;
+  z-index:6!important;
+}
+.armor-card .light-tag-badge,
+.armor-card .light-only-badge{
+  left:12px!important;
+}
+.armor-card .group-badge{
+  right:12px!important;
+}
+.armor-card .new-found-badge{
+  left:50%!important;
+  right:auto!important;
+  transform:translateX(-50%)!important;
+  max-width:calc(100% - 112px)!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+}
+@media(max-width:720px){
+  .armor-card{padding-top:38px!important}
+  .armor-card .light-tag-badge,
+  .armor-card .light-only-badge,
+  .armor-card .group-badge,
+  .armor-card .new-found-badge{top:9px!important}
+}
