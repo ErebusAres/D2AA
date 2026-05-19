@@ -1,0 +1,172 @@
+/* v1.49 Destiny inventory/grid polish pass.
+   Visual-only improvements to armor cards, badges, section rhythm, and small text contrast. */
+.armor-grid-view{
+  align-content:start!important;
+}
+.armor-card{
+  position:relative!important;
+  overflow:hidden!important;
+  border-radius:15px 4px 15px 4px!important;
+  transition:border-color .15s ease,box-shadow .15s ease,transform .15s ease,filter .15s ease!important;
+}
+.armor-card::after{
+  content:""!important;
+  position:absolute!important;
+  left:10px!important;
+  right:10px!important;
+  top:0!important;
+  height:1px!important;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.20),transparent)!important;
+  opacity:.46!important;
+  pointer-events:none!important;
+}
+.armor-card:hover{
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.060),0 18px 38px rgba(0,0,0,.36),0 0 20px color-mix(in srgb,var(--gold,#f2cc70) 7%,transparent)!important;
+}
+.armor-card.is-grouped{
+  border-color:color-mix(in srgb,var(--group-color,var(--gold,#f2cc70)) 34%,rgba(255,255,255,.13))!important;
+}
+.armor-card.is-grouped::before{
+  opacity:.48!important;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--group-color,var(--gold,#f2cc70)) 70%,transparent),transparent 74%)!important;
+}
+.armor-card .card-top{
+  min-height:74px!important;
+  border-radius:12px 3px 12px 3px!important;
+  padding:10px!important;
+}
+.armor-card .item-icon,
+.armor-card .card-icon,
+.armor-card .armor-icon{
+  border-radius:9px 3px 9px 3px!important;
+  border:1px solid rgba(255,255,255,.14)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.045),0 8px 14px rgba(0,0,0,.28)!important;
+}
+.armor-card .item-title h3{
+  font-size:14px!important;
+  letter-spacing:.005em!important;
+  line-height:1.16!important;
+}
+.armor-card .item-title p,
+.armor-card .item-subtitle,
+.armor-card .identifier-icons small{
+  color:#bdb6c8!important;
+  font-weight:760!important;
+}
+.armor-card .identifier-icons{
+  gap:5px!important;
+}
+.armor-card .light-tag-badge,
+.armor-card .light-only-badge,
+.armor-card .group-badge,
+.armor-card .new-found-badge{
+  min-height:24px!important;
+  border-radius:7px 2px 7px 2px!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.045),0 6px 12px rgba(0,0,0,.18)!important;
+  font-weight:950!important;
+  letter-spacing:.045em!important;
+}
+.armor-card .light-tag-badge,
+.armor-card .light-only-badge{
+  background:linear-gradient(180deg,rgba(255,216,107,.22),rgba(0,0,0,.20))!important;
+  color:#ffe39a!important;
+  border-color:rgba(255,216,107,.34)!important;
+}
+.armor-card .group-badge{
+  background:linear-gradient(180deg,color-mix(in srgb,var(--group-color,var(--gold,#f2cc70)) 20%,rgba(255,255,255,.03)),rgba(0,0,0,.20))!important;
+  border-color:color-mix(in srgb,var(--group-color,var(--gold,#f2cc70)) 45%,rgba(255,255,255,.11))!important;
+  color:color-mix(in srgb,var(--group-color,var(--gold,#f2cc70)) 76%,white)!important;
+}
+.armor-card .new-found-badge{
+  background:linear-gradient(180deg,rgba(113,221,255,.22),rgba(0,0,0,.20))!important;
+  border-color:rgba(113,221,255,.34)!important;
+  color:#bff3ff!important;
+  text-transform:uppercase!important;
+}
+.card-grid-3x3{
+  gap:8px!important;
+  margin-top:10px!important;
+}
+.card-grid-3x3 > div{
+  border-radius:9px 3px 9px 3px!important;
+}
+.card-grid-3x3 .stat-cell{
+  grid-template-columns:20px minmax(0,1fr)!important;
+  min-height:45px!important;
+  padding:8px!important;
+}
+.card-grid-3x3 .stat-cell strong{
+  font-size:15px!important;
+}
+.card-grid-3x3 .stat-cell span{
+  color:#aaa3b6!important;
+  font-weight:900!important;
+  letter-spacing:.045em!important;
+}
+.card-grid-3x3 > div:not(.stat-cell){
+  min-height:45px!important;
+}
+.card-grid-3x3 > div:not(.stat-cell) span{
+  font-size:9px!important;
+  font-weight:950!important;
+  letter-spacing:.10em!important;
+  text-transform:uppercase!important;
+}
+.card-grid-3x3 > div:not(.stat-cell) strong{
+  font-weight:950!important;
+}
+.armor-card .card-actions{
+  border-top-color:rgba(255,255,255,.075)!important;
+}
+.armor-card .card-actions button,
+.armor-card .card-tag-slot{
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.045),0 7px 14px rgba(0,0,0,.17)!important;
+}
+.armor-card .card-tag-slot{
+  border-color:rgba(255,255,255,.115)!important;
+  background:linear-gradient(180deg,rgba(255,255,255,.058),rgba(0,0,0,.16))!important;
+}
+.armor-card .card-tag-slot:hover{
+  border-color:rgba(255,216,107,.42)!important;
+}
+.slot-header,
+.slot-title,
+.category-bar,
+.section-bar{
+  min-height:38px!important;
+  padding:9px 12px!important;
+  color:#fff1c7!important;
+}
+.slot-header strong,
+.slot-title strong,
+.category-bar strong,
+.section-bar strong,
+.slot-header h2,
+.slot-title h2,
+.category-bar h2,
+.section-bar h2{
+  letter-spacing:.10em!important;
+  text-transform:uppercase!important;
+  font-weight:950!important;
+}
+.slot-header span,
+.slot-title span,
+.category-bar span,
+.section-bar span{
+  color:#b9b1c5!important;
+  font-weight:850!important;
+}
+.location-pill,
+.status-pill,
+.stat-chip,
+.stat-pill,
+.quality-pill{
+  background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(0,0,0,.14))!important;
+  border:1px solid rgba(255,255,255,.085)!important;
+  color:#d8d1e2!important;
+}
+@media(max-width:720px){
+  .armor-card .card-top{min-height:68px!important;padding:9px!important}
+  .card-grid-3x3{gap:7px!important}
+  .card-grid-3x3 .stat-cell,.card-grid-3x3 > div:not(.stat-cell){min-height:42px!important}
+}
