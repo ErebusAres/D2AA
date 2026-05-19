@@ -144,3 +144,5 @@
   .slot-divider em{height:22px!important;min-width:28px!important}
   .slot-divider::after{left:32px!important;right:38px!important}
 }
+/* Visible deploy marker override for this pass. */
+.d2aa-version-badge::after{content:"v1.31"!important}
