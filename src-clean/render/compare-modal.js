@@ -72,12 +72,10 @@ function renderSummary(rows, bestId) {
 
 function renderCompareCard(row, bestId) {
   const score = scoreRow(row);
-  const tag = TAGS.find((item) => item.value === row.Tag && item.value);
   return `<article class="compare-card ${String(row.Id) === String(bestId) ? 'is-best' : ''}">
     <div class="compare-item-head"><div class="compare-icon">${row.Icon ? `<img src="${html(row.Icon)}" alt="" loading="lazy">` : '◇'}${row.Power || row.Light ? `<b>${row.Power || row.Light}</b>` : ''}</div><div><h3>${html(row.Name)}</h3><p>${html(row.Class)} • ${html(row.Slot)} • ${html(row.Rarity)} ${row.IsInVault ? '• Vault' : row.IsEquipped ? '• Equipped' : '• Inventory'}</p></div><strong class="compare-score">${score}</strong></div>
-    <div class="compare-tag-line"><span>Tag</span><strong>${tag ? tag.emoji + ' ' + html(tag.label) : 'None'}</strong></div>
     <div class="compare-stat-grid">${STAT_KEYS.map((key) => renderStat(row, key)).join('')}<div class="compare-total"><span>Total</span><strong>${row.Total || 0}</strong></div><div class="compare-total"><span>Tier</span><strong>${diamonds(row.Tier, row.TierMax)}</strong></div></div>
-    <div class="compare-tags">${TAGS.filter((tag) => tag.picker !== false).map((tag) => `<button type="button" class="${row.Tag === tag.value ? 'is-active' : ''}" data-id="${html(row.Id)}" data-compare-tag="${html(tag.value)}" title="${html(tag.label)}">${tag.emoji}</button>`).join('')}</div>
+    <div class="compare-tags" aria-label="Assign item tag">${TAGS.filter((tag) => tag.picker !== false).map((tag) => `<button type="button" class="${row.Tag === tag.value ? 'is-active' : ''}" data-id="${html(row.Id)}" data-compare-tag="${html(tag.value)}" title="${html(tag.label)}">${tag.emoji}</button>`).join('')}</div>
   </article>`;
 }
 
@@ -104,7 +102,7 @@ function quality(value) {
 function diamonds(tier, max = 5) {
   const m = Number(max || 5);
   const n = Math.max(0, Math.min(m, Number(tier || 0)));
-  return '◆'.repeat(n) + '◇'.repeat(Math.max(0, m - n));
+  return '◆'.repeat(n);
 }
 function html(value) {
   return String(value ?? '').replace(/[&<>"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[char]));
