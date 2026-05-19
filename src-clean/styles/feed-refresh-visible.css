@@ -1,6 +1,6 @@
 /* Visible deploy marker. Update this on every push so d2aa-clean.html can stay stable while the page still confirms the live build. */
 .d2aa-version-badge{font-size:0!important}
-.d2aa-version-badge::after{content:"v1.29";font:900 11px/1 Inter,Segoe UI,system-ui,sans-serif;letter-spacing:.04em;writing-mode:vertical-rl;text-orientation:mixed}
+.d2aa-version-badge::after{content:"v1.30";font:900 11px/1 Inter,Segoe UI,system-ui,sans-serif;letter-spacing:.04em;writing-mode:vertical-rl;text-orientation:mixed}
 .feed-refresh-indicator{
   position:relative!important;
   flex:0 0 26px!important;
