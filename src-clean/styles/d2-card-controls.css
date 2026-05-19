@@ -180,3 +180,82 @@ body::after{
   body::before{background-size:56px 56px,56px 56px,100% 100%,100% 100%!important;opacity:.52!important}
   .command-bar::after{left:30px!important;right:10px!important}
 }
+
+/* v1.40 grid card readability + depth cleanup. Visual-only. */
+.d2aa-version-badge::after{content:"v1.40"!important}
+.armor-card{
+  background:
+    linear-gradient(180deg,rgba(17,18,28,.94),rgba(8,9,15,.92)),
+    linear-gradient(135deg,color-mix(in srgb,var(--gold,#f2cc70) 5%,transparent),transparent 42%)!important;
+  border-color:rgba(255,255,255,.115)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.052),0 16px 36px rgba(0,0,0,.34)!important;
+}
+.armor-card::before{
+  opacity:.28!important;
+}
+.armor-card:hover{
+  filter:none!important;
+  transform:translateY(-1px)!important;
+  border-color:color-mix(in srgb,var(--gold,#f2cc70) 36%,rgba(255,255,255,.12))!important;
+}
+.armor-card .card-top{
+  background:linear-gradient(90deg,rgba(255,255,255,.070),rgba(255,255,255,.026) 62%,rgba(0,0,0,.10))!important;
+  border-color:rgba(255,255,255,.075)!important;
+}
+.armor-card .item-title h3{
+  color:#fff6df!important;
+  text-shadow:0 1px 0 rgba(0,0,0,.72),0 0 10px rgba(0,0,0,.34)!important;
+}
+.armor-card .identifier-icons,
+.armor-card .identifier-icons small,
+.armor-card .location-pill,
+.armor-card .status-pill{
+  color:#c3bbcf!important;
+}
+.card-grid-3x3 > div{
+  background:linear-gradient(180deg,rgba(255,255,255,.052),rgba(0,0,0,.245))!important;
+  border-color:rgba(255,255,255,.095)!important;
+}
+.card-grid-3x3 > div:not(.stat-cell) span{
+  color:#b5aec2!important;
+}
+.card-grid-3x3 > div:not(.stat-cell) strong{
+  color:#fff1ce!important;
+}
+.card-grid-3x3 .stat-cell{
+  min-height:43px!important;
+  background:
+    linear-gradient(180deg,var(--stat-bg-top,rgba(255,255,255,.060)),var(--stat-bg-bottom,rgba(0,0,0,.245)))!important;
+  border-color:var(--stat-border,rgba(255,255,255,.10))!important;
+}
+.card-grid-3x3 .stat-cell strong{
+  color:var(--stat-text,#f2ead8)!important;
+  text-shadow:0 1px 0 rgba(0,0,0,.55)!important;
+}
+.card-grid-3x3 .stat-cell .stat-icon{
+  filter:drop-shadow(0 0 6px var(--stat-glow,rgba(255,255,255,.08)))!important;
+}
+.armor-card .light-tag-badge,
+.armor-card .light-only-badge,
+.armor-card .group-badge,
+.armor-card .new-found-badge{
+  backdrop-filter:blur(8px)!important;
+  border-color:rgba(255,255,255,.12)!important;
+}
+.armor-card .card-tag-slot:focus-visible,
+.armor-card .card-actions button:focus-visible,
+.armor-card .group-badge:focus-visible,
+.armor-card .light-tag-badge:focus-visible,
+.armor-card .light-only-badge:focus-visible{
+  outline:2px solid color-mix(in srgb,var(--gold,#f2cc70) 70%,white)!important;
+  outline-offset:2px!important;
+}
+.armor-card .card-actions button:not(:disabled):active,
+.armor-card .card-tag-slot:active{
+  transform:translateY(0)!important;
+  filter:brightness(.96)!important;
+}
+.results-inline-chips span{
+  background:linear-gradient(180deg,rgba(255,255,255,.060),rgba(0,0,0,.18))!important;
+  color:#d4cdde!important;
+}
