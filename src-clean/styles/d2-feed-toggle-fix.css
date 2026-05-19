@@ -1,0 +1,18 @@
+/* v1.41 item feed close/open transform fix.
+   d2-card-controls v1.39 accidentally applied transform:translateZ(0) to .item-feed, overriding the hidden/off-canvas transform.
+   This final-loaded layer restores the intended feed panel open/closed movement. */
+.d2aa-version-badge::after{content:"v1.41"!important}
+.item-feed{
+  transform:translateX(calc(var(--feed-width,410px) + 12px)) translateZ(0)!important;
+}
+.item-feed.is-open{
+  transform:translateX(0) translateZ(0)!important;
+}
+@media(max-width:720px){
+  .item-feed{
+    transform:translateX(calc(var(--feed-width,min(410px,calc(100vw - 52px))) + 12px)) translateZ(0)!important;
+  }
+  .item-feed.is-open{
+    transform:translateX(0) translateZ(0)!important;
+  }
+}
