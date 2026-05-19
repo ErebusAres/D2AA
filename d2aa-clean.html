@@ -47,7 +47,7 @@
   <div class="d2aa-version-badge" aria-label="D2AA version">v1.28</div>
   <div class="app-frame">
     <header class="command-bar" aria-label="D2AA command bar">
-      <div class="brand-chip"><span class="brand-mark">◆</span><div><strong>D2 Armor Analyzer</strong><span id="statusText">Clean rebuild baseline</span></div></div>
+      <div class="brand-chip"><span class="brand-mark">◆</span><div><strong>D2 Armor Analyzer</strong><span id="statusText">Ready</span></div></div>
       <nav class="view-toggle" aria-label="View mode"><button type="button" class="is-active" data-view="grid">Grid</button><button type="button" data-view="table">Table</button></nav>
       <nav class="class-toggle" id="classToggle" aria-label="Class filter"><button type="button" data-class-filter="all" class="is-active">All</button><button type="button" data-class-filter="Warlock">Warlock <b>0</b></button><button type="button" data-class-filter="Hunter">Hunter <b>0</b></button><button type="button" data-class-filter="Titan">Titan <b>0</b></button></nav>
       <section class="overview-row command-summary" aria-label="Inventory summary"><article><span>Shown</span><strong id="summaryShown">0</strong></article><article><span>Cached</span><strong id="summaryCached">0</strong></article><article><span>Groups</span><strong id="summaryGroups">0</strong></article><article><span>Recent</span><strong id="summaryRecent">0</strong></article><article class="class-overview"><span>Classes</span><strong id="summaryClasses">—</strong></article></section>
@@ -75,6 +75,7 @@
     const assetStamp = window.D2AA_ASSET_STAMP || Date.now().toString(36);
     await import(`./src-clean/app.js?t=${assetStamp}`);
     await import(`./src-clean/bungie-wire.js?t=${assetStamp}`);
+    await import(`./src-clean/status-chip.js?t=${assetStamp}`);
   </script>
 </body>
 </html>
