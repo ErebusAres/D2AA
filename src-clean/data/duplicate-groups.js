@@ -49,12 +49,14 @@ export function applyDuplicateGroups(rows, tolerance = 5) {
 
   discoveredGroups.sort((a, b) => groupSort(a.first, b.first) || maxTotal(b.candidates, b.group) - maxTotal(a.candidates, a.group));
   const slotCounters = new Map();
+  let globalColorIndex = 0;
   for (const discovered of discoveredGroups) {
     const slotIndex = slotCategoryNumber(discovered.first);
     const next = (slotCounters.get(slotIndex) || 0) + 1;
     slotCounters.set(slotIndex, next);
     const groupLabel = `${slotIndex}${letterFor(next)}`;
-    const color = GROUP_COLORS[(slotIndex - 1) % GROUP_COLORS.length];
+    const color = GROUP_COLORS[globalColorIndex % GROUP_COLORS.length];
+    globalColorIndex += 1;
     const actionKey = `${discovered.key}::${groupLabel}`;
     discovered.group
       .map((candidateIndex) => discovered.candidates[candidateIndex])
