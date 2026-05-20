@@ -1,7 +1,8 @@
 @import url('./d2-tag-badge-v150.css');
 @import url('./d2-card-header-v151.css');
 @import url('./d2-card-header-v152.css');
-.d2aa-version-badge::after{content:"v1.52"!important}
+@import url('./d2-grid-finish-v153.css');
+.d2aa-version-badge::after{content:"v1.53"!important}
 .item-feed{
   transform:translateX(calc(var(--feed-width,410px) + 12px)) translateZ(0)!important;
 }
