@@ -8,6 +8,7 @@ export function renderItemFeed(container, countEl, rows, onTag, onDismissNew, on
   const feedRows = showingFallback ? latestSyncedRows(rows) : newlyFound;
   countEl.textContent = String(feedRows.length);
   ensureFeedRefreshIndicator(countEl);
+  container.dataset.feedMode = showingFallback ? 'latest' : 'new';
   container.innerHTML = feedRows.length ? feedRows.map((row) => renderFeedCard(row, showingFallback)).join('') : renderEmptyFeed();
   container.querySelectorAll('[data-feed-tag]').forEach((button) => {
     button.addEventListener('click', () => onTag(button.dataset.id, button.dataset.feedTag));
@@ -33,14 +34,13 @@ function ensureFeedRefreshIndicator(countEl) {
 }
 
 function isFeedCandidate(row) {
-  return row.RecentStatus === 'new' || row.RecentlyFound === true;
+  return row && row.Id && !row.Tag && (row.RecentStatus === 'new' || row.RecentlyFound === true);
 }
 
 function latestSyncedRows(rows) {
-  return rows.slice()
-    .filter((row) => row && row.Id)
-    .sort(compareLatestSynced)
-    .slice(0, FEED_LIMIT);
+  const unhandled = rows.slice().filter((row) => row && row.Id && !row.Tag).sort(compareLatestSynced).slice(0, FEED_LIMIT);
+  if (unhandled.length) return unhandled;
+  return rows.slice().filter((row) => row && row.Id).sort(compareLatestSynced).slice(0, FEED_LIMIT);
 }
 
 function compareLatestSynced(a, b) {
@@ -69,7 +69,7 @@ function compareRecent(a, b) {
 }
 
 function recentTime(row) {
-  return Number(row.FoundAt || row.ActivityAt || Date.parse(row.LastChangedAt || '') || 0);
+  return Number(row.ActivityAt || row.FoundAt || Date.parse(row.LastChangedAt || '') || 0);
 }
 
 function renderEmptyFeed() {
