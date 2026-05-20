@@ -1,0 +1,85 @@
+/* v1.61 item-feed control lane fix.
+   Prevents duplicate group badge, tag button, dismiss X, title, and stats from occupying the same top-right space. */
+.item-feed .feed-card{
+  grid-template-columns:48px 28px minmax(0,1fr) auto!important;
+  column-gap:7px!important;
+  align-items:center!important;
+  padding:5px 8px!important;
+  overflow:hidden!important;
+}
+.item-feed .feed-main{
+  grid-column:3!important;
+  min-width:0!important;
+  padding-right:72px!important;
+  overflow:hidden!important;
+}
+.item-feed .feed-title-line{
+  min-width:0!important;
+  max-width:100%!important;
+  overflow:hidden!important;
+}
+.item-feed .feed-title-line strong{
+  min-width:0!important;
+  max-width:100%!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+}
+.item-feed .feed-meta-icons{
+  flex:0 0 auto!important;
+  max-width:54px!important;
+  overflow:hidden!important;
+}
+.item-feed .feed-stats{
+  max-width:100%!important;
+  overflow:hidden!important;
+}
+.item-feed .feed-group-badge,
+.item-feed .feed-dismiss-new{
+  top:6px!important;
+  transform:none!important;
+  margin:0!important;
+}
+.item-feed .feed-group-badge{
+  position:absolute!important;
+  right:34px!important;
+  z-index:4!important;
+  height:22px!important;
+  min-width:34px!important;
+  max-width:42px!important;
+  padding:0 7px!important;
+  display:inline-grid!important;
+  place-items:center!important;
+  line-height:1!important;
+}
+.item-feed .feed-dismiss-new{
+  position:absolute!important;
+  right:7px!important;
+  z-index:5!important;
+  width:22px!important;
+  height:22px!important;
+  min-width:22px!important;
+  min-height:22px!important;
+  display:inline-grid!important;
+  place-items:center!important;
+  line-height:1!important;
+  border-radius:6px!important;
+}
+.item-feed .feed-card:not(.is-feed-grouped) .feed-main{
+  padding-right:30px!important;
+}
+.item-feed .feed-card:not(.is-feed-grouped) .feed-dismiss-new{
+  right:7px!important;
+}
+.item-feed .feed-card:not(.is-new-found):not(.is-new) .feed-main{
+  padding-right:44px!important;
+}
+.item-feed .feed-card:not(.is-new-found):not(.is-new) .feed-group-badge{
+  right:8px!important;
+}
+@media(max-width:720px){
+  .item-feed .feed-card{grid-template-columns:46px 28px minmax(0,1fr) auto!important;gap:6px!important}
+  .item-feed .feed-main{padding-right:70px!important}
+  .item-feed .feed-group-badge{right:33px!important;min-width:32px!important;max-width:40px!important}
+  .item-feed .feed-dismiss-new{right:7px!important;width:21px!important;height:21px!important;min-width:21px!important;min-height:21px!important}
+}
