@@ -1,5 +1,5 @@
-/* v1.64 grid fixes: top tag slot owns NEW, group colors rotate by group class, archetype cell matches stat cells. */
-.d2aa-version-badge::after{content:"v1.64"!important}
+/* v1.65 grid fixes: top tag slot owns NEW, group colors rotate by group class, archetype cell matches stat cells. */
+.d2aa-version-badge::after{content:"v1.65"!important}
 
 .armor-card .item-title-block .status-pill,
 .armor-card .item-location-row .status-pill,
@@ -43,10 +43,11 @@
   content:"NEW"!important;
   position:absolute!important;
   left:50%!important;
-  bottom:-15px!important;
+  top:-15px!important;
+  bottom:auto!important;
   transform:translateX(-50%)!important;
   height:12px!important;
-  padding:0 4px!important;
+  padding:0 5px!important;
   display:grid!important;
   place-items:center!important;
   border:1px solid color-mix(in srgb,var(--gold,#f2cc70) 42%,rgba(255,255,255,.12))!important;
@@ -58,6 +59,7 @@
   letter-spacing:.08em!important;
   line-height:1!important;
   pointer-events:none!important;
+  box-shadow:0 0 8px rgba(242,204,112,.16)!important;
 }
 
 .armor-card.group-1{--group-color:#ffcf5d!important;--group-glow:rgba(255,207,93,.46)!important;--group-wash:rgba(255,207,93,.12)!important;border-color:rgba(255,207,93,.42)!important}
