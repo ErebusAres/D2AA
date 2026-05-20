@@ -1,0 +1,119 @@
+/* v1.55 item feed refresh animation fix.
+   Keeps the refresh chip/button stable; only the small inner D2 radar ring spins. */
+.feed-head{
+  gap:10px!important;
+}
+.feed-head #feedCount,
+#feedCount{
+  order:2!important;
+  flex:0 0 auto!important;
+  margin-left:auto!important;
+  margin-right:0!important;
+  position:relative!important;
+  z-index:3!important;
+}
+.feed-refresh-indicator{
+  order:3!important;
+  position:relative!important;
+  flex:0 0 24px!important;
+  width:24px!important;
+  height:24px!important;
+  min-width:24px!important;
+  min-height:24px!important;
+  margin:0!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:999px!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  overflow:visible!important;
+  opacity:0!important;
+  visibility:hidden!important;
+  pointer-events:none!important;
+  transform:none!important;
+  animation:none!important;
+}
+.feed-refresh-indicator::before{
+  content:""!important;
+  position:absolute!important;
+  inset:1px!important;
+  border-radius:999px!important;
+  border:1px solid rgba(255,216,107,.22)!important;
+  background:radial-gradient(circle,rgba(255,216,107,.34) 0 1.4px,transparent 1.8px),rgba(6,7,12,.34)!important;
+  box-shadow:0 0 10px rgba(255,216,107,.10),inset 0 0 9px rgba(255,216,107,.035)!important;
+  transform:none!important;
+  animation:none!important;
+}
+.feed-refresh-indicator::after{
+  content:""!important;
+  position:absolute!important;
+  inset:4px!important;
+  border-radius:999px!important;
+  border:1px solid transparent!important;
+  border-top-color:rgba(255,216,107,.95)!important;
+  border-right-color:rgba(255,216,107,.50)!important;
+  border-bottom-color:rgba(255,216,107,.16)!important;
+  background:conic-gradient(from 0deg,transparent 0 248deg,rgba(255,216,107,.42) 252deg 286deg,transparent 290deg 360deg)!important;
+  -webkit-mask:radial-gradient(circle,transparent 0 47%,#000 49% 100%)!important;
+  mask:radial-gradient(circle,transparent 0 47%,#000 49% 100%)!important;
+  box-shadow:none!important;
+  transform-origin:center!important;
+  animation:none!important;
+}
+.feed-refresh-indicator span{
+  position:absolute!important;
+  left:50%!important;
+  top:2px!important;
+  width:3px!important;
+  height:3px!important;
+  margin-left:-1.5px!important;
+  border-radius:999px!important;
+  background:#ffe39a!important;
+  color:transparent!important;
+  font-size:0!important;
+  line-height:0!important;
+  box-shadow:0 0 8px rgba(255,216,107,.44)!important;
+  transform-origin:1.5px 10px!important;
+  animation:none!important;
+}
+.feed-polling .feed-refresh-indicator{
+  opacity:1!important;
+  visibility:visible!important;
+}
+.feed-polling .feed-refresh-indicator::before{
+  animation:none!important;
+  transform:none!important;
+}
+.feed-polling .feed-refresh-indicator::after{
+  animation:d2aa-feed-radar-ring 2.55s linear infinite!important;
+}
+.feed-polling .feed-refresh-indicator span{
+  animation:d2aa-feed-radar-dot 2.55s linear infinite!important;
+}
+.feed-polling .feed-tab::after{
+  display:none!important;
+  content:none!important;
+  animation:none!important;
+}
+.feed-refresh-btn,
+.live-refresh-indicator,
+.feed-refresh-icon{
+  transform:none!important;
+}
+.feed-polling .feed-refresh-btn,
+.feed-polling .live-refresh-indicator,
+.feed-polling .feed-refresh-icon{
+  animation:none!important;
+  transform:none!important;
+}
+@keyframes d2aa-feed-radar-ring{
+  to{transform:rotate(360deg)}
+}
+@keyframes d2aa-feed-radar-dot{
+  to{transform:rotate(360deg)}
+}
+@media(max-width:720px){
+  .feed-refresh-indicator{flex-basis:22px!important;width:22px!important;height:22px!important;min-width:22px!important;min-height:22px!important}
+  .feed-refresh-indicator::after{inset:4px!important}
+  .feed-refresh-indicator span{top:2px!important;transform-origin:1.5px 9px!important}
+}
