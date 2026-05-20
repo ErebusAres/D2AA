@@ -9,7 +9,7 @@ const ROW_CACHE_KEY = 'd2aa_clean_rows_v1';
 const LIVE_REFRESH_MS = 60000;
 const ITEM_FEED_CHECK_MS = 60000;
 const LIVE_MIN_GAP_MS = 25000;
-const MIN_FEED_SPINNER_MS = 2800;
+const MIN_FEED_SPINNER_MS = 1400;
 
 let lastLiveRefreshAt = 0;
 let liveRefreshTimer = null;
@@ -39,23 +39,25 @@ function bindBungieControls() {
   });
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden) {
-      if (shouldRefreshOnFocus()) requestLiveRefresh('focus-refresh');
+      if (shouldRefreshOnFocus()) requestLiveRefresh('focus-refresh', true);
       scheduleItemFeedPoll(5000);
     } else {
       setFeedPolling(false, '', true);
+      scheduleItemFeedPoll();
     }
   });
   window.addEventListener('focus', () => {
-    if (shouldRefreshOnFocus()) requestLiveRefresh('window-focus-refresh');
+    if (shouldRefreshOnFocus()) requestLiveRefresh('window-focus-refresh', true);
     scheduleItemFeedPoll(5000);
   });
   window.addEventListener('blur', () => { setFeedPolling(false, '', true); scheduleItemFeedPoll(); });
-  window.addEventListener('online', () => requestLiveRefresh('network-online'));
+  window.addEventListener('online', () => requestLiveRefresh('network-online', true));
   window.addEventListener('offline', () => setFeedPolling(false, '', true));
 }
 
 async function runSync(reason, background = false) {
   if (activeSyncReason) return;
+  if (!isSignedIn()) { refreshLoginState(); return setStatus('Connect your Destiny account before syncing armor.'); }
   activeSyncReason = reason;
   setFeedPolling(true, reason);
   clearOversizedGenericCache();
@@ -70,8 +72,12 @@ async function runSync(reason, background = false) {
       scheduleLivePulse();
       scheduleItemFeedPoll();
       if (background && startedVisibleRows && result.meta) {
-        const changed = Number(result.meta.added || 0) + Number(result.meta.moved || 0) + Number(result.meta.changed || 0);
-        if (!changed) setStatus(`Live state current. Last checked ${new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}.`);
+        const added = Number(result.meta.added || 0);
+        const moved = Number(result.meta.moved || 0);
+        const changed = Number(result.meta.changed || 0);
+        const total = added + moved + changed;
+        if (!total) setStatus(`Live feed current. Checked ${new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}.`);
+        else setStatus(`Live feed updated. New: ${added}. Moved: ${moved}. Changed: ${changed}.`);
       }
     }
   } finally {
@@ -142,16 +148,16 @@ function canRunLiveDimSync() {
   return hasKey || localHost;
 }
 
-function requestLiveRefresh(reason) {
+function requestLiveRefresh(reason, bypassGap = false) {
   if (!isSignedIn()) return refreshLoginState();
   if (!isPageLive()) return scheduleItemFeedPoll();
-  if (Date.now() - lastLiveRefreshAt < LIVE_MIN_GAP_MS) return;
+  if (!bypassGap && Date.now() - lastLiveRefreshAt < LIVE_MIN_GAP_MS) return;
   runSync(reason, true);
 }
 
 function scheduleLivePulse() {
   clearTimeout(liveRefreshTimer);
-  if (!isSignedIn()) return;
+  if (!isSignedIn()) return refreshLoginState();
   liveRefreshTimer = setTimeout(() => {
     requestLiveRefresh('live-state-pulse');
     scheduleLivePulse();
@@ -160,7 +166,7 @@ function scheduleLivePulse() {
 
 function scheduleItemFeedPoll(delay = ITEM_FEED_CHECK_MS) {
   clearTimeout(itemFeedPollTimer);
-  if (!isSignedIn()) return;
+  if (!isSignedIn()) return refreshLoginState();
   itemFeedPollTimer = setTimeout(() => {
     if (isPageLive()) requestLiveRefresh('item-feed-new-item-poll');
     scheduleItemFeedPoll();
@@ -228,7 +234,7 @@ async function bootBungieSidecar() {
     await initializeBungieSync({ setStatus, setRows, hasRows });
     refreshLoginState();
     scheduleLivePulse();
-    scheduleItemFeedPoll(ITEM_FEED_CHECK_MS);
+    scheduleItemFeedPoll(isSignedIn() ? 5000 : ITEM_FEED_CHECK_MS);
   } catch (error) {
     console.error('D2AA clean Bungie sidecar failed', error);
     setStatus(error.message || String(error));
