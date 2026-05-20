@@ -45,15 +45,14 @@ function renderCard(row) {
   const groupActionKey = row.GroupActionKey || `${row.GroupKey || ''}::${groupLabel}`;
   const isNew = row.RecentStatus === 'new' || row.Tag === 'feed';
   const group = row.Is_Dupe ? `<button type="button" class="group-badge ${row.GroupColor || ''}" title="Compare duplicate group ${html(groupLabel)}" data-compare-group="${html(groupActionKey)}">${row.Is_Dupe_Exotic ? iconImg(RARITY_ICONS.Exotic, 'Exotic duplicate group', 'badge-icon') : ''}${html(groupLabel)}</button>` : '';
-  const newBadge = isNew ? `<div class="new-found-badge" title="Recently found">✨ New</div>` : '';
+  const tagControl = `<button class="card-tag-slot card-tag-badge ${row.Tag ? 'has-tag' : 'is-empty'} ${isNew ? 'is-new-context' : ''}" type="button" data-tag-trigger data-id="${html(row.Id)}" title="${html(tagTitle(row, isNew))}">${tagEmoji(row, isNew)}</button>`;
   const action = actionLabel(row);
   return `<article class="armor-card ${safeClass(row.Rarity)} ${isNew ? 'is-new-found' : ''} ${row.Is_Dupe ? 'is-grouped is-dupe ' + row.GroupColor : ''}" data-card-id="${html(row.Id)}" data-group="${html(groupLabel)}">
     ${badge ? `<button class="light-tag-badge light-only-badge" type="button" data-tag-trigger data-id="${html(row.Id)}">${badge}</button>` : ''}
+    ${tagControl}
     ${group}
-    ${newBadge}
     <div class="card-top">
       <div class="item-icon">${row.Icon ? `<img src="${html(row.Icon)}" alt="" loading="lazy">` : '<span>◇</span>'}</div>
-      <button class="card-tag-slot ${row.Tag ? 'has-tag' : 'is-empty'}" type="button" data-tag-trigger data-id="${html(row.Id)}" title="${html(tagTitle(row))}">${tagEmoji(row)}</button>
       <div class="item-title"><h3 title="${html(row.Name)}">${html(row.Name)}</h3><p class="identifier-icons">${identifierLine(row)}</p></div>
     </div>
     <div class="card-grid-3x3">
@@ -114,13 +113,15 @@ function identifierLine(row) {
 function lightBadgeText(row) {
   return row.Power || row.Light || '';
 }
-function tagEmoji(row) {
+function tagEmoji(row, isNew = false) {
   const tag = TAGS.find((item) => item.value === row.Tag && item.value);
-  return tag ? tag.emoji : '＋';
+  if (tag) return tag.emoji;
+  return isNew ? '✨' : '＋';
 }
-function tagTitle(row) {
+function tagTitle(row, isNew = false) {
   const tag = TAGS.find((item) => item.value === row.Tag && item.value);
-  return tag ? `Tag: ${tag.label}` : 'Assign tag';
+  if (tag) return `Tag: ${tag.label}`;
+  return isNew ? 'New item — assign tag' : 'Assign tag';
 }
 function locationLabel(row) {
   if (row.Source !== 'Bungie') return 'DIM';
