@@ -1,0 +1,145 @@
+/* v1.51 rebuilt armor card header.
+   Layout: icon | vertical class/slot/rarity stack | item name over location/status. */
+.armor-card .card-top-v151,
+.armor-card .card-top{
+  display:grid!important;
+  grid-template-columns:58px 18px minmax(0,1fr)!important;
+  column-gap:10px!important;
+  align-items:center!important;
+  min-height:76px!important;
+  padding:16px 10px 10px!important;
+}
+.armor-card .card-top-v151 .item-icon,
+.armor-card .card-top .item-icon{
+  width:58px!important;
+  height:58px!important;
+  align-self:center!important;
+}
+.armor-card .card-top-v151 .item-icon img,
+.armor-card .card-top .item-icon img{
+  width:100%!important;
+  height:100%!important;
+  object-fit:cover!important;
+  display:block!important;
+}
+.armor-card .identity-stack{
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:6px!important;
+  min-width:18px!important;
+  align-self:center!important;
+  padding:2px 0!important;
+}
+.armor-card .identity-stack .identity-icon,
+.armor-card .identity-stack .meta-mask{
+  width:14px!important;
+  height:14px!important;
+  flex:0 0 14px!important;
+  display:block!important;
+  opacity:.96!important;
+  filter:drop-shadow(0 1px 1px rgba(0,0,0,.55))!important;
+}
+.armor-card .identity-stack .meta-mask{
+  background:#d8d1e2!important;
+  -webkit-mask:var(--icon) center/contain no-repeat!important;
+  mask:var(--icon) center/contain no-repeat!important;
+}
+.armor-card .item-title-block{
+  min-width:0!important;
+  display:flex!important;
+  flex-direction:column!important;
+  justify-content:center!important;
+  gap:7px!important;
+  align-self:center!important;
+}
+.armor-card .item-title-block h3{
+  margin:0!important;
+  max-width:100%!important;
+  color:#fff4dc!important;
+  font-size:14px!important;
+  font-weight:950!important;
+  line-height:1.12!important;
+  letter-spacing:.006em!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  text-shadow:0 1px 0 rgba(0,0,0,.56)!important;
+}
+.armor-card .item-location-row{
+  display:flex!important;
+  align-items:center!important;
+  gap:6px!important;
+  min-width:0!important;
+  flex-wrap:nowrap!important;
+}
+.armor-card .item-title-block .location-pill,
+.armor-card .item-title-block .status-pill{
+  width:max-content!important;
+  max-width:100%!important;
+  min-height:22px!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  padding:3px 7px!important;
+  border-radius:7px 2px 7px 2px!important;
+  font-size:9px!important;
+  line-height:1!important;
+  font-weight:950!important;
+  letter-spacing:.06em!important;
+  text-transform:uppercase!important;
+  white-space:nowrap!important;
+}
+.armor-card .item-title-block .status-pill{
+  max-width:72px!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+}
+.armor-card .item-title,
+.armor-card .identifier-icons{
+  display:none!important;
+}
+.armor-card .card-tag-badge{
+  top:9px!important;
+}
+.armor-card .light-tag-badge,
+.armor-card .group-badge{
+  top:9px!important;
+}
+.armor-card .card-top-v151::after,
+.armor-card .card-top::after{
+  content:""!important;
+  position:absolute!important;
+  left:10px!important;
+  right:10px!important;
+  bottom:0!important;
+  height:1px!important;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.10),transparent)!important;
+  opacity:.72!important;
+  pointer-events:none!important;
+}
+.armor-card .card-top-v151:hover .identity-stack .identity-icon,
+.armor-card .card-top-v151:hover .identity-stack .meta-mask{
+  opacity:1!important;
+}
+@media(max-width:720px){
+  .armor-card .card-top-v151,
+  .armor-card .card-top{
+    grid-template-columns:54px 17px minmax(0,1fr)!important;
+    column-gap:9px!important;
+    min-height:72px!important;
+    padding:15px 9px 9px!important;
+  }
+  .armor-card .card-top-v151 .item-icon,
+  .armor-card .card-top .item-icon{
+    width:54px!important;
+    height:54px!important;
+  }
+  .armor-card .identity-stack{gap:5px!important;min-width:17px!important}
+  .armor-card .identity-stack .identity-icon,
+  .armor-card .identity-stack .meta-mask{width:13px!important;height:13px!important;flex-basis:13px!important}
+  .armor-card .item-title-block h3{font-size:13px!important}
+  .armor-card .item-title-block .location-pill,
+  .armor-card .item-title-block .status-pill{min-height:21px!important;font-size:8.5px!important;padding:3px 6px!important}
+}
