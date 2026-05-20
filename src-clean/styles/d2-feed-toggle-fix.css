@@ -3,7 +3,8 @@
 @import url('./d2-card-header-v152.css');
 @import url('./d2-grid-finish-v153.css');
 @import url('./d2-refine-v154.css');
-.d2aa-version-badge::after{content:"v1.54"!important}
+@import url('./d2-feed-refresh-v155.css');
+.d2aa-version-badge::after{content:"v1.55"!important}
 .item-feed{
   transform:translateX(calc(var(--feed-width,410px) + 12px)) translateZ(0)!important;
 }
