@@ -47,13 +47,25 @@ function renderCard(row) {
   const group = row.Is_Dupe ? `<button type="button" class="group-badge ${row.GroupColor || ''}" title="Compare duplicate group ${html(groupLabel)}" data-compare-group="${html(groupActionKey)}">${row.Is_Dupe_Exotic ? iconImg(RARITY_ICONS.Exotic, 'Exotic duplicate group', 'badge-icon') : ''}${html(groupLabel)}</button>` : '';
   const tagControl = `<button class="card-tag-slot card-tag-badge ${row.Tag ? 'has-tag' : 'is-empty'} ${isNew ? 'is-new-context' : ''}" type="button" data-tag-trigger data-id="${html(row.Id)}" title="${html(tagTitle(row, isNew))}">${tagEmoji(row, isNew)}</button>`;
   const action = actionLabel(row);
+  const loc = locationLabel(row);
   return `<article class="armor-card ${safeClass(row.Rarity)} ${isNew ? 'is-new-found' : ''} ${row.Is_Dupe ? 'is-grouped is-dupe ' + row.GroupColor : ''}" data-card-id="${html(row.Id)}" data-group="${html(groupLabel)}">
     ${badge ? `<button class="light-tag-badge light-only-badge" type="button" data-tag-trigger data-id="${html(row.Id)}">${badge}</button>` : ''}
     ${tagControl}
     ${group}
-    <div class="card-top">
+    <div class="card-top card-top-v151">
       <div class="item-icon">${row.Icon ? `<img src="${html(row.Icon)}" alt="" loading="lazy">` : '<span>◇</span>'}</div>
-      <div class="item-title"><h3 title="${html(row.Name)}">${html(row.Name)}</h3><p class="identifier-icons">${identifierLine(row)}</p></div>
+      <div class="identity-stack" aria-label="Item identity">
+        ${iconImg(CLASS_ICONS[row.Class], row.Class, 'identity-icon')}
+        ${maskIcon(SLOT_ICONS[row.Slot], row.Slot)}
+        ${iconImg(RARITY_ICONS[row.Rarity], row.Rarity, 'identity-icon')}
+      </div>
+      <div class="item-title-block">
+        <h3 title="${html(row.Name)}">${html(row.Name)}</h3>
+        <div class="item-location-row">
+          <span class="location-pill" title="${html(loc)}">${LOCATION_EMOJIS[loc] || LOCATION_EMOJIS.Character || '🎒'} ${html(loc)}</span>
+          ${row.RecentStatus ? `<span class="status-pill ${row.RecentStatus === 'new' ? 'is-new' : ''}">${row.RecentStatus === 'new' ? '✨ ' : ''}${html(row.RecentStatus)}</span>` : ''}
+        </div>
+      </div>
     </div>
     <div class="card-grid-3x3">
       <div><span>Total</span><strong>${row.Total || 0}</strong></div>
@@ -99,16 +111,6 @@ function statQuality(value) {
 }
 function qualityLabel(value) {
   return ({ perfect: 'Perfect', great: 'Great', good: 'Good', okay: 'Okay', bad: 'Bad', poor: 'Poor' })[value] || value;
-}
-function identifierLine(row) {
-  const loc = locationLabel(row);
-  return [
-    iconImg(CLASS_ICONS[row.Class], row.Class),
-    maskIcon(SLOT_ICONS[row.Slot], row.Slot),
-    iconImg(RARITY_ICONS[row.Rarity], row.Rarity),
-    `<span class="location-pill" title="${html(loc)}">${LOCATION_EMOJIS[loc] || LOCATION_EMOJIS.Character || '🎒'} ${html(loc)}</span>`,
-    row.RecentStatus ? `<span class="status-pill ${row.RecentStatus === 'new' ? 'is-new' : ''}">${row.RecentStatus === 'new' ? '✨ ' : ''}${html(row.RecentStatus)}</span>` : ''
-  ].filter(Boolean).join('');
 }
 function lightBadgeText(row) {
   return row.Power || row.Light || '';
