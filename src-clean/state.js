@@ -224,7 +224,9 @@ export function slimRowForStorage(row) {
     OwnerCharacterId: row.OwnerCharacterId,
     TargetCharacterId: row.TargetCharacterId,
     IsInVault: row.IsInVault,
-    IsEquipped: row.IsEquipped
+    IsEquipped: row.IsEquipped,
+    ItemSignature: row.ItemSignature,
+    LocationSignature: row.LocationSignature
   };
   for (const key of STAT_KEYS) {
     slim[`Base${key}`] = row[`Base${key}`];
