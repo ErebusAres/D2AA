@@ -1,0 +1,94 @@
+/* v1.50 centered tag badge layout + D2 polish.
+   The card's center badge slot now owns tag assignment/review, replacing the old NEW badge. */
+.armor-card .card-tag-badge{
+  position:absolute!important;
+  top:10px!important;
+  left:50%!important;
+  transform:translateX(-50%)!important;
+  z-index:8!important;
+  width:36px!important;
+  height:26px!important;
+  min-height:26px!important;
+  display:grid!important;
+  place-items:center!important;
+  padding:0!important;
+  border-radius:8px 2px 8px 2px!important;
+  font-size:15px!important;
+  line-height:1!important;
+  border:1px solid rgba(255,255,255,.13)!important;
+  background:linear-gradient(180deg,rgba(255,255,255,.070),rgba(0,0,0,.20))!important;
+  color:#f1edf9!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.050),0 7px 14px rgba(0,0,0,.22)!important;
+}
+.armor-card .card-tag-badge::before{
+  content:""!important;
+  position:absolute!important;
+  left:7px!important;
+  right:7px!important;
+  top:0!important;
+  height:1px!important;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.26),transparent)!important;
+  opacity:.72!important;
+  pointer-events:none!important;
+}
+.armor-card .card-tag-badge.is-empty{
+  border-color:rgba(255,255,255,.11)!important;
+  color:#bfb7cb!important;
+}
+.armor-card .card-tag-badge.is-new-context{
+  border-color:rgba(113,221,255,.38)!important;
+  background:linear-gradient(180deg,rgba(113,221,255,.22),rgba(0,0,0,.20))!important;
+  color:#bff3ff!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.055),0 0 14px rgba(113,221,255,.13),0 7px 14px rgba(0,0,0,.22)!important;
+}
+.armor-card .card-tag-badge.has-tag{
+  border-color:rgba(255,216,107,.40)!important;
+  background:linear-gradient(180deg,rgba(255,216,107,.18),rgba(0,0,0,.20))!important;
+  color:#ffe39a!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.055),0 0 14px rgba(255,216,107,.12),0 7px 14px rgba(0,0,0,.22)!important;
+}
+.armor-card .card-tag-badge:hover{
+  border-color:color-mix(in srgb,var(--gold,#e8c56a) 54%,rgba(255,255,255,.18))!important;
+  background:linear-gradient(180deg,rgba(255,216,107,.20),rgba(255,255,255,.035))!important;
+  color:#ffe39a!important;
+  transform:translateX(-50%) translateY(-1px)!important;
+}
+.armor-card .card-tag-badge:active{
+  transform:translateX(-50%) translateY(0)!important;
+}
+.armor-card .new-found-badge{
+  display:none!important;
+}
+.armor-card .light-tag-badge,
+.armor-card .group-badge{
+  top:10px!important;
+}
+.armor-card .card-top{
+  padding-top:14px!important;
+}
+.armor-card .item-title{
+  padding-right:0!important;
+}
+.armor-card.is-new-found .card-top{
+  background:
+    radial-gradient(circle at 50% 0,rgba(113,221,255,.10),transparent 38%),
+    linear-gradient(180deg,rgba(255,255,255,.064),rgba(255,255,255,.022))!important;
+}
+.armor-card.has-tag .card-top,
+.armor-card:has(.card-tag-badge.has-tag) .card-top{
+  background:
+    radial-gradient(circle at 50% 0,rgba(255,216,107,.08),transparent 38%),
+    linear-gradient(180deg,rgba(255,255,255,.060),rgba(255,255,255,.022))!important;
+}
+.armor-card .status-pill.is-new{
+  border-color:rgba(113,221,255,.26)!important;
+  color:#bff3ff!important;
+  background:linear-gradient(180deg,rgba(113,221,255,.12),rgba(0,0,0,.10))!important;
+}
+@supports not selector(:has(*)){
+  .armor-card .card-top{background:linear-gradient(180deg,rgba(255,255,255,.060),rgba(255,255,255,.022))!important}
+}
+@media(max-width:720px){
+  .armor-card .card-tag-badge{top:9px!important;width:34px!important;height:25px!important;min-height:25px!important;font-size:14px!important}
+  .armor-card .light-tag-badge,.armor-card .group-badge{top:9px!important}
+}
