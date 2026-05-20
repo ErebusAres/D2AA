@@ -7,7 +7,7 @@ const STORE = 'keyval';
 const IDB_ROWS_KEY = 'bungieRows';
 const IDB_META_KEY = 'bungieMeta';
 const SEEN_LEDGER_KEY = 'd2aa_clean_seen_item_ids_v1';
-const SEEN_LEDGER_LIMIT = 1500;
+const SEEN_LEDGER_LIMIT = 2500;
 const OLD_OVERSIZED_KEYS = ['d2aa_clean_rows_v1', 'd2aa_clean_bungie_rows_v1'];
 
 export async function getCachedBungieInventory() {
@@ -29,16 +29,17 @@ export async function saveBungieInventory(rows, reason = 'sync') {
   const previous = (await getCachedBungieInventory()).rows || [];
   const previousById = new Map(previous.map((row) => [String(row.Id), row]));
   const seenLedger = readSeenLedger();
+  const handled = readHandledState();
   const hasPrevious = previousById.size > 0 || Object.keys(seenLedger).length > 0;
   const savedAt = new Date().toISOString();
   const now = Date.now();
   const sortedRows = sortRowsForFirstSeen(rows);
   const orderById = new Map(sortedRows.map((row, index) => [String(row.Id), index]));
-  const cleanRows = rows.map((row) => markInventoryActivity({ ...row, Source: 'Bungie', FromCache: false }, previousById, seenLedger, savedAt, now, hasPrevious, orderById));
+  const cleanRows = rows.map((row) => markInventoryActivity({ ...row, Source: 'Bungie', FromCache: false }, previousById, seenLedger, handled, savedAt, now, hasPrevious, orderById));
   const slimRows = cleanRows.map(slimRowForStorage);
-  writeSeenLedger(slimRows, seenLedger, savedAt);
+  writeSeenLedger(slimRows, seenLedger, handled, savedAt);
   const changes = summarizeChanges(slimRows, previousById);
-  const meta = { savedAt, count: slimRows.length, reason, version: 10, store: 'indexeddb', ...changes };
+  const meta = { savedAt, count: slimRows.length, reason, version: 11, store: 'indexeddb', ...changes };
   try {
     await idbSet(IDB_ROWS_KEY, slimRows);
     await idbSet(IDB_META_KEY, meta);
@@ -109,27 +110,30 @@ async function idbDelete(key) {
   });
 }
 
-function markInventoryActivity(row, previousById, seenLedger, savedAt, now, hasPrevious, orderById) {
+function markInventoryActivity(row, previousById, seenLedger, handled, savedAt, now, hasPrevious, orderById) {
   const id = String(row.Id);
   const old = previousById.get(id);
   const seen = seenLedger[id];
+  const isHandled = Boolean(handled.dismissed[id] || handled.tags[id]);
   const order = Number(orderById.get(id) || 0);
   const estimatedFirstSeen = now - order * 1000;
 
   if (!old && !seen) {
-    return hasPrevious
-      ? { ...row, RecentStatus: 'new', RecentlyFound: true, FoundAt: now, ActivityAt: now, LastChangedAt: savedAt }
-      : { ...row, RecentStatus: '', RecentlyFound: false, FoundAt: estimatedFirstSeen, ActivityAt: estimatedFirstSeen, LastChangedAt: savedAt };
+    return hasPrevious && !isHandled
+      ? { ...row, RecentStatus: 'new', RecentlyFound: true, FoundAt: now, ActivityAt: now, LastChangedAt: savedAt, ItemSignature: itemSignature(row), LocationSignature: locationSignature(row) }
+      : { ...row, RecentStatus: '', RecentlyFound: false, FoundAt: estimatedFirstSeen, ActivityAt: estimatedFirstSeen, LastChangedAt: savedAt, ItemSignature: itemSignature(row), LocationSignature: locationSignature(row) };
   }
 
-  const wasDismissed = old?.RecentStatus === '' && old?.RecentlyFound === false && seen?.recent !== true;
-  const keepNew = !wasDismissed && (old?.RecentStatus === 'new' || old?.RecentlyFound || seen?.recent === true);
-  const foundAt = Number(old?.FoundAt || seen?.foundAt || estimatedFirstSeen || 0);
-  const previousSignature = old?.signature || seen?.signature || itemSignature(old || {});
+  const previousSignature = old?.ItemSignature || old?.signature || seen?.signature || itemSignature(old || {});
   const nextSignature = itemSignature(row);
-  const moved = old && locationSignature(old) !== locationSignature(row);
-  const changed = old && previousSignature && previousSignature !== nextSignature;
-  const activityAt = keepNew ? foundAt : moved || changed ? now : Number(old?.ActivityAt || seen?.activityAt || foundAt || 0);
+  const previousLocation = old?.LocationSignature || seen?.location || locationSignature(old || {});
+  const nextLocation = locationSignature(row);
+  const moved = Boolean(old) && previousLocation !== nextLocation;
+  const changed = Boolean(old) && previousSignature && previousSignature !== nextSignature;
+  const oldWasNew = old?.RecentStatus === 'new' || old?.RecentlyFound === true || seen?.recent === true;
+  const keepNew = !isHandled && oldWasNew;
+  const foundAt = Number(old?.FoundAt || seen?.foundAt || estimatedFirstSeen || 0);
+  const activityAt = keepNew ? Math.max(Number(old?.ActivityAt || 0), foundAt) : moved || changed ? now : Number(old?.ActivityAt || seen?.activityAt || foundAt || 0);
 
   return {
     ...row,
@@ -139,7 +143,7 @@ function markInventoryActivity(row, previousById, seenLedger, savedAt, now, hasP
     ActivityAt: activityAt,
     LastChangedAt: moved || changed || keepNew ? savedAt : old?.LastChangedAt || seen?.lastChangedAt || savedAt,
     ItemSignature: nextSignature,
-    LocationSignature: locationSignature(row)
+    LocationSignature: nextLocation
   };
 }
 
@@ -148,7 +152,16 @@ function readSeenLedger() {
   return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
 }
 
-function writeSeenLedger(rows, previousLedger = {}, savedAt = new Date().toISOString()) {
+function readHandledState() {
+  const dismissed = readJson(STORAGE_KEYS.dismissedRecent, {});
+  const tags = readJson(STORAGE_KEYS.tags, {});
+  return {
+    dismissed: dismissed && typeof dismissed === 'object' && !Array.isArray(dismissed) ? dismissed : {},
+    tags: tags && typeof tags === 'object' && !Array.isArray(tags) ? tags : {}
+  };
+}
+
+function writeSeenLedger(rows, previousLedger = {}, handled = readHandledState(), savedAt = new Date().toISOString()) {
   const next = {};
   const candidates = rows
     .filter((row) => row?.Id)
@@ -157,13 +170,15 @@ function writeSeenLedger(rows, previousLedger = {}, savedAt = new Date().toISOSt
       const prev = previousLedger[id] || {};
       const foundAt = Number(row.FoundAt || prev.foundAt || 0);
       const activityAt = Number(row.ActivityAt || prev.activityAt || row.FoundAt || 0);
-      const recent = row.RecentStatus === 'new' || row.RecentlyFound === true;
+      const isHandled = Boolean(handled.dismissed[id] || handled.tags[id]);
+      const recent = !isHandled && (row.RecentStatus === 'new' || row.RecentlyFound === true);
       return {
         id,
         foundAt,
         activityAt,
         lastChangedAt: row.LastChangedAt || prev.lastChangedAt || savedAt,
         recent,
+        handled: isHandled,
         location: row.LocationSignature || prev.location || locationSignature(row),
         signature: row.ItemSignature || prev.signature || itemSignature(row)
       };
@@ -177,6 +192,7 @@ function writeSeenLedger(rows, previousLedger = {}, savedAt = new Date().toISOSt
       activityAt: item.activityAt,
       lastChangedAt: item.lastChangedAt,
       recent: item.recent,
+      handled: item.handled,
       location: item.location,
       signature: item.signature
     };
@@ -187,7 +203,7 @@ function writeSeenLedger(rows, previousLedger = {}, savedAt = new Date().toISOSt
   } catch (error) {
     console.warn('D2AA seen-item ledger write skipped because localStorage is full.', error);
     clearOversizedLocalStorage();
-    try { writeJson(SEEN_LEDGER_KEY, Object.fromEntries(Object.entries(next).slice(0, 500))); }
+    try { writeJson(SEEN_LEDGER_KEY, Object.fromEntries(Object.entries(next).slice(0, 800))); }
     catch (_) { try { localStorage.removeItem(SEEN_LEDGER_KEY); } catch (__) {} }
   }
 }
@@ -207,11 +223,11 @@ function summarizeChanges(rows, previousById) {
   for (const row of rows) {
     const old = previousById.get(String(row.Id));
     if (!old) continue;
-    if (locationSignature(old) !== locationSignature(row)) moved++;
+    if ((old.LocationSignature || locationSignature(old)) !== (row.LocationSignature || locationSignature(row))) moved++;
     if ((old.ItemSignature || itemSignature(old)) !== (row.ItemSignature || itemSignature(row))) changed++;
   }
   return {
-    added: rows.filter((row) => row.RecentStatus === 'new').length,
+    added: rows.filter((row) => row.RecentStatus === 'new' || row.RecentlyFound === true).length,
     moved,
     changed
   };
