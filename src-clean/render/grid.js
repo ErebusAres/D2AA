@@ -3,6 +3,12 @@ import { actionLabel, canRunAction } from '../data/actions.js';
 
 export function renderGrid(container, rows, onTag, onAction, onCompareGroup) {
   container.innerHTML = renderSlotSections(rows);
+  container.querySelectorAll('[data-tag-trigger]').forEach((button) => {
+    button.addEventListener('click', (event) => {
+      event.stopPropagation();
+      onTag?.(button.dataset.id);
+    });
+  });
   container.querySelectorAll('[data-action-id]').forEach((button) => {
     button.addEventListener('click', (event) => {
       event.stopPropagation();
@@ -43,7 +49,7 @@ function renderCard(row) {
   const badge = lightBadgeText(row);
   const groupLabel = row.Dupe_Group || row.Group || '';
   const groupActionKey = row.GroupActionKey || `${row.GroupKey || ''}::${groupLabel}`;
-  const isNew = row.RecentStatus === 'new' || row.Tag === 'feed';
+  const isNew = row.RecentStatus === 'new' || row.RecentlyFound === true || row.Tag === 'feed';
   const group = row.Is_Dupe ? `<button type="button" class="group-badge ${row.GroupColor || ''}" title="Compare duplicate group ${html(groupLabel)}" data-compare-group="${html(groupActionKey)}">${row.Is_Dupe_Exotic ? iconImg(RARITY_ICONS.Exotic, 'Exotic duplicate group', 'badge-icon') : ''}${html(groupLabel)}</button>` : '';
   const tagControl = `<button class="card-tag-slot card-tag-badge ${row.Tag ? 'has-tag' : 'is-empty'} ${isNew ? 'is-new-context' : ''}" type="button" data-tag-trigger data-id="${html(row.Id)}" title="${html(tagTitle(row, isNew))}">${tagEmoji(row, isNew)}</button>`;
   const action = actionLabel(row);
@@ -63,7 +69,6 @@ function renderCard(row) {
         <h3 title="${html(row.Name)}">${html(row.Name)}</h3>
         <div class="item-location-row">
           <span class="location-pill" title="${html(loc)}">${LOCATION_EMOJIS[loc] || LOCATION_EMOJIS.Character || '🎒'} ${html(loc)}</span>
-          ${row.RecentStatus ? `<span class="status-pill ${row.RecentStatus === 'new' ? 'is-new' : ''}">${row.RecentStatus === 'new' ? '✨ ' : ''}${html(row.RecentStatus)}</span>` : ''}
         </div>
       </div>
     </div>
