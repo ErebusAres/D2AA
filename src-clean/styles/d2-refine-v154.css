@@ -1,0 +1,168 @@
+/* v1.54 D2 refinement pass.
+   Visual-only polish for grid/header/feed/topbar harmony. */
+:root{
+  --d2-hairline:rgba(255,255,255,.075);
+  --d2-hairline-strong:rgba(255,255,255,.12);
+}
+.command-bar{
+  border-bottom:1px solid rgba(255,255,255,.075)!important;
+  box-shadow:0 12px 30px rgba(0,0,0,.25),inset 0 -1px 0 rgba(232,197,106,.055)!important;
+}
+.brand-chip{
+  border-radius:12px 3px 12px 3px!important;
+  border-color:rgba(255,255,255,.10)!important;
+  background:linear-gradient(180deg,rgba(255,255,255,.070),rgba(0,0,0,.16))!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 8px 18px rgba(0,0,0,.18)!important;
+}
+.brand-chip strong{
+  color:#fff3d1!important;
+  letter-spacing:.012em!important;
+}
+.brand-chip #statusText,
+.brand-chip span:last-child{
+  color:#bdb5c8!important;
+}
+.brand-mark{
+  color:#ffe39a!important;
+  text-shadow:0 0 14px rgba(255,216,107,.22)!important;
+}
+.results-panel{
+  border-color:rgba(255,255,255,.085)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.035),0 18px 42px rgba(0,0,0,.24)!important;
+}
+.armor-card{
+  border-color:rgba(255,255,255,.095)!important;
+}
+.armor-card:hover{
+  border-color:color-mix(in srgb,var(--gold,#e8c56a) 31%,rgba(255,255,255,.12))!important;
+}
+.armor-card .card-top-v151{
+  min-height:78px!important;
+  padding-top:17px!important;
+}
+.armor-card .card-top-v151 > .item-icon{
+  border-color:rgba(255,255,255,.16)!important;
+  background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(0,0,0,.17))!important;
+}
+.armor-card .card-top-v151 > .item-icon::after{
+  content:""!important;
+  position:absolute!important;
+  inset:0!important;
+  border-radius:inherit!important;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.035),inset 0 -18px 30px rgba(0,0,0,.16)!important;
+  pointer-events:none!important;
+}
+.armor-card .card-top-v151 > .item-title-block h3{
+  padding-right:2px!important;
+}
+.armor-card .item-location-row .location-pill,
+.armor-card .item-location-row .status-pill{
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.035),0 4px 8px rgba(0,0,0,.13)!important;
+}
+.armor-card .light-tag-badge,
+.armor-card .group-badge,
+.armor-card .card-tag-badge{
+  height:26px!important;
+  min-height:26px!important;
+  display:grid!important;
+  place-items:center!important;
+  line-height:1!important;
+}
+.armor-card .light-tag-badge,
+.armor-card .group-badge{
+  min-width:38px!important;
+  padding:0 8px!important;
+}
+.armor-card .card-tag-badge{
+  min-width:38px!important;
+}
+.armor-card .group-badge .badge-icon{
+  width:12px!important;
+  height:12px!important;
+  margin-right:3px!important;
+}
+.armor-card .card-grid-3x3{
+  gap:8px!important;
+}
+.armor-card .card-grid-3x3 > div{
+  position:relative!important;
+  overflow:hidden!important;
+}
+.armor-card .card-grid-3x3 > div::after{
+  content:""!important;
+  position:absolute!important;
+  left:7px!important;
+  right:7px!important;
+  top:0!important;
+  height:1px!important;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.16),transparent)!important;
+  opacity:.55!important;
+  pointer-events:none!important;
+}
+.armor-card .tier-cell .diamonds{
+  color:#ffe39a!important;
+  letter-spacing:.08em!important;
+  text-shadow:0 0 10px rgba(255,216,107,.16)!important;
+}
+.armor-card .arch-cell{
+  display:grid!important;
+  place-items:center!important;
+}
+.armor-card .arch-cell .arch-image,
+.armor-card .arch-cell img{
+  max-width:26px!important;
+  max-height:26px!important;
+  filter:drop-shadow(0 1px 1px rgba(0,0,0,.55))!important;
+}
+.slot-divider{
+  border-color:rgba(255,255,255,.085)!important;
+  background:linear-gradient(90deg,rgba(255,255,255,.062),rgba(255,255,255,.018) 55%,rgba(0,0,0,.14))!important;
+}
+.slot-divider strong{
+  color:#fff1c7!important;
+  text-shadow:0 1px 0 rgba(0,0,0,.55)!important;
+}
+.item-feed .feed-shell{
+  border-color:color-mix(in srgb,var(--gold,#e8c56a) 36%,rgba(255,255,255,.12))!important;
+}
+.feed-card,
+.feed-item,
+.latest-card{
+  transition:border-color .14s ease,background .14s ease,box-shadow .14s ease,transform .14s ease!important;
+}
+.feed-card:hover,
+.feed-item:hover,
+.latest-card:hover{
+  transform:translateY(-1px)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.052),0 13px 26px rgba(0,0,0,.24)!important;
+}
+.action-card,
+.command-button,
+.view-toggle button,
+.class-toggle button{
+  text-shadow:0 1px 0 rgba(0,0,0,.45)!important;
+}
+.active-chips span,
+.results-inline-chips span{
+  color:#ddd6e6!important;
+}
+.empty-state{
+  min-height:220px!important;
+}
+.empty-state::before{
+  content:"◇"!important;
+  display:grid!important;
+  place-items:center!important;
+  width:38px!important;
+  height:38px!important;
+  margin:0 auto 12px!important;
+  border-radius:10px 3px 10px 3px!important;
+  border:1px solid rgba(255,216,107,.26)!important;
+  color:#ffe39a!important;
+  background:rgba(0,0,0,.18)!important;
+  box-shadow:0 0 18px rgba(255,216,107,.10)!important;
+}
+@media(max-width:720px){
+  .armor-card .card-top-v151{min-height:74px!important;padding-top:16px!important}
+  .armor-card .light-tag-badge,.armor-card .group-badge,.armor-card .card-tag-badge{height:25px!important;min-height:25px!important;min-width:36px!important}
+}
