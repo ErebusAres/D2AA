@@ -1,0 +1,25 @@
+/* v1.66 feed group badges match grid duplicate group colors. */
+.d2aa-version-badge::after{content:"v1.66"!important}
+
+.item-feed .feed-card.group-1,.item-feed .feed-group-badge.group-1{--group-color:#ffcf5d!important;--group-glow:rgba(255,207,93,.46)!important;--group-wash:rgba(255,207,93,.12)!important}
+.item-feed .feed-card.group-2,.item-feed .feed-group-badge.group-2{--group-color:#a78bff!important;--group-glow:rgba(167,139,255,.48)!important;--group-wash:rgba(167,139,255,.125)!important}
+.item-feed .feed-card.group-3,.item-feed .feed-group-badge.group-3{--group-color:#55d7ff!important;--group-glow:rgba(85,215,255,.43)!important;--group-wash:rgba(85,215,255,.11)!important}
+.item-feed .feed-card.group-4,.item-feed .feed-group-badge.group-4{--group-color:#68eba3!important;--group-glow:rgba(104,235,163,.39)!important;--group-wash:rgba(104,235,163,.105)!important}
+.item-feed .feed-card.group-5,.item-feed .feed-group-badge.group-5{--group-color:#ff83ad!important;--group-glow:rgba(255,131,173,.42)!important;--group-wash:rgba(255,131,173,.11)!important}
+.item-feed .feed-card.group-6,.item-feed .feed-group-badge.group-6{--group-color:#ff9868!important;--group-glow:rgba(255,152,104,.42)!important;--group-wash:rgba(255,152,104,.11)!important}
+
+.item-feed .feed-card.is-feed-grouped{
+  border-color:color-mix(in srgb,var(--group-color,#ffd86b) 34%,rgba(255,255,255,.10))!important;
+  box-shadow:inset 2px 0 0 var(--group-color,#ffd86b),inset 0 1px 0 rgba(255,255,255,.04),0 10px 18px rgba(0,0,0,.18)!important;
+}
+.item-feed .feed-card.is-feed-grouped .feed-icon{
+  box-shadow:0 0 0 1px color-mix(in srgb,var(--group-color,#ffd86b) 38%,transparent),0 8px 16px rgba(0,0,0,.28)!important;
+}
+.item-feed .feed-group-badge{
+  border:1px solid color-mix(in srgb,var(--group-color,#ffd86b) 58%,#111)!important;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--group-color,#ffd86b) 82%,#fff),color-mix(in srgb,var(--group-color,#ffd86b) 92%,#111))!important;
+  color:#080910!important;
+  text-shadow:none!important;
+  font-weight:950!important;
+  box-shadow:0 0 0 1px rgba(255,255,255,.07) inset,0 0 12px var(--group-glow,rgba(255,216,107,.38)),0 5px 14px rgba(0,0,0,.42)!important;
+}
