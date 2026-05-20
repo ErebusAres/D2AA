@@ -7,7 +7,8 @@
 @import url('./d2-archetype-center-v156.css');
 @import url('./d2-archetype-center-v157.css');
 @import url('./d2-critical-fixes-v158.css');
-.d2aa-version-badge::after{content:"v1.58"!important}
+@import url('./d2-feed-overlap-v161.css');
+.d2aa-version-badge::after{content:"v1.61"!important}
 .item-feed{transform:translateX(calc(var(--feed-width,410px) + 12px)) translateZ(0)!important;}
 .item-feed.is-open{transform:translateX(0) translateZ(0)!important;}
 @media(max-width:720px){.item-feed{transform:translateX(calc(var(--feed-width,min(410px,calc(100vw - 52px))) + 12px)) translateZ(0)!important;}.item-feed.is-open{transform:translateX(0) translateZ(0)!important;}}
