@@ -1,4 +1,5 @@
-.d2aa-version-badge::after{content:"v1.49"!important}
+@import url('./d2-tag-badge-v150.css');
+.d2aa-version-badge::after{content:"v1.50"!important}
 .item-feed{
   transform:translateX(calc(var(--feed-width,410px) + 12px)) translateZ(0)!important;
 }
