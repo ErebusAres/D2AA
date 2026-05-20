@@ -1,0 +1,120 @@
+/* v1.53 D2 grid/card finish pass.
+   Visual-only continuation after rebuilt header visibility fix. */
+.armor-card{
+  background:radial-gradient(circle at 50% 0,color-mix(in srgb,var(--group-color,var(--gold,#e8c56a)) 8%,transparent),transparent 34%),linear-gradient(180deg,rgba(26,27,39,.94),rgba(12,13,21,.965))!important;
+}
+.armor-card .card-top-v151{
+  border-radius:12px 3px 12px 3px!important;
+  border:1px solid rgba(255,255,255,.070)!important;
+  background:radial-gradient(circle at 0 50%,rgba(255,255,255,.052),transparent 42%),linear-gradient(180deg,rgba(255,255,255,.062),rgba(0,0,0,.085))!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.045),0 7px 14px rgba(0,0,0,.15)!important;
+}
+.armor-card .card-top-v151::before{
+  content:""!important;
+  position:absolute!important;
+  left:73px!important;
+  top:11px!important;
+  bottom:11px!important;
+  width:1px!important;
+  background:linear-gradient(180deg,transparent,rgba(255,255,255,.14),transparent)!important;
+  opacity:.74!important;
+  pointer-events:none!important;
+}
+.armor-card .card-top-v151 > .identity-stack{
+  border-radius:999px!important;
+  background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(0,0,0,.12))!important;
+  border:1px solid rgba(255,255,255,.055)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.035)!important;
+}
+.armor-card .card-top-v151 > .identity-stack .identity-icon,
+.armor-card .card-top-v151 > .identity-stack .meta-mask{
+  filter:drop-shadow(0 1px 1px rgba(0,0,0,.65)) brightness(1.05)!important;
+}
+.armor-card .card-top-v151 > .item-title-block h3{
+  color:#fff6df!important;
+  font-size:14.5px!important;
+  letter-spacing:.012em!important;
+}
+.armor-card .card-top-v151 > .item-title-block .item-location-row{
+  gap:7px!important;
+}
+.armor-card .card-top-v151 > .item-title-block .location-pill{
+  border-color:rgba(255,255,255,.12)!important;
+  background:linear-gradient(180deg,rgba(255,255,255,.075),rgba(0,0,0,.18))!important;
+  color:#ddd6e6!important;
+}
+.armor-card .card-top-v151 > .item-title-block .status-pill{
+  border-color:rgba(113,221,255,.24)!important;
+  background:linear-gradient(180deg,rgba(113,221,255,.11),rgba(0,0,0,.13))!important;
+  color:#bff3ff!important;
+}
+.armor-card .card-grid-3x3{
+  margin-top:11px!important;
+  padding-top:1px!important;
+}
+.armor-card .card-grid-3x3 > div{
+  border-color:rgba(255,255,255,.090)!important;
+  background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(0,0,0,.145))!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.036),0 5px 11px rgba(0,0,0,.13)!important;
+}
+.armor-card .card-grid-3x3 > div:hover{
+  border-color:rgba(255,216,107,.22)!important;
+  background:linear-gradient(180deg,rgba(255,216,107,.075),rgba(0,0,0,.14))!important;
+}
+.armor-card .card-grid-3x3 .stat-cell strong{
+  color:#f7f0ff!important;
+  text-shadow:0 1px 0 rgba(0,0,0,.55)!important;
+}
+.armor-card .card-grid-3x3 .stat-cell img.stat-icon{
+  opacity:.94!important;
+  filter:drop-shadow(0 1px 1px rgba(0,0,0,.62))!important;
+}
+.armor-card .card-actions{
+  margin-top:11px!important;
+  padding-top:11px!important;
+  border-top:1px solid rgba(255,255,255,.070)!important;
+}
+.armor-card .card-actions button{
+  min-height:30px!important;
+  border-radius:8px 2px 8px 2px!important;
+  font-size:10px!important;
+  letter-spacing:.075em!important;
+  text-transform:uppercase!important;
+}
+.armor-card .light-tag-badge,
+.armor-card .group-badge,
+.armor-card .card-tag-badge{
+  backdrop-filter:blur(8px)!important;
+}
+.armor-card .light-tag-badge:hover,
+.armor-card .group-badge:hover,
+.armor-card .card-tag-badge:hover{
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.065),0 0 16px color-mix(in srgb,var(--gold,#e8c56a) 18%,transparent),0 7px 14px rgba(0,0,0,.22)!important;
+}
+.armor-slot-section{
+  position:relative!important;
+}
+.slot-card-grid{
+  gap:15px!important;
+}
+.slot-divider{
+  margin-bottom:13px!important;
+}
+.slot-divider-icon{
+  display:inline-grid!important;
+  place-items:center!important;
+}
+.slot-divider em{
+  border-radius:8px 2px 8px 2px!important;
+  border:1px solid rgba(255,216,107,.24)!important;
+  background:rgba(0,0,0,.20)!important;
+  color:#ffe39a!important;
+  padding:3px 8px!important;
+  font-style:normal!important;
+  font-weight:950!important;
+}
+@media(max-width:720px){
+  .armor-card .card-top-v151::before{left:68px!important}
+  .slot-card-grid{gap:12px!important}
+  .armor-card .card-top-v151 > .item-title-block h3{font-size:13.5px!important}
+}
