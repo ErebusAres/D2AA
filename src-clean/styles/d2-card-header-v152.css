@@ -1,0 +1,149 @@
+/* v1.52 card header visibility fix.
+   Restores the rebuilt icon | identity stack | title/location header after older card-header layers hid/collapsed the new nodes. */
+.armor-card .card-top-v151{
+  display:grid!important;
+  grid-template-columns:58px 20px minmax(0,1fr)!important;
+  grid-template-areas:"icon identity title"!important;
+  column-gap:10px!important;
+  align-items:center!important;
+  position:relative!important;
+  overflow:visible!important;
+}
+.armor-card .card-top-v151 > .item-icon{
+  grid-area:icon!important;
+  grid-column:1!important;
+  grid-row:1!important;
+  display:grid!important;
+  visibility:visible!important;
+  opacity:1!important;
+  position:relative!important;
+  z-index:3!important;
+}
+.armor-card .card-top-v151 > .identity-stack{
+  grid-area:identity!important;
+  grid-column:2!important;
+  grid-row:1!important;
+  display:flex!important;
+  visibility:visible!important;
+  opacity:1!important;
+  position:relative!important;
+  z-index:4!important;
+  width:20px!important;
+  min-width:20px!important;
+  max-width:20px!important;
+  height:58px!important;
+  flex-direction:column!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:6px!important;
+  margin:0!important;
+  padding:0!important;
+  pointer-events:auto!important;
+}
+.armor-card .card-top-v151 > .identity-stack .identity-icon,
+.armor-card .card-top-v151 > .identity-stack .meta-mask{
+  display:block!important;
+  visibility:visible!important;
+  opacity:1!important;
+  position:relative!important;
+  z-index:5!important;
+  width:14px!important;
+  height:14px!important;
+  min-width:14px!important;
+  min-height:14px!important;
+  max-width:14px!important;
+  max-height:14px!important;
+  flex:0 0 14px!important;
+  object-fit:contain!important;
+}
+.armor-card .card-top-v151 > .identity-stack .meta-mask{
+  background:#d8d1e2!important;
+  -webkit-mask:var(--icon) center/contain no-repeat!important;
+  mask:var(--icon) center/contain no-repeat!important;
+}
+.armor-card .card-top-v151 > .item-title-block{
+  grid-area:title!important;
+  grid-column:3!important;
+  grid-row:1!important;
+  display:flex!important;
+  visibility:visible!important;
+  opacity:1!important;
+  position:relative!important;
+  z-index:4!important;
+  min-width:0!important;
+  max-width:100%!important;
+  width:100%!important;
+  flex-direction:column!important;
+  justify-content:center!important;
+  align-items:stretch!important;
+  gap:7px!important;
+  margin:0!important;
+  padding:0!important;
+  color:#fff4dc!important;
+}
+.armor-card .card-top-v151 > .item-title-block h3{
+  display:block!important;
+  visibility:visible!important;
+  opacity:1!important;
+  position:relative!important;
+  z-index:5!important;
+  margin:0!important;
+  padding:0!important;
+  max-width:100%!important;
+  min-width:0!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+  color:#fff4dc!important;
+  font-size:14px!important;
+  font-weight:950!important;
+  line-height:1.12!important;
+  text-align:left!important;
+}
+.armor-card .card-top-v151 > .item-title-block .item-location-row{
+  display:flex!important;
+  visibility:visible!important;
+  opacity:1!important;
+  position:relative!important;
+  z-index:5!important;
+  align-items:center!important;
+  justify-content:flex-start!important;
+  gap:6px!important;
+  min-width:0!important;
+  max-width:100%!important;
+  overflow:hidden!important;
+}
+.armor-card .card-top-v151 > .item-title-block .location-pill,
+.armor-card .card-top-v151 > .item-title-block .status-pill{
+  display:inline-flex!important;
+  visibility:visible!important;
+  opacity:1!important;
+  flex:0 1 auto!important;
+}
+.armor-card .card-top-v151 > .item-title,
+.armor-card .card-top-v151 > .identifier-icons{
+  display:none!important;
+}
+@media(max-width:720px){
+  .armor-card .card-top-v151{
+    grid-template-columns:54px 19px minmax(0,1fr)!important;
+    column-gap:9px!important;
+  }
+  .armor-card .card-top-v151 > .identity-stack{
+    width:19px!important;
+    min-width:19px!important;
+    max-width:19px!important;
+    height:54px!important;
+    gap:5px!important;
+  }
+  .armor-card .card-top-v151 > .identity-stack .identity-icon,
+  .armor-card .card-top-v151 > .identity-stack .meta-mask{
+    width:13px!important;
+    height:13px!important;
+    min-width:13px!important;
+    min-height:13px!important;
+    max-width:13px!important;
+    max-height:13px!important;
+    flex-basis:13px!important;
+  }
+}
