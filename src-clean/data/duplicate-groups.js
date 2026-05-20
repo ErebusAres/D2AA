@@ -48,13 +48,13 @@ export function applyDuplicateGroups(rows, tolerance = 5) {
   }
 
   discoveredGroups.sort((a, b) => groupSort(a.first, b.first) || maxTotal(b.candidates, b.group) - maxTotal(a.candidates, a.group));
-  const classCounters = new Map();
+  const slotCounters = new Map();
   for (const discovered of discoveredGroups) {
-    const className = classKey(discovered.first);
-    const next = (classCounters.get(className) || 0) + 1;
-    classCounters.set(className, next);
-    const groupLabel = labelFor(next);
-    const color = GROUP_COLORS[(next - 1) % GROUP_COLORS.length];
+    const slotIndex = slotCategoryNumber(discovered.first);
+    const next = (slotCounters.get(slotIndex) || 0) + 1;
+    slotCounters.set(slotIndex, next);
+    const groupLabel = `${slotIndex}${letterFor(next)}`;
+    const color = GROUP_COLORS[(slotIndex - 1) % GROUP_COLORS.length];
     const actionKey = `${discovered.key}::${groupLabel}`;
     discovered.group
       .map((candidateIndex) => discovered.candidates[candidateIndex])
@@ -73,17 +73,26 @@ export function applyDuplicateGroups(rows, tolerance = 5) {
   return grouped;
 }
 
-function labelFor(number) {
-  const n = Math.max(1, Number(number || 1));
-  const bucket = Math.floor((n - 1) / LETTERS.length) + 1;
-  const letter = LETTERS[(n - 1) % LETTERS.length] || 'A';
-  return `${bucket}${letter}`;
+function slotCategoryNumber(row) {
+  const slot = normalize(row.Slot || row.Type || '');
+  const index = SLOT_ORDER.findIndex((name) => normalize(name) === slot);
+  return index >= 0 ? index + 1 : Math.max(1, slotNumber(row));
+}
+function letterFor(number) {
+  let n = Math.max(1, Number(number || 1));
+  let output = '';
+  while (n > 0) {
+    n -= 1;
+    output = LETTERS[n % LETTERS.length] + output;
+    n = Math.floor(n / LETTERS.length);
+  }
+  return output || 'A';
 }
 function groupSort(a, b) {
+  const slot = slotCategoryNumber(a) - slotCategoryNumber(b);
+  if (slot) return slot;
   const cls = classKey(a).localeCompare(classKey(b));
   if (cls) return cls;
-  const slot = slotNumber(a) - slotNumber(b);
-  if (slot) return slot;
   const rarity = String(a.Rarity || '').localeCompare(String(b.Rarity || ''));
   if (rarity) return rarity;
   return String(a.Name || '').localeCompare(String(b.Name || ''));
