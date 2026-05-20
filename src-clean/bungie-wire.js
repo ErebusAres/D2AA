@@ -7,8 +7,8 @@ const setStatus = (status) => setState({ status });
 const hasRows = () => state.rows.length > 0;
 const ROW_CACHE_KEY = 'd2aa_clean_rows_v1';
 const LIVE_REFRESH_MS = 60000;
-const ITEM_FEED_CHECK_MS = 60000;
-const LIVE_MIN_GAP_MS = 25000;
+const ITEM_FEED_CHECK_MS = 45000;
+const LIVE_MIN_GAP_MS = 20000;
 const MIN_FEED_SPINNER_MS = 1400;
 
 let lastLiveRefreshAt = 0;
@@ -40,7 +40,7 @@ function bindBungieControls() {
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden) {
       if (shouldRefreshOnFocus()) requestLiveRefresh('focus-refresh', true);
-      scheduleItemFeedPoll(5000);
+      scheduleItemFeedPoll(3000);
     } else {
       setFeedPolling(false, '', true);
       scheduleItemFeedPoll();
@@ -48,7 +48,7 @@ function bindBungieControls() {
   });
   window.addEventListener('focus', () => {
     if (shouldRefreshOnFocus()) requestLiveRefresh('window-focus-refresh', true);
-    scheduleItemFeedPoll(5000);
+    scheduleItemFeedPoll(3000);
   });
   window.addEventListener('blur', () => { setFeedPolling(false, '', true); scheduleItemFeedPoll(); });
   window.addEventListener('online', () => requestLiveRefresh('network-online', true));
@@ -234,7 +234,7 @@ async function bootBungieSidecar() {
     await initializeBungieSync({ setStatus, setRows, hasRows });
     refreshLoginState();
     scheduleLivePulse();
-    scheduleItemFeedPoll(isSignedIn() ? 5000 : ITEM_FEED_CHECK_MS);
+    scheduleItemFeedPoll(isSignedIn() ? 3000 : ITEM_FEED_CHECK_MS);
   } catch (error) {
     console.error('D2AA clean Bungie sidecar failed', error);
     setStatus(error.message || String(error));
