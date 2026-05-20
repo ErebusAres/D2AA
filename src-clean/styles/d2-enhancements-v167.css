@@ -1,0 +1,138 @@
+/* v1.67 D2 visual enhancement pass: group hover glow, feed drop animation, live pulse, compare modal polish. */
+.d2aa-version-badge::after{content:"v1.67"!important}
+
+/* grouped card hover glow */
+.armor-card.is-grouped{
+  transition:transform .16s ease,border-color .16s ease,box-shadow .16s ease,background .16s ease!important;
+}
+.armor-card.is-grouped:hover{
+  transform:translateY(-2px)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.055),0 0 0 1px color-mix(in srgb,var(--group-color,#ffd86b) 34%,transparent),0 0 26px var(--group-glow,rgba(255,216,107,.25)),0 18px 34px rgba(0,0,0,.34)!important;
+}
+.armor-card.is-grouped:hover .group-badge{
+  filter:brightness(1.06) saturate(1.08)!important;
+}
+
+/* stat quality restrained glow */
+.armor-card .stat-quality-perfect,
+.feed-card .stat-quality-perfect{
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 0 13px rgba(255,216,107,.11)!important;
+}
+.armor-card .stat-quality-great,
+.feed-card .stat-quality-great{
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.045),0 0 10px rgba(113,221,255,.08)!important;
+}
+
+/* feed new-drop animation */
+.item-feed .feed-card.is-new,
+.item-feed .feed-card.is-new-found{
+  animation:d2aa-v167-new-drop .62s cubic-bezier(.16,.84,.31,1) both!important;
+  border-color:color-mix(in srgb,var(--gold,#e8c56a) 36%,rgba(255,255,255,.12))!important;
+}
+.item-feed .feed-card.is-new::after,
+.item-feed .feed-card.is-new-found::after{
+  content:""!important;
+  position:absolute!important;
+  inset:0!important;
+  pointer-events:none!important;
+  border-radius:inherit!important;
+  background:linear-gradient(100deg,transparent 0 28%,rgba(255,216,107,.16) 43%,transparent 58% 100%)!important;
+  transform:translateX(-110%)!important;
+  animation:d2aa-v167-feed-sheen 1.35s ease-out .12s 1 both!important;
+}
+@keyframes d2aa-v167-new-drop{
+  0%{opacity:0;transform:translateX(18px) scale(.985);filter:brightness(1.18)}
+  62%{opacity:1;transform:translateX(-2px) scale(1.005);filter:brightness(1.06)}
+  100%{opacity:1;transform:translateX(0) scale(1);filter:none}
+}
+@keyframes d2aa-v167-feed-sheen{to{transform:translateX(115%)}}
+
+/* live status pulse */
+body.bungie-signed-in .brand-mark{
+  position:relative!important;
+}
+body.bungie-signed-in .brand-mark::after{
+  content:""!important;
+  position:absolute!important;
+  width:7px!important;
+  height:7px!important;
+  right:-7px!important;
+  top:2px!important;
+  border-radius:999px!important;
+  background:#68eba3!important;
+  box-shadow:0 0 10px rgba(104,235,163,.55)!important;
+  animation:d2aa-v167-live-pulse 2.2s ease-in-out infinite!important;
+}
+body.feed-polling .brand-mark::after{
+  background:#ffe39a!important;
+  box-shadow:0 0 12px rgba(255,227,154,.62)!important;
+  animation-duration:1.05s!important;
+}
+@keyframes d2aa-v167-live-pulse{0%,100%{opacity:.52;transform:scale(.82)}50%{opacity:1;transform:scale(1.08)}}
+
+/* empty/loading state terminal polish */
+.empty-state{
+  border:1px solid rgba(255,255,255,.075)!important;
+  border-radius:18px 4px 18px 4px!important;
+  background:radial-gradient(circle at 50% 0,rgba(232,197,106,.08),transparent 36%),linear-gradient(180deg,rgba(255,255,255,.035),rgba(0,0,0,.18))!important;
+}
+.empty-state h2{
+  color:#fff1c7!important;
+  letter-spacing:.018em!important;
+}
+.empty-state p{
+  color:#aaa3b6!important;
+}
+
+/* compare modal D2 inspection polish */
+.compare-modal,
+.compare-shell,
+.compare-panel,
+.modal-card{
+  border-radius:18px 4px 18px 4px!important;
+}
+.compare-modal .compare-shell,
+.compare-panel,
+.modal-card{
+  border:1px solid rgba(255,255,255,.095)!important;
+  background:radial-gradient(circle at 50% 0,rgba(232,197,106,.09),transparent 34%),linear-gradient(180deg,rgba(20,21,31,.97),rgba(8,9,14,.985))!important;
+  box-shadow:0 24px 70px rgba(0,0,0,.58),inset 0 1px 0 rgba(255,255,255,.045)!important;
+}
+.compare-modal h2,
+.compare-panel h2,
+.modal-card h2{
+  color:#fff1c7!important;
+  letter-spacing:.026em!important;
+  text-transform:uppercase!important;
+}
+.compare-modal .compare-card,
+.compare-modal .compare-item,
+.compare-panel .compare-card,
+.compare-panel .compare-item{
+  border-radius:14px 3px 14px 3px!important;
+  border:1px solid rgba(255,255,255,.08)!important;
+  background:linear-gradient(180deg,rgba(255,255,255,.048),rgba(0,0,0,.20))!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.035),0 10px 20px rgba(0,0,0,.19)!important;
+}
+.compare-modal .compare-card:hover,
+.compare-modal .compare-item:hover,
+.compare-panel .compare-card:hover,
+.compare-panel .compare-item:hover{
+  border-color:color-mix(in srgb,var(--gold,#e8c56a) 32%,rgba(255,255,255,.12))!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 0 20px rgba(232,197,106,.10),0 16px 28px rgba(0,0,0,.26)!important;
+}
+.compare-modal button,
+.compare-panel button,
+.modal-card button{
+  border-radius:9px 2px 9px 2px!important;
+}
+
+@media (prefers-reduced-motion:reduce){
+  .item-feed .feed-card.is-new,
+  .item-feed .feed-card.is-new-found,
+  .item-feed .feed-card.is-new::after,
+  .item-feed .feed-card.is-new-found::after,
+  body.bungie-signed-in .brand-mark::after{
+    animation:none!important;
+  }
+}
