@@ -4,12 +4,10 @@ const FEED_LIMIT = 20;
 
 export function renderItemFeed(container, countEl, rows, onTag, onDismissNew, onCompareGroup) {
   const newlyFound = rows.slice().filter(isFeedCandidate).sort(compareRecent).slice(0, FEED_LIMIT);
-  const showingFallback = newlyFound.length === 0;
-  const feedRows = showingFallback ? latestSyncedRows(rows) : newlyFound;
-  countEl.textContent = String(feedRows.length);
+  countEl.textContent = String(newlyFound.length);
   ensureFeedRefreshIndicator(countEl);
-  container.dataset.feedMode = showingFallback ? 'latest' : 'new';
-  container.innerHTML = feedRows.length ? feedRows.map((row) => renderFeedCard(row, showingFallback)).join('') : renderEmptyFeed();
+  container.dataset.feedMode = 'new';
+  container.innerHTML = newlyFound.length ? newlyFound.map((row) => renderFeedCard(row)).join('') : renderEmptyFeed(rows.length);
   container.querySelectorAll('[data-feed-tag]').forEach((button) => {
     button.addEventListener('click', () => onTag(button.dataset.id, button.dataset.feedTag));
   });
@@ -37,20 +35,6 @@ function isFeedCandidate(row) {
   return row && row.Id && !row.Tag && (row.RecentStatus === 'new' || row.RecentlyFound === true);
 }
 
-function latestSyncedRows(rows) {
-  const unhandled = rows.slice().filter((row) => row && row.Id && !row.Tag).sort(compareLatestSynced).slice(0, FEED_LIMIT);
-  if (unhandled.length) return unhandled;
-  return rows.slice().filter((row) => row && row.Id).sort(compareLatestSynced).slice(0, FEED_LIMIT);
-}
-
-function compareLatestSynced(a, b) {
-  const timeDiff = recentTime(b) - recentTime(a);
-  if (timeDiff) return timeDiff;
-  const idDiff = compareInstanceIdsDesc(a.Id, b.Id);
-  if (idDiff) return idDiff;
-  return Number(b._index ?? 0) - Number(a._index ?? 0) || String(a.Name).localeCompare(String(b.Name));
-}
-
 function compareInstanceIdsDesc(a, b) {
   const left = digitsOnly(a);
   const right = digitsOnly(b);
@@ -72,16 +56,19 @@ function recentTime(row) {
   return Number(row.ActivityAt || row.FoundAt || Date.parse(row.LastChangedAt || '') || 0);
 }
 
-function renderEmptyFeed() {
+function renderEmptyFeed(loadedCount = 0) {
+  if (loadedCount > 0) {
+    return `<div class="feed-empty"><strong>No newly obtained armor.</strong><br><span>New drops will stay here until you dismiss them, assign a tag, or they fall outside the latest ${FEED_LIMIT} new items.</span></div>`;
+  }
   return `<div class="feed-empty"><strong>No armor loaded yet.</strong><br><span>Sync with Bungie or upload a DIM CSV to populate the item feed.</span></div>`;
 }
 
-function renderFeedCard(row, fallback = false) {
-  const feedNew = !fallback;
+function renderFeedCard(row) {
+  const feedNew = true;
   const groupLabel = row.Dupe_Group || row.Group || '';
   const groupKey = row.GroupActionKey || '';
   const groupButton = row.Is_Dupe ? `<button type="button" class="feed-group-badge ${row.GroupColor || ''}" title="Compare duplicate group ${html(groupLabel)}" data-feed-compare-group="${html(groupKey)}">${html(groupLabel)}</button>` : '';
-  const dismiss = fallback ? '' : `<button type="button" class="feed-dismiss-new" data-id="${html(row.Id)}" data-dismiss-new title="Dismiss new marker" aria-label="Dismiss new marker for ${html(row.Name)}">×</button>`;
+  const dismiss = `<button type="button" class="feed-dismiss-new" data-id="${html(row.Id)}" data-dismiss-new title="Dismiss new marker" aria-label="Dismiss new marker for ${html(row.Name)}">×</button>`;
   const loc = locationLabel(row);
   const metaIcons = `<span class="feed-meta-icons" aria-label="${html(`${row.Class} ${row.Slot} ${row.Rarity} ${loc}`)}">${iconImg(CLASS_ICONS[row.Class], row.Class)}${maskIcon(SLOT_ICONS[row.Slot], row.Slot)}${iconImg(RARITY_ICONS[row.Rarity], row.Rarity)}${locationIcon(loc)}</span>`;
   const tagButton = `<button class="card-tag-slot feed-card-tag ${row.Tag ? 'has-tag' : 'is-empty'}" type="button" data-tag-trigger data-id="${html(row.Id)}" title="${html(tagTitle(row))}">${tagEmoji(row)}</button>`;
