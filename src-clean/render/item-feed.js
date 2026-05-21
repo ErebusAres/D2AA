@@ -7,15 +7,9 @@ export function renderItemFeed(container, countEl, rows, onTag, onDismissNew, on
   ensureFeedRefreshIndicator(countEl);
   container.dataset.feedMode = 'new';
   container.innerHTML = newlyFound.length ? newlyFound.map((row) => renderFeedCard(row)).join('') : renderEmptyFeed(rows.length);
-  container.querySelectorAll('[data-feed-tag]').forEach((button) => {
-    button.addEventListener('click', () => onTag(button.dataset.id, button.dataset.feedTag));
-  });
-  container.querySelectorAll('[data-dismiss-new]').forEach((button) => {
-    button.addEventListener('click', () => onDismissNew?.(button.dataset.id));
-  });
-  container.querySelectorAll('[data-feed-compare-group]').forEach((button) => {
-    button.addEventListener('click', () => onCompareGroup?.(button.dataset.feedCompareGroup));
-  });
+  container.querySelectorAll('[data-feed-tag]').forEach((button) => button.addEventListener('click', () => onTag(button.dataset.id, button.dataset.feedTag)));
+  container.querySelectorAll('[data-dismiss-new]').forEach((button) => button.addEventListener('click', () => onDismissNew?.(button.dataset.id)));
+  container.querySelectorAll('[data-feed-compare-group]').forEach((button) => button.addEventListener('click', () => onCompareGroup?.(button.dataset.feedCompareGroup)));
 }
 
 function ensureFeedRefreshIndicator(countEl) {
@@ -32,7 +26,7 @@ function ensureFeedRefreshIndicator(countEl) {
 
 function renderEmptyFeed(loadedCount = 0) {
   if (loadedCount > 0) {
-    return `<div class="feed-empty"><strong>No newly obtained armor.</strong><br><span>New drops will stay here until you dismiss them, assign a tag, or they fall outside the latest ${ACTIVE_FEED_LIMIT} new items.</span></div>`;
+    return `<div class="feed-empty"><strong>No newly obtained armor.</strong><br><span>New drops stay here until dismissed, tagged, or outside the latest ${ACTIVE_FEED_LIMIT} new items.</span></div>`;
   }
   return `<div class="feed-empty"><strong>No armor loaded yet.</strong><br><span>Sync with Bungie or upload a DIM CSV to populate the item feed.</span></div>`;
 }
@@ -42,39 +36,32 @@ function renderFeedCard(row) {
   const groupKey = row.GroupActionKey || '';
   const loc = locationLabel(row);
   const groupButton = row.Is_Dupe ? `<button type="button" class="feed-group-badge ${row.GroupColor || ''}" title="Compare duplicate group ${html(groupLabel)}" data-feed-compare-group="${html(groupKey)}">${html(groupLabel)}</button>` : '';
-  const dismiss = `<button type="button" class="feed-dismiss-new" data-id="${html(row.Id)}" data-dismiss-new title="Dismiss new marker" aria-label="Dismiss new marker for ${html(row.Name)}">×</button>`;
+  const dismiss = `<button type="button" class="feed-dismiss-new" data-id="${html(row.Id)}" data-dismiss-new title="Dismiss from feed" aria-label="Dismiss ${html(row.Name)} from item feed">×</button>`;
   const metaIcons = `<span class="feed-meta-icons" aria-label="${html(`${row.Class} ${row.Slot} ${row.Rarity} ${loc}`)}">${iconImg(CLASS_ICONS[row.Class], row.Class)}${maskIcon(SLOT_ICONS[row.Slot], row.Slot)}${iconImg(RARITY_ICONS[row.Rarity], row.Rarity)}${locationIcon(loc)}</span>`;
   const tagButton = `<button class="card-tag-slot feed-card-tag ${row.Tag ? 'has-tag' : 'is-empty'}" type="button" data-tag-trigger data-id="${html(row.Id)}" title="${html(tagTitle(row))}">${tagEmoji(row)}</button>`;
-  const context = renderFeedContext(row, loc, groupLabel);
+  const age = feedTimeLabel(row);
   return `<article class="feed-card is-new is-new-found ${row.Is_Dupe ? `is-feed-grouped ${row.GroupColor || ''}` : ''}" data-feed-card-id="${html(row.Id)}" data-card-id="${html(row.Id)}" data-feed-group="${html(groupLabel)}">
     ${dismiss}${groupButton}${tagButton}
     <div class="feed-icon">${row.Icon ? `<img src="${html(row.Icon)}" alt="" loading="lazy">` : '<span>◇</span>'}${row.Power || row.Light ? `<b>${row.Power || row.Light}</b>` : ''}</div>
-    <div class="feed-main"><div class="feed-title-line"><strong title="${html(row.Name)}">${html(row.Name)}</strong>${metaIcons}</div>${context}<div class="feed-stats">${STAT_KEYS.map((key) => statChip(row, key)).join('')}</div></div>
+    <div class="feed-main">
+      <div class="feed-title-line"><strong title="${html(row.Name)}">${html(row.Name)}</strong>${metaIcons}</div>
+      <div class="feed-quickline"><span>NEW</span>${age ? `<span>${html(age)}</span>` : ''}</div>
+      <div class="feed-stats">${STAT_KEYS.map((key) => statChip(row, key)).join('')}</div>
+    </div>
   </article>`;
-}
-
-function renderFeedContext(row, loc, groupLabel) {
-  const parts = [`<span class="feed-context-pill is-new">New drop</span>`];
-  parts.push(`<span class="feed-context-pill">${html(loc)}</span>`);
-  if (row.Is_Dupe && groupLabel) parts.push(`<span class="feed-context-pill is-group">Matched group ${html(groupLabel)}</span>`);
-  else parts.push(`<span class="feed-context-pill is-solo">No group match</span>`);
-  const when = feedTimeLabel(row);
-  if (when) parts.push(`<span class="feed-context-pill is-time">${html(when)}</span>`);
-  return `<div class="feed-context-strip">${parts.join('')}</div>`;
 }
 
 function feedTimeLabel(row) {
   const value = Number(row.ActivityAt || row.FoundAt || Date.parse(row.LastChangedAt || '') || 0);
   if (!value) return '';
   const diffMs = Date.now() - value;
-  if (!Number.isFinite(diffMs) || diffMs < 0) return 'Just now';
+  if (!Number.isFinite(diffMs) || diffMs < 0) return 'now';
   const mins = Math.floor(diffMs / 60000);
-  if (mins < 1) return 'Just now';
-  if (mins < 60) return `${mins}m ago`;
+  if (mins < 1) return 'now';
+  if (mins < 60) return `${mins}m`;
   const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  return `${days}d ago`;
+  if (hours < 24) return `${hours}h`;
+  return `${Math.floor(hours / 24)}d`;
 }
 
 function statChip(row, key) {
