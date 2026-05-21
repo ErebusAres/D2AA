@@ -1,0 +1,91 @@
+import { STAT_KEYS, STAT_LABELS, STAT_ICONS, RARITY_ICONS, CLASS_ICONS, SLOT_ICONS, LOCATION_EMOJIS, TAGS, SLOT_ORDER, ARMOR_ARCHETYPES, ARCHETYPE_ALIASES } from '../constants.js';
+import { actionLabel, canRunAction } from '../data/actions.js';
+
+const ARCHETYPE_STAT_BY_NAME = {
+  Paragon: 'Super',
+  Grenadier: 'Grenade',
+  Specialist: 'ClassAbility',
+  Brawler: 'Melee',
+  Bulwark: 'Health',
+  Gunner: 'Weapon'
+};
+
+export function renderGrid(container, rows, onTag, onAction, onCompareGroup) {
+  container.innerHTML = renderSlotSections(rows);
+  container.querySelectorAll('[data-tag-trigger]').forEach((button) => button.addEventListener('click', (event) => { event.stopPropagation(); onTag?.(button.dataset.id); }));
+  container.querySelectorAll('[data-action-id]').forEach((button) => button.addEventListener('click', (event) => { event.stopPropagation(); onAction?.(button.dataset.actionId, button); }));
+  container.querySelectorAll('[data-compare-group]').forEach((button) => button.addEventListener('click', (event) => { event.stopPropagation(); onCompareGroup?.(button.dataset.compareGroup); }));
+}
+
+function renderSlotSections(rows) {
+  if (!rows.length) return '';
+  const sections = groupBySlot(rows);
+  return sections.map(([slot, items]) => `<section class="armor-slot-section" data-slot-section="${html(slot)}">
+    <div class="slot-divider"><span class="slot-divider-icon">${maskIcon(SLOT_ICONS[slot], slot)}</span><strong>${html(slot)}</strong><em>${items.length}</em></div>
+    <div class="slot-card-grid">${items.map(renderCard).join('')}</div>
+  </section>`).join('');
+}
+
+function groupBySlot(rows) {
+  const buckets = new Map();
+  rows.forEach((row) => { const slot = row.Slot || row.Type || 'Other'; if (!buckets.has(slot)) buckets.set(slot, []); buckets.get(slot).push(row); });
+  const ordered = [];
+  SLOT_ORDER.forEach((slot) => { if (buckets.has(slot)) ordered.push([slot, buckets.get(slot)]); });
+  [...buckets.keys()].filter((slot) => !SLOT_ORDER.includes(slot)).sort().forEach((slot) => ordered.push([slot, buckets.get(slot)]));
+  return ordered;
+}
+
+function renderCard(row) {
+  const badge = lightBadgeText(row);
+  const groupLabel = row.Dupe_Group || row.Group || '';
+  const groupActionKey = row.GroupActionKey || `${row.GroupKey || ''}::${groupLabel}`;
+  const isNew = row.RecentStatus === 'new' || row.RecentlyFound === true || row.Tag === 'feed';
+  const group = row.Is_Dupe ? `<button type="button" class="group-badge ${row.GroupColor || ''}" title="Compare duplicate group ${html(groupLabel)}" data-compare-group="${html(groupActionKey)}">${row.Is_Dupe_Exotic ? iconImg(RARITY_ICONS.Exotic, 'Exotic duplicate group', 'badge-icon') : ''}${html(groupLabel)}</button>` : '';
+  const tagControl = `<button class="card-tag-slot card-tag-badge ${row.Tag ? 'has-tag' : 'is-empty'} ${isNew ? 'is-new-context' : ''}" type="button" data-tag-trigger data-id="${html(row.Id)}" title="${html(tagTitle(row, isNew))}">${tagEmoji(row, isNew)}</button>`;
+  const action = actionLabel(row);
+  const loc = locationLabel(row);
+  return `<article class="armor-card ${safeClass(row.Rarity)} ${isNew ? 'is-new-found' : ''} ${row.Is_Dupe ? 'is-grouped is-dupe ' + row.GroupColor : ''}" data-card-id="${html(row.Id)}" data-group="${html(groupLabel)}">
+    ${badge ? `<button class="light-tag-badge light-only-badge" type="button" data-tag-trigger data-id="${html(row.Id)}">${badge}</button>` : ''}
+    ${tagControl}${group}
+    <div class="card-top card-top-v151"><div class="item-icon">${row.Icon ? `<img src="${html(row.Icon)}" alt="" loading="lazy">` : '<span>◇</span>'}</div><div class="identity-stack" aria-label="Item identity">${iconImg(CLASS_ICONS[row.Class], row.Class, 'identity-icon')}${maskIcon(SLOT_ICONS[row.Slot], row.Slot)}${iconImg(RARITY_ICONS[row.Rarity], row.Rarity, 'identity-icon')}</div><div class="item-title-block"><h3 title="${html(row.Name)}">${html(row.Name)}</h3><div class="item-location-row"><span class="location-pill" title="${html(loc)}">${LOCATION_EMOJIS[loc] || LOCATION_EMOJIS.Character || '🎒'} ${html(loc)}</span></div></div></div>
+    <div class="card-grid-3x3"><div><span>Total</span><strong>${row.Total || 0}</strong></div><div class="tier-cell"><span>Tier</span><strong class="diamonds" title="Tier ${html(row.Tier || 0)}">${diamonds(row.Tier, row.TierMax)}</strong></div><div class="arch-cell">${archetypeIcon(row)}</div>${STAT_KEYS.map((key) => statCell(row, key)).join('')}</div>
+    <div class="card-actions"><button type="button" data-action-id="${html(row.Id)}" ${canRunAction(row) ? '' : 'disabled'}>${html(action)}</button>${row.Is_Dupe ? `<button type="button" data-action-id="group:${html(groupActionKey)}">Pull group</button>` : ''}</div>
+  </article>`;
+}
+
+function archetypeIcon(row) {
+  const derived = deriveArchetype(row);
+  const name = normalizeArchetypeName(row.Archetype) || derived.name;
+  const meta = ARMOR_ARCHETYPES[name];
+  const stat = row.ArchetypeIcon ? '' : (meta?.stat || ARCHETYPE_STAT_BY_NAME[name] || derived.stat);
+  const label = name || derived.name || row.Archetype || 'Archetype';
+  const statLabel = stat ? STAT_LABELS[stat] : '';
+  const src = row.ArchetypeIcon || STAT_ICONS[stat] || '';
+  const title = `${label}${statLabel ? ` · ${statLabel}` : ''}${row.ArchetypeDescription ? ` — ${row.ArchetypeDescription}` : ''}`;
+  if (src) return `<img class="arch-image arch-${safeClass(label)}" src="${html(src)}" alt="${html(label)}" title="${html(title)}" aria-label="${html(title)}" loading="lazy">`;
+  return `<span class="arch-missing" title="${html(title)}">◇</span>`;
+}
+
+function deriveArchetype(row) {
+  let stat = 'Health';
+  let value = -1;
+  for (const key of STAT_KEYS) {
+    const n = Number(row[key] || 0);
+    if (n > value) { value = n; stat = key; }
+  }
+  const name = Object.entries(ARCHETYPE_STAT_BY_NAME).find(([, key]) => key === stat)?.[0] || 'Bulwark';
+  return { name, stat };
+}
+function normalizeArchetypeName(value) { return ARCHETYPE_ALIASES[String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, '')] || ''; }
+function statCell(row, key) { const value = Number(row[key] || 0); const quality = statQuality(value); return `<div class="stat-cell stat-${key.toLowerCase()} stat-quality-${quality}" title="${html(STAT_LABELS[key])}: ${value} · ${qualityLabel(quality)}"><span class="stat-icon-only"><img class="stat-icon" src="${html(STAT_ICONS[key])}" alt="${html(STAT_LABELS[key])}" loading="lazy"></span><strong>${value}</strong></div>`; }
+function statQuality(value) { if (value >= 25) return 'perfect'; if (value >= 20) return 'great'; if (value >= 15) return 'good'; if (value >= 10) return 'okay'; if (value >= 5) return 'bad'; return 'poor'; }
+function qualityLabel(value) { return ({ perfect: 'Perfect', great: 'Great', good: 'Good', okay: 'Okay', bad: 'Bad', poor: 'Poor' })[value] || value; }
+function lightBadgeText(row) { return row.Power || row.Light || ''; }
+function tagEmoji(row, isNew = false) { const tag = TAGS.find((item) => item.value === row.Tag && item.value); if (tag) return tag.emoji; return isNew ? '✨' : '＋'; }
+function tagTitle(row, isNew = false) { const tag = TAGS.find((item) => item.value === row.Tag && item.value); if (tag) return `Tag: ${tag.label}`; return isNew ? 'New item — assign tag' : 'Assign tag'; }
+function locationLabel(row) { if (row.Source !== 'Bungie') return 'DIM'; return row.IsInVault ? 'Vault' : row.IsEquipped ? 'Equipped' : 'Inventory'; }
+function iconImg(src, label, className = 'meta-icon') { return src ? `<img class="${html(className)}" src="${html(src)}" alt="${html(label || '')}" title="${html(label || '')}" loading="lazy">` : ''; }
+function maskIcon(src, label) { return src ? `<span class="meta-mask" style="--icon:url('${html(src)}')" title="${html(label || '')}" aria-label="${html(label || '')}"></span>` : ''; }
+function diamonds(tier, max = 5) { const m = Number(max || 5); const n = Math.max(0, Math.min(m, Number(tier || 0))); return '◆'.repeat(n); }
+function safeClass(value) { return String(value || '').toLowerCase().replace(/[^a-z0-9_-]+/g, '-'); }
+function html(value) { return String(value ?? '').replace(/[&<>"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[char])); }
