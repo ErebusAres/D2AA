@@ -1,5 +1,10 @@
 /* D2AA final override layer. Keep this file loaded last and edit it instead of stacking new version files. */
 
+/* Version badge: hide stale underlying text while runtime renderer owns the visible value. */
+.d2aa-version-badge{font-size:0!important;line-height:0!important;color:transparent!important;}
+.d2aa-version-badge::before{content:none!important;display:none!important;}
+.d2aa-version-badge::after{color:#e8c56a!important;font:900 11px/1 Inter,Segoe UI,system-ui,sans-serif!important;letter-spacing:.04em!important;writing-mode:vertical-rl!important;text-orientation:mixed!important;}
+
 /* Unified grid badge/HUD strip polish */
 .armor-card .light-tag-badge,
 .armor-card .card-tag-slot,
