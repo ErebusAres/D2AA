@@ -58,7 +58,7 @@ export async function syncBungieInventory({ setStatus, setRows, reason = 'manual
   if (syncRunning) return null;
   if (!isSignedIn()) {
     setStatus('Connect your Destiny account before syncing armor.');
-    return null;
+    return { error: true, skipped: true, message: 'Connect your Destiny account before syncing armor.' };
   }
   syncRunning = true;
   lastSyncStartedAt = Date.now();
@@ -78,8 +78,9 @@ export async function syncBungieInventory({ setStatus, setRows, reason = 'manual
     return saved;
   } catch (error) {
     console.error('D2AA clean Bungie sync failed', error);
-    setStatus(error.message || String(error));
-    return null;
+    const message = error?.message || String(error);
+    setStatus(message);
+    return { error: true, message, reason, background };
   } finally {
     syncRunning = false;
   }
