@@ -71,7 +71,10 @@ export async function syncBungieInventory({ setStatus, setRows, reason = 'manual
     const saved = await saveBungieInventory(rows, reason);
     const seconds = ((performance.now() - startedAt) / 1000).toFixed(1);
     const meta = saved.meta || {};
-    setRows(saved.rows, `Bungie sync complete: ${rows.length} armor in ${seconds}s. New: ${meta.added || 0}. Moved: ${meta.moved || 0}. Changed: ${meta.changed || 0}.`);
+    const added = Number(meta.added || 0);
+    setRows(saved.rows, added
+      ? `Bungie sync complete: ${rows.length} armor in ${seconds}s. New armor: ${added}.`
+      : `Bungie sync complete: ${rows.length} armor in ${seconds}s. No new armor found.`);
     return saved;
   } catch (error) {
     console.error('D2AA clean Bungie sync failed', error);
