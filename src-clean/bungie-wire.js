@@ -110,7 +110,7 @@ async function runSync(reason, background = false) {
           : `Live feed current ${checked}. No new armor found.`);
       }
     } else {
-      updateLiveDiagnostics('error', 'Sync returned no result');
+      updateLiveDiagnostics('waiting', `Sync skipped · ${lastSyncSummary}`);
     }
   } catch (error) {
     updateLiveDiagnostics('error', `Sync failed · ${error.message || error}`);
