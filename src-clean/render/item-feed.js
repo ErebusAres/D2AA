@@ -39,10 +39,11 @@ function renderFeedCard(row) {
   const tierRail = tierIndicator(row);
   const tagButton = `<button class="card-tag-slot feed-card-tag ${row.Tag ? 'has-tag' : 'is-empty'}" type="button" data-tag-trigger data-id="${html(row.Id)}" title="${html(tagTitle(row))}">${tagEmoji(row)}</button>`;
   const age = feedTimeLabel(row);
-  return `<article class="feed-card is-new is-new-found ${row.Is_Dupe ? `is-feed-grouped ${row.GroupColor || ''}` : ''}" data-feed-card-id="${html(row.Id)}" data-card-id="${html(row.Id)}" data-feed-group="${html(groupLabel)}">
+  const foundText = age ? ` · Found ${age} ago` : '';
+  return `<article class="feed-card is-new is-new-found ${row.Is_Dupe ? `is-feed-grouped ${row.GroupColor || ''}` : ''}" data-feed-card-id="${html(row.Id)}" data-card-id="${html(row.Id)}" data-feed-group="${html(groupLabel)}" title="${html(`${row.Name}${foundText}`)}">
     ${dismiss}${groupButton}${tagButton}
     <div class="feed-media"><div class="feed-icon">${row.Icon ? `<img src="${html(row.Icon)}" alt="" loading="lazy">` : '<span>◇</span>'}${row.Power || row.Light ? `<b>${row.Power || row.Light}</b>` : ''}</div><div class="feed-rail-pack">${identityRail}${tierRail}</div></div>
-    <div class="feed-main"><div class="feed-title-line"><strong title="${html(row.Name)}">${html(row.Name)}</strong>${age ? `<small title="Found ${html(age)} ago">${html(age)}</small>` : ''}</div><div class="feed-stats">${STAT_KEYS.map((key) => statChip(row, key)).join('')}</div></div>
+    <div class="feed-main"><div class="feed-title-line"><strong title="${html(row.Name)}">${html(row.Name)}</strong></div><div class="feed-stats">${STAT_KEYS.map((key) => statChip(row, key)).join('')}</div></div>
   </article>`;
 }
 
