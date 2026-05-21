@@ -1,0 +1,3 @@
+# GitHub Pages marker
+# Created to force static GitHub Pages serving/rebuild for D2AA clean page.
+# Deploy check: d2aa-clean.html should serve repo version 1.85+.
