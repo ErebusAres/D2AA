@@ -10,10 +10,12 @@ import { renderItemFeed } from './render/item-feed.js';
 import { attachTagPicker } from './render/tag-picker.js';
 import { openCompareModal } from './render/compare-modal.js';
 
+const CLEAN_BUILD_VERSION = '1.87';
 const els = {};
 let lastGroupedRows = [];
 
 function boot() {
+  assertCleanBuildVersion();
   cacheEls();
   renderThemeButtons();
   loadSettings();
@@ -23,6 +25,18 @@ function boot() {
   document.body.dataset.theme = normalizeTheme(state.theme);
   loadCachedRows();
   render();
+}
+
+function assertCleanBuildVersion() {
+  window.D2AA_VERSION = CLEAN_BUILD_VERSION;
+  document.documentElement.dataset.d2aaRuntimeVersion = CLEAN_BUILD_VERSION;
+  const meta = document.querySelector('meta[name="d2aa-version"]');
+  if (meta) meta.setAttribute('content', CLEAN_BUILD_VERSION);
+  const badge = document.querySelector('.d2aa-version-badge');
+  if (badge) {
+    badge.textContent = `v${CLEAN_BUILD_VERSION}`;
+    badge.setAttribute('title', `D2AA clean app runtime v${CLEAN_BUILD_VERSION}`);
+  }
 }
 
 function cacheEls() {
@@ -77,6 +91,7 @@ function restoreFeedOpenState() { const open = readJson(STORAGE_KEYS.feedOpen, f
 function toggleItemFeed() { const open = !els.itemFeed.classList.contains('is-open'); els.itemFeed.classList.toggle('is-open', open); document.body.classList.toggle('feed-open', open); writeJson(STORAGE_KEYS.feedOpen, open); }
 
 function render() {
+  assertCleanBuildVersion();
   document.body.dataset.theme = normalizeTheme(state.theme);
   els.statusText.textContent = state.status;
   els.searchBox.value = state.search;
