@@ -1,5 +1,5 @@
 /* D2AA final override layer. Keep this file loaded last and edit it instead of stacking new version files. */
-.d2aa-version-badge::after{content:"v1.71"!important}
+.d2aa-version-badge::after{content:"v1.73"!important}
 
 /* Unified grid badge/HUD strip polish */
 .armor-card .light-tag-badge,
@@ -13,15 +13,10 @@
   border-radius:7px 2px 7px 2px!important;
   box-shadow:0 0 0 1px rgba(0,0,0,.5),0 8px 16px rgba(0,0,0,.28)!important;
 }
-.armor-card .group-badge{
-  border-radius:7px 2px 7px 2px!important;
-}
-.armor-card .card-tag-slot.is-new-context::after{
-  top:-14px!important;
-  bottom:auto!important;
-}
+.armor-card .group-badge{border-radius:7px 2px 7px 2px!important;}
+.armor-card .card-tag-slot.is-new-context::after{top:-14px!important;bottom:auto!important;}
 
-/* Options/Data panel cleanup: visually group the five data actions without DOM risk. */
+/* Options/Data panel cleanup */
 #commandPanel .panel-card:first-child{
   position:relative!important;
   border-color:rgba(232,197,106,.12)!important;
@@ -42,88 +37,101 @@
   border-radius:13px 3px 13px 3px!important;
 }
 #commandPanel .panel-card:first-child #bungieLoginBtn,
-#commandPanel .panel-card:first-child #bungieSyncBtn{
-  border-color:color-mix(in srgb,var(--gold,#e8c56a) 28%,rgba(255,255,255,.08))!important;
-}
-#commandPanel .panel-card:first-child #uploadCsvBtn{
-  border-color:rgba(110,210,255,.18)!important;
-}
+#commandPanel .panel-card:first-child #bungieSyncBtn{border-color:color-mix(in srgb,var(--gold,#e8c56a) 28%,rgba(255,255,255,.08))!important;}
+#commandPanel .panel-card:first-child #uploadCsvBtn{border-color:rgba(110,210,255,.18)!important;}
 #commandPanel .panel-card:first-child #restoreCacheBtn,
 #commandPanel .panel-card:first-child #clearCacheBtn,
 #commandPanel .panel-card:first-child #dimTagSyncBtn,
-#commandPanel .panel-card:first-child #dimTagResetBtn{
-  opacity:.92!important;
-}
+#commandPanel .panel-card:first-child #dimTagResetBtn{opacity:.92!important;}
 
-/* Compare modal best-roll/high contrast polish. */
-.compare-modal [data-best="true"],
-.compare-modal .is-best,
-.compare-panel [data-best="true"],
-.compare-panel .is-best{
+/* Compare modal polish */
+.compare-modal [data-best="true"],.compare-modal .is-best,.compare-panel [data-best="true"],.compare-panel .is-best{
   border-color:color-mix(in srgb,var(--gold,#e8c56a) 52%,rgba(255,255,255,.12))!important;
   box-shadow:0 0 0 1px rgba(232,197,106,.16),0 0 24px rgba(232,197,106,.14),0 18px 34px rgba(0,0,0,.32)!important;
 }
-.compare-modal .delta-positive,
-.compare-panel .delta-positive{color:#68eba3!important;text-shadow:0 0 10px rgba(104,235,163,.18)!important}
-.compare-modal .delta-negative,
-.compare-panel .delta-negative{color:#ff83ad!important;text-shadow:0 0 10px rgba(255,131,173,.16)!important}
+.compare-modal .delta-positive,.compare-panel .delta-positive{color:#68eba3!important;text-shadow:0 0 10px rgba(104,235,163,.18)!important}
+.compare-modal .delta-negative,.compare-panel .delta-negative{color:#ff83ad!important;text-shadow:0 0 10px rgba(255,131,173,.16)!important}
 
-/* Item feed status clarity. */
+/* Item feed live diagnostics. */
+.item-feed .feed-head{
+  align-items:flex-start!important;
+  gap:8px!important;
+}
+.item-feed .feed-head strong{
+  min-width:0!important;
+}
 .item-feed .feed-head strong::after{
-  content:"Live · checks while active"!important;
+  content:attr(data-live-text)!important;
   display:block!important;
   margin-top:2px!important;
+  max-width:285px!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
   color:#8f899b!important;
   font-size:9px!important;
   font-weight:800!important;
-  letter-spacing:.07em!important;
+  letter-spacing:.055em!important;
   text-transform:uppercase!important;
 }
-body.feed-polling .item-feed .feed-head strong::after{
-  content:"Live · checking now"!important;
+.item-feed[data-live-text=""] .feed-head strong::after,
+.item-feed:not([data-live-text]) .feed-head strong::after{content:"Live feed waiting"!important;}
+body.feed-polling .item-feed .feed-head strong::after,
+.item-feed[data-live-state="syncing"] .feed-head strong::after,
+.item-feed[data-live-state="busy"] .feed-head strong::after{
   color:#ffe39a!important;
 }
-body.bungie-signed-in:not(.feed-polling) .item-feed .feed-head strong::after{
-  content:"Live · connected"!important;
+.item-feed[data-live-state="current"] .feed-head strong::after,
+.item-feed[data-live-state="waiting"] .feed-head strong::after,
+.item-feed[data-live-state="queued"] .feed-head strong::after{
   color:#68eba3!important;
 }
-
-/* Archetype stabilization: final exact center, same cell dimensions as all grid cells. */
-.armor-card .card-grid-3x3{
-  grid-auto-rows:52px!important;
-  align-items:stretch!important;
+.item-feed[data-live-state="new"] .feed-head strong::after{
+  color:#ffcf5d!important;
+  text-shadow:0 0 10px rgba(255,207,93,.22)!important;
 }
+.item-feed[data-live-state="error"] .feed-head strong::after,
+.item-feed[data-live-state="offline"] .feed-head strong::after,
+.item-feed[data-live-state="signed-out"] .feed-head strong::after{
+  color:#ff83ad!important;
+}
+.item-feed .feed-head::before{
+  content:""!important;
+  width:7px!important;
+  height:7px!important;
+  margin-top:6px!important;
+  border-radius:999px!important;
+  background:#8f899b!important;
+  box-shadow:0 0 8px rgba(143,137,155,.3)!important;
+  flex:0 0 auto!important;
+}
+.item-feed[data-live-state="syncing"] .feed-head::before,
+.item-feed[data-live-state="busy"] .feed-head::before,
+body.feed-polling .item-feed .feed-head::before{
+  background:#ffe39a!important;
+  box-shadow:0 0 10px rgba(255,227,154,.6)!important;
+  animation:d2aa-live-dot 1.05s ease-in-out infinite!important;
+}
+.item-feed[data-live-state="current"] .feed-head::before,
+.item-feed[data-live-state="waiting"] .feed-head::before,
+.item-feed[data-live-state="queued"] .feed-head::before{
+  background:#68eba3!important;
+  box-shadow:0 0 10px rgba(104,235,163,.5)!important;
+}
+.item-feed[data-live-state="new"] .feed-head::before{background:#ffcf5d!important;box-shadow:0 0 12px rgba(255,207,93,.58)!important;}
+.item-feed[data-live-state="error"] .feed-head::before,
+.item-feed[data-live-state="offline"] .feed-head::before,
+.item-feed[data-live-state="signed-out"] .feed-head::before{background:#ff83ad!important;box-shadow:0 0 10px rgba(255,131,173,.5)!important;}
+@keyframes d2aa-live-dot{0%,100%{opacity:.45;transform:scale(.85)}50%{opacity:1;transform:scale(1.18)}}
+
+/* Archetype stabilization */
+.armor-card .card-grid-3x3{grid-auto-rows:52px!important;align-items:stretch!important;}
 .armor-card .card-grid-3x3 > .arch-cell{
-  position:relative!important;
-  height:52px!important;
-  min-height:52px!important;
-  max-height:52px!important;
-  box-sizing:border-box!important;
-  display:block!important;
-  padding:0!important;
-  line-height:0!important;
+  position:relative!important;height:52px!important;min-height:52px!important;max-height:52px!important;box-sizing:border-box!important;display:block!important;padding:0!important;line-height:0!important;
 }
 .armor-card .card-grid-3x3 > .arch-cell img,
 .armor-card .card-grid-3x3 > .arch-cell .arch-image,
 .armor-card .card-grid-3x3 > .arch-cell .arch-missing{
-  position:absolute!important;
-  left:50%!important;
-  top:50%!important;
-  transform:translate(-50%,-50%)!important;
-  width:26px!important;
-  height:26px!important;
-  min-width:26px!important;
-  min-height:26px!important;
-  max-width:26px!important;
-  max-height:26px!important;
-  margin:0!important;
-  padding:0!important;
-  object-fit:contain!important;
-  object-position:center!important;
-  display:block!important;
+  position:absolute!important;left:50%!important;top:50%!important;transform:translate(-50%,-50%)!important;width:26px!important;height:26px!important;min-width:26px!important;min-height:26px!important;max-width:26px!important;max-height:26px!important;margin:0!important;padding:0!important;object-fit:contain!important;object-position:center!important;display:block!important;
 }
-.armor-card .card-grid-3x3 > .arch-cell .arch-missing{
-  display:grid!important;
-  place-items:center!important;
-  line-height:1!important;
-}
+.armor-card .card-grid-3x3 > .arch-cell .arch-missing{display:grid!important;place-items:center!important;line-height:1!important;}
