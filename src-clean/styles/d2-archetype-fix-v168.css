@@ -1,0 +1,46 @@
+/* v1.68 archetype restoration + equal sizing */
+.d2aa-version-badge::after{content:"v1.68"!important}
+
+.card-grid-3x3{
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+}
+
+.card-grid-3x3 > div,
+.card-grid-3x3 > .tier-cell,
+.card-grid-3x3 > .arch-cell,
+.card-grid-3x3 > .stat-cell{
+  min-height:52px!important;
+  height:52px!important;
+  box-sizing:border-box!important;
+}
+
+.card-grid-3x3 > .arch-cell{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  padding:0!important;
+  overflow:hidden!important;
+}
+
+.card-grid-3x3 > .arch-cell .arch-image{
+  width:26px!important;
+  height:26px!important;
+  min-width:26px!important;
+  min-height:26px!important;
+  max-width:26px!important;
+  max-height:26px!important;
+  object-fit:contain!important;
+  display:block!important;
+  opacity:.96!important;
+  filter:drop-shadow(0 0 8px rgba(255,255,255,.08))!important;
+}
+
+.card-grid-3x3 > .arch-cell .arch-missing{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  width:26px!important;
+  height:26px!important;
+  font-size:18px!important;
+  color:#d6cedf!important;
+}
