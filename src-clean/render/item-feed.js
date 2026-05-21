@@ -47,9 +47,9 @@ function renderFeedCard(row) {
 }
 
 function tierIndicator(row) {
-  const max = Math.max(1, Math.min(5, Number(row.TierMax || 5)));
-  const tier = Math.max(0, Math.min(max, Number(row.Tier || 0)));
-  return `<span class="feed-tier-rail" title="Tier ${tier}/${max}" aria-label="Tier ${tier} of ${max}">${Array.from({ length: max }, (_, index) => `<i class="${index < tier ? 'is-filled' : ''}"></i>`).join('')}</span>`;
+  const tier = Math.max(0, Math.min(5, Number(row.Tier || 0)));
+  if (!tier) return '<span class="feed-tier-rail is-empty" title="No tier rating" aria-label="No tier rating"></span>';
+  return `<span class="feed-tier-rail" title="Tier ${tier}" aria-label="Tier ${tier}">${Array.from({ length: tier }, () => '<i class="is-filled"></i>').join('')}</span>`;
 }
 
 function feedTimeLabel(row) {
