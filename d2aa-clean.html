@@ -17,12 +17,11 @@ window.D2AA_ASSET_STAMP=Date.now().toString(36);
 ].forEach((href)=>document.write(`<link rel="stylesheet" href="${href}?t=${window.D2AA_ASSET_STAMP}" />`));
 </script>
 <style>
-.d2aa-version-badge{position:fixed;top:0;left:0;z-index:80;display:inline-grid;place-items:center;width:24px;height:58px;padding:6px 0;border-radius:0 0 12px 0;border:1px solid rgba(232,197,106,.38);border-left:0;border-top:0;background:rgba(5,5,6,.84);color:#e8c56a;font:900 11px/1 Inter,Segoe UI,system-ui,sans-serif;letter-spacing:.04em;writing-mode:vertical-rl;text-orientation:mixed;box-shadow:0 8px 22px rgba(0,0,0,.34),0 0 18px rgba(232,197,106,.12);backdrop-filter:blur(10px);pointer-events:none}.command-bar{padding-left:32px!important}.deploy-marker{position:fixed;left:34px;bottom:8px;z-index:9999;padding:4px 8px;border:1px solid rgba(232,197,106,.55);border-radius:999px;background:rgba(5,5,6,.86);color:#e8c56a;font:800 10px/1.2 Inter,Segoe UI,system-ui,sans-serif;letter-spacing:.04em;pointer-events:none}.deploy-marker[data-mismatch="true"]{color:#ff7b7b;border-color:#ff7b7b}.deploy-marker[data-ok="true"]{color:#78ffac;border-color:#78ffac}
+.d2aa-version-badge{position:fixed;top:0;left:0;z-index:80;display:inline-grid;place-items:center;width:24px;height:58px;padding:6px 0;border-radius:0 0 12px 0;border:1px solid rgba(232,197,106,.38);border-left:0;border-top:0;background:rgba(5,5,6,.84);color:#e8c56a;font:900 11px/1 Inter,Segoe UI,system-ui,sans-serif;letter-spacing:.04em;writing-mode:vertical-rl;text-orientation:mixed;box-shadow:0 8px 22px rgba(0,0,0,.34),0 0 18px rgba(232,197,106,.12);backdrop-filter:blur(10px);pointer-events:none}.command-bar{padding-left:32px!important}
 </style>
 </head>
 <body data-theme="calus">
 <div class="d2aa-version-badge">v1.89</div>
-<div id="deployMarker" class="deploy-marker">shell v1.89 · checking manifest…</div>
 <div class="app-frame">
 <header class="command-bar">
 <div class="brand-chip"><span class="brand-mark">◆</span><div><strong>D2 Armor Analyzer</strong><span id="statusText">Ready</span></div></div>
@@ -44,9 +43,6 @@ window.D2AA_ASSET_STAMP=Date.now().toString(36);
 </main>
 <aside class="item-feed" id="itemFeed"><button type="button" class="feed-tab" id="feedToggle">Item Feed</button><div class="feed-shell"><div class="feed-head"><strong>Latest Items</strong><span id="feedCount">0</span></div><div class="feed-list" id="feedList"></div></div></aside>
 </div>
-<script>
-(async()=>{const marker=document.getElementById('deployMarker');try{const res=await fetch(`./version.json?t=${Date.now()}`,{cache:'no-store'});const data=await res.json();const ok=data.version===window.D2AA_VERSION;marker.textContent=`shell v${window.D2AA_VERSION} · manifest v${data.version}${ok?' · OK':' · MISMATCH'}`;marker.dataset.ok=String(ok);marker.dataset.mismatch=String(!ok);if(!ok){const status=document.getElementById('statusText');if(status)status.textContent=`Deploy mismatch: shell ${window.D2AA_VERSION}, manifest ${data.version}`;}}catch(error){marker.textContent=`shell v${window.D2AA_VERSION} · manifest failed`;marker.dataset.mismatch='true';}})();
-</script>
 <script type="module">
 const assetStamp=window.D2AA_ASSET_STAMP||Date.now().toString(36);
 await import(`./src-clean/app.js?t=${assetStamp}`);
