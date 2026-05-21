@@ -1,10 +1,5 @@
 /* D2AA final override layer. Keep this file loaded last and edit it instead of stacking new version files. */
 
-/* Version badge: hide stale underlying text while runtime renderer owns the visible value. */
-.d2aa-version-badge{font-size:0!important;line-height:0!important;color:transparent!important;}
-.d2aa-version-badge::before{content:none!important;display:none!important;}
-.d2aa-version-badge::after{color:#e8c56a!important;font:900 11px/1 Inter,Segoe UI,system-ui,sans-serif!important;letter-spacing:.04em!important;writing-mode:vertical-rl!important;text-orientation:mixed!important;}
-
 /* Brand mark doubles as global live/sync state indicator. */
 .brand-chip .brand-mark{
   display:inline-grid!important;
@@ -224,4 +219,16 @@ body.feed-polling:has(#itemFeed[data-live-state]) .brand-chip .brand-mark{
   border-color:rgba(255,227,154,.52)!important;
   box-shadow:0 0 0 1px rgba(0,0,0,.26),0 0 16px rgba(255,227,154,.42)!important;
   animation:d2aa-brand-live-pulse 1.05s ease-in-out infinite!important;
+}
+
+/* Version badge is a single static shell element. */
+.d2aa-version-badge{
+  font-size:11px!important;
+  line-height:1!important;
+  color:#e8c56a!important;
+}
+.d2aa-version-badge::before,
+.d2aa-version-badge::after{
+  content:none!important;
+  display:none!important;
 }
