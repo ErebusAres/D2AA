@@ -1,9 +1,8 @@
 import { STAT_KEYS, STAT_LABELS, STAT_ICONS, RARITY_ICONS, CLASS_ICONS, SLOT_ICONS, LOCATION_EMOJIS, TAGS } from '../constants.js';
-
-const FEED_LIMIT = 20;
+import { ACTIVE_FEED_LIMIT, getActiveFeedRows } from '../data/feed-state.js';
 
 export function renderItemFeed(container, countEl, rows, onTag, onDismissNew, onCompareGroup) {
-  const newlyFound = rows.slice().filter(isFeedCandidate).sort(compareRecent).slice(0, FEED_LIMIT);
+  const newlyFound = getActiveFeedRows(rows);
   countEl.textContent = String(newlyFound.length);
   ensureFeedRefreshIndicator(countEl);
   container.dataset.feedMode = 'new';
@@ -31,34 +30,9 @@ function ensureFeedRefreshIndicator(countEl) {
   countEl.before(button);
 }
 
-function isFeedCandidate(row) {
-  return row && row.Id && !row.Tag && (row.RecentStatus === 'new' || row.RecentlyFound === true);
-}
-
-function compareInstanceIdsDesc(a, b) {
-  const left = digitsOnly(a);
-  const right = digitsOnly(b);
-  if (left.length !== right.length) return right.length - left.length;
-  return right.localeCompare(left);
-}
-
-function digitsOnly(value) {
-  return String(value || '').split('').filter((char) => char >= '0' && char <= '9').join('').replace(/^0+/, '');
-}
-
-function compareRecent(a, b) {
-  const aTime = recentTime(a);
-  const bTime = recentTime(b);
-  return bTime - aTime || compareInstanceIdsDesc(a.Id, b.Id) || String(a.Name).localeCompare(String(b.Name));
-}
-
-function recentTime(row) {
-  return Number(row.ActivityAt || row.FoundAt || Date.parse(row.LastChangedAt || '') || 0);
-}
-
 function renderEmptyFeed(loadedCount = 0) {
   if (loadedCount > 0) {
-    return `<div class="feed-empty"><strong>No newly obtained armor.</strong><br><span>New drops will stay here until you dismiss them, assign a tag, or they fall outside the latest ${FEED_LIMIT} new items.</span></div>`;
+    return `<div class="feed-empty"><strong>No newly obtained armor.</strong><br><span>New drops will stay here until you dismiss them, assign a tag, or they fall outside the latest ${ACTIVE_FEED_LIMIT} new items.</span></div>`;
   }
   return `<div class="feed-empty"><strong>No armor loaded yet.</strong><br><span>Sync with Bungie or upload a DIM CSV to populate the item feed.</span></div>`;
 }
