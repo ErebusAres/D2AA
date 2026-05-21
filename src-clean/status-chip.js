@@ -8,7 +8,7 @@ let lastStatusAt = Date.now();
 let cleanBuildVersion = readShellVersion();
 
 function bootStatusChip() {
-  installBadgeOverlayKillSwitch();
+  installBadgeVersionRenderer();
   assertCleanBuildVersion(cleanBuildVersion);
   syncManifestVersion();
   if (!statusEl || !brandChip) return;
@@ -46,8 +46,9 @@ function assertCleanBuildVersion(version) {
   if (meta) meta.setAttribute('content', normalized);
   const badge = document.querySelector('.d2aa-version-badge');
   if (badge) {
-    badge.textContent = `v${normalized}`;
+    badge.textContent = '';
     badge.setAttribute('data-version', normalized);
+    badge.setAttribute('aria-label', `D2AA clean runtime v${normalized}`);
     badge.setAttribute('title', `D2AA clean runtime v${normalized}`);
   }
 }
@@ -61,11 +62,29 @@ function updateDeployMarker(version, ok) {
   marker.dataset.mismatch = String(!ok);
 }
 
-function installBadgeOverlayKillSwitch() {
+function installBadgeVersionRenderer() {
   if (document.getElementById('d2aa-version-overlay-kill')) return;
   const style = document.createElement('style');
   style.id = 'd2aa-version-overlay-kill';
-  style.textContent = `.d2aa-version-badge::before,.d2aa-version-badge::after{content:none!important;display:none!important}`;
+  style.textContent = `
+    .d2aa-version-badge{
+      position:fixed!important;top:0!important;left:0!important;z-index:10000!important;
+      display:grid!important;place-items:center!important;width:24px!important;height:58px!important;
+      padding:6px 0!important;box-sizing:border-box!important;border-radius:0 0 12px 0!important;
+      border:1px solid rgba(232,197,106,.38)!important;border-left:0!important;border-top:0!important;
+      background:rgba(5,5,6,.88)!important;color:#e8c56a!important;
+      font:900 11px/1 Inter,Segoe UI,system-ui,sans-serif!important;letter-spacing:.04em!important;
+      writing-mode:vertical-rl!important;text-orientation:mixed!important;
+      box-shadow:0 8px 22px rgba(0,0,0,.34),0 0 18px rgba(232,197,106,.12)!important;
+      backdrop-filter:blur(10px)!important;pointer-events:none!important;opacity:1!important;visibility:visible!important;
+    }
+    .d2aa-version-badge::before{content:none!important;display:none!important;}
+    .d2aa-version-badge::after{
+      content:'v' attr(data-version)!important;display:block!important;color:#e8c56a!important;
+      font:900 11px/1 Inter,Segoe UI,system-ui,sans-serif!important;letter-spacing:.04em!important;
+      writing-mode:vertical-rl!important;text-orientation:mixed!important;opacity:1!important;visibility:visible!important;
+    }
+  `;
   document.head.appendChild(style);
 }
 
