@@ -165,3 +165,63 @@ body.feed-polling .item-feed .feed-head strong::after,
   position:absolute!important;left:50%!important;top:50%!important;transform:translate(-50%,-50%)!important;width:26px!important;height:26px!important;min-width:26px!important;min-height:26px!important;max-width:26px!important;max-height:26px!important;margin:0!important;padding:0!important;object-fit:contain!important;object-position:center!important;display:block!important;
 }
 .armor-card .card-grid-3x3 > .arch-cell .arch-missing{display:grid!important;place-items:center!important;line-height:1!important;}
+
+/* Final live-indicator handoff: no separate feed dot; brand diamond owns the state. */
+.item-feed .feed-head::before,
+.item-feed .feed-head:before,
+.feed-shell .feed-head::before,
+.feed-shell .feed-head:before,
+#itemFeed .feed-head::before,
+#itemFeed .feed-head:before{
+  content:none!important;
+  display:none!important;
+  width:0!important;
+  height:0!important;
+  margin:0!important;
+  padding:0!important;
+  border:0!important;
+  box-shadow:none!important;
+  animation:none!important;
+}
+body.feed-polling .brand-chip .brand-mark,
+body:has(#itemFeed[data-live-state="syncing"]) .brand-chip .brand-mark,
+body:has(#itemFeed[data-live-state="busy"]) .brand-chip .brand-mark{
+  color:#ffe39a!important;
+  background:rgba(255,227,154,.12)!important;
+  border-color:rgba(255,227,154,.52)!important;
+  box-shadow:0 0 0 1px rgba(0,0,0,.26),0 0 16px rgba(255,227,154,.42)!important;
+  animation:d2aa-brand-live-pulse 1.05s ease-in-out infinite!important;
+}
+body:has(#itemFeed[data-live-state="current"]) .brand-chip .brand-mark,
+body:has(#itemFeed[data-live-state="new"]) .brand-chip .brand-mark,
+body:has(#itemFeed[data-live-state="waiting"]) .brand-chip .brand-mark,
+body:has(#itemFeed[data-live-state="queued"]) .brand-chip .brand-mark{
+  color:#68eba3!important;
+  background:rgba(104,235,163,.10)!important;
+  border-color:rgba(104,235,163,.45)!important;
+  box-shadow:0 0 0 1px rgba(0,0,0,.24),0 0 14px rgba(104,235,163,.30)!important;
+}
+body:has(#itemFeed[data-live-state="error"]) .brand-chip .brand-mark,
+body:has(#itemFeed[data-live-state="failed"]) .brand-chip .brand-mark{
+  color:#ff83ad!important;
+  background:rgba(255,131,173,.11)!important;
+  border-color:rgba(255,131,173,.48)!important;
+  box-shadow:0 0 0 1px rgba(0,0,0,.24),0 0 14px rgba(255,131,173,.34)!important;
+}
+body:has(#itemFeed[data-live-state="offline"]) .brand-chip .brand-mark,
+body:has(#itemFeed[data-live-state="signed-out"]) .brand-chip .brand-mark,
+body:has(#itemFeed[data-live-state="disconnected"]) .brand-chip .brand-mark,
+body:has(#itemFeed[data-live-state="paused"]) .brand-chip .brand-mark,
+body:has(#itemFeed[data-live-state="idle"]) .brand-chip .brand-mark{
+  color:#8f899b!important;
+  background:rgba(143,137,155,.08)!important;
+  border-color:rgba(143,137,155,.24)!important;
+  box-shadow:0 0 0 1px rgba(0,0,0,.22),0 0 10px rgba(143,137,155,.16)!important;
+}
+body.feed-polling:has(#itemFeed[data-live-state]) .brand-chip .brand-mark{
+  color:#ffe39a!important;
+  background:rgba(255,227,154,.12)!important;
+  border-color:rgba(255,227,154,.52)!important;
+  box-shadow:0 0 0 1px rgba(0,0,0,.26),0 0 16px rgba(255,227,154,.42)!important;
+  animation:d2aa-brand-live-pulse 1.05s ease-in-out infinite!important;
+}
