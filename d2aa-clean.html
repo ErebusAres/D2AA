@@ -6,48 +6,17 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <meta name="d2aa-version" content="1.69" />
+  <meta name="d2aa-version" content="1.71" />
   <title>D2 Armor Analyzer Clean Rebuild - By ErebusAres</title>
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
   <script>
-    window.D2AA_VERSION = '1.69';
+    window.D2AA_VERSION = '1.71';
     window.D2AA_ASSET_STAMP = Date.now().toString(36);
     [
-      'src-clean/styles/app.css','src-clean/styles/layout-pass.css','src-clean/styles/ux-reset.css','src-clean/styles/duplicate-groups.css','src-clean/styles/stat-icons.css','src-clean/styles/stat-quality.css','src-clean/styles/card-tags.css','src-clean/styles/polish-pass.css','src-clean/styles/class-toggle.css','src-clean/styles/themes-impact.css','src-clean/styles/recent-and-sections.css','src-clean/styles/compare-modal.css','src-clean/styles/d2-compare-v144.css','src-clean/styles/item-feed-polish.css','src-clean/styles/feed-refresh-visible.css','src-clean/styles/options-lite.css','src-clean/styles/topbar-summary.css','src-clean/styles/d2-slot-bars.css','src-clean/styles/d2-card-headers.css','src-clean/styles/d2-stat-modules.css','src-clean/styles/d2-new-badges.css','src-clean/styles/d2-card-actions.css','src-clean/styles/d2-feed-cards.css','src-clean/styles/d2-card-controls.css','src-clean/styles/d2-overall-v146.css','src-clean/styles/d2-surface-v147.css','src-clean/styles/d2-controls-v148.css','src-clean/styles/d2-inventory-v149.css','src-clean/styles/d2-archetype-center-v157.css','src-clean/styles/d2-feed-toggle-fix.css','src-clean/styles/d2-version-v163.css','src-clean/styles/d2-grid-fixes-v164.css','src-clean/styles/d2-feed-group-colors-v166.css','src-clean/styles/d2-enhancements-v167.css','src-clean/styles/d2-archetype-fix-v168.css','src-clean/styles/d2-archetype-equal-v169.css'
+      'src-clean/styles/app.css','src-clean/styles/layout-pass.css','src-clean/styles/ux-reset.css','src-clean/styles/duplicate-groups.css','src-clean/styles/stat-icons.css','src-clean/styles/stat-quality.css','src-clean/styles/card-tags.css','src-clean/styles/polish-pass.css','src-clean/styles/class-toggle.css','src-clean/styles/themes-impact.css','src-clean/styles/recent-and-sections.css','src-clean/styles/compare-modal.css','src-clean/styles/d2-compare-v144.css','src-clean/styles/item-feed-polish.css','src-clean/styles/feed-refresh-visible.css','src-clean/styles/options-lite.css','src-clean/styles/topbar-summary.css','src-clean/styles/d2-slot-bars.css','src-clean/styles/d2-card-headers.css','src-clean/styles/d2-stat-modules.css','src-clean/styles/d2-new-badges.css','src-clean/styles/d2-card-actions.css','src-clean/styles/d2-feed-cards.css','src-clean/styles/d2-card-controls.css','src-clean/styles/d2-overall-v146.css','src-clean/styles/d2-surface-v147.css','src-clean/styles/d2-controls-v148.css','src-clean/styles/d2-inventory-v149.css','src-clean/styles/d2-archetype-center-v157.css','src-clean/styles/d2-feed-toggle-fix.css','src-clean/styles/d2-version-v163.css','src-clean/styles/d2-grid-fixes-v164.css','src-clean/styles/d2-feed-group-colors-v166.css','src-clean/styles/d2-enhancements-v167.css','src-clean/styles/d2-archetype-fix-v168.css','src-clean/styles/d2-archetype-equal-v169.css','src-clean/styles/d2-final-overrides.css'
     ].forEach((href) => document.write(`<link rel="stylesheet" href="${href}?t=${window.D2AA_ASSET_STAMP}" />`));
   </script>
   <style>
     .d2aa-version-badge{position:fixed;top:0;left:0;z-index:80;display:inline-grid;place-items:center;width:24px;height:58px;padding:6px 0;border-radius:0 0 12px 0;border:1px solid rgba(232,197,106,.38);border-left:0;border-top:0;background:rgba(5,5,6,.84);color:#e8c56a;font:900 11px/1 Inter,Segoe UI,system-ui,sans-serif;letter-spacing:.04em;writing-mode:vertical-rl;text-orientation:mixed;box-shadow:0 8px 22px rgba(0,0,0,.34),0 0 18px rgba(232,197,106,.12);backdrop-filter:blur(10px);pointer-events:none}.command-bar{padding-left:32px!important}@media(max-width:720px){.d2aa-version-badge{width:22px;height:54px}.command-bar{padding-left:30px!important}}
   </style>
 </head>
-<body data-theme="calus">
-  <div class="d2aa-version-badge" aria-label="D2AA version">v1.69</div>
-  <div class="app-frame">
-    <header class="command-bar" aria-label="D2AA command bar">
-      <div class="brand-chip"><span class="brand-mark">◆</span><div><strong>D2 Armor Analyzer</strong><span id="statusText">Ready</span></div></div>
-      <nav class="view-toggle" aria-label="View mode"><button type="button" class="is-active" data-view="grid">Grid</button><button type="button" data-view="table">Table</button></nav>
-      <nav class="class-toggle" id="classToggle" aria-label="Class filter"><button type="button" data-class-filter="all" class="is-active">All</button><button type="button" data-class-filter="Warlock">Warlock <b>0</b></button><button type="button" data-class-filter="Hunter">Hunter <b>0</b></button><button type="button" data-class-filter="Titan">Titan <b>0</b></button></nav>
-      <section class="overview-row command-summary" aria-label="Inventory summary"><article><span>Shown</span><strong id="summaryShown">0</strong></article><article><span>Cached</span><strong id="summaryCached">0</strong></article><article><span>Groups</span><strong id="summaryGroups">0</strong></article><article><span>Recent</span><strong id="summaryRecent">0</strong></article><article class="class-overview"><span>Classes</span><strong id="summaryClasses">—</strong></article></section>
-      <label class="search-wrap" for="searchBox"><span>Search</span><input id="searchBox" type="search" placeholder="Armor name, slot, class, id..." autocomplete="off" /></label>
-      <button type="button" id="refreshBtn" class="command-button">Refresh</button>
-      <button type="button" id="menuBtn" class="command-button command-button--primary" aria-expanded="false" aria-controls="commandPanel">Options</button>
-    </header>
-    <main class="workspace" id="workspace">
-      <aside class="side-panel" id="commandPanel" aria-label="Options panel">
-        <section class="panel-card"><h2>Data</h2><input id="csvFile" type="file" accept=".csv" hidden /><button type="button" class="action-card" id="uploadCsvBtn"><span>⇧</span><b>Upload DIM CSV</b><small>Parse and cache local armor rows</small></button><button type="button" class="action-card" id="bungieLoginBtn"><span>◇</span><b>Connect Destiny Account</b><small>Bungie OAuth login</small></button><button type="button" class="action-card" id="bungieSyncBtn"><span>↓</span><b>Sync from Bungie</b><small>Fetch vault, inventory, and equipped armor</small></button><button type="button" class="action-card" id="restoreCacheBtn"><span>↻</span><b>Restore Cache</b><small>Load locally cached clean rows</small></button><button type="button" class="action-card action-card--danger" id="clearCacheBtn"><span>×</span><b>Clear Cache</b><small>Remove clean rebuild cache only</small></button></section>
-        <section class="panel-card"><h2>Filters</h2><label>Class <select id="classFilter"><option value="all">All</option></select></label><label>Slot <select id="slotFilter"><option value="all">All</option></select></label><label>Rarity <select id="rarityFilter"><option value="all">All</option></select></label><label>Sort <select id="sortBy"><option value="default">Default analyzer order</option><option value="totalDesc">Total high to low</option><option value="rankDesc">Rank high to low</option><option value="nameAsc">Name A to Z</option><option value="slotAsc">Slot / group order</option></select></label></section>
-        <section class="panel-card"><h2>Duplicate Tolerance</h2><label>Top-3 stat tolerance <input id="duplicateTolerance" type="range" min="0" max="20" value="5" /></label><strong id="duplicateToleranceOut">±5</strong><p class="muted compact">Lower values are stricter. Higher values catch more possible duplicate rolls.</p></section>
-        <section class="panel-card"><h2>Theme</h2><div class="theme-pills theme-pills--six" id="themePills"></div></section>
-      </aside>
-      <section class="results-panel" aria-label="Armor results"><div class="active-chips results-inline-chips" id="activeChips"></div><div id="gridView" class="armor-grid-view"></div><div id="tableView" class="armor-table-wrap" hidden><table class="armor-table"><thead><tr><th>Item</th><th>Slot</th><th>Class</th><th>Tier</th><th>Total</th><th>Stats</th><th>Tag</th><th>Action</th></tr></thead><tbody id="tableBody"></tbody></table></div><div id="emptyState" class="empty-state"><h2>No armor loaded yet.</h2><p>Upload a DIM CSV or connect Bungie to sync your armor.</p></div></section>
-    </main>
-    <aside class="item-feed" id="itemFeed" aria-label="Item Feed"><button type="button" class="feed-tab" id="feedToggle">Item Feed</button><div class="feed-shell"><div class="feed-head"><strong>Latest Items</strong><span id="feedCount">0</span></div><div class="feed-list" id="feedList"></div></div></aside>
-  </div>
-  <script type="module">
-    const assetStamp = window.D2AA_ASSET_STAMP || Date.now().toString(36);
-    await import(`./src-clean/app.js?t=${assetStamp}`);
-    await import(`./src-clean/bungie-wire.js?t=${assetStamp}`);
-    await import(`./src-clean/status-chip.js?t=${assetStamp}`);
-  </script>
-</body>
-</html>
