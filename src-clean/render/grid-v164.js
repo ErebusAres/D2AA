@@ -92,10 +92,9 @@ function archetypeIcon(row) {
   const statLabel = meta?.stat ? STAT_LABELS[meta.stat] : '';
   const description = row.ArchetypeDescription ? ` — ${row.ArchetypeDescription}` : '';
   const title = `${label}${statLabel ? ` · ${statLabel}` : ''}${description}`;
-  if (row.ArchetypeIcon) {
-    return `<span class="arch-frame"><img class="arch-image arch-api arch-${safeClass(label)}" src="${html(row.ArchetypeIcon)}" alt="${html(label)}" title="${html(title)}" aria-label="${html(title)}" loading="lazy"></span>`;
-  }
-  return `<span class="arch-frame"><span class="arch-missing" title="${html(`${label}${statLabel ? ` · ${statLabel}` : ''}. Real Bungie archetype image unavailable until a fresh Bungie sync provides ArchetypeIcon.`)}">—</span></span>`;
+  const src = row.ArchetypeIcon || (meta?.stat ? STAT_ICONS[meta.stat] : '');
+  if (src) return `<img class="arch-image arch-${safeClass(label)}" src="${html(src)}" alt="${html(label)}" title="${html(title)}" aria-label="${html(title)}" loading="lazy">`;
+  return `<span class="arch-missing" title="${html(`${label}${statLabel ? ` · ${statLabel}` : ''}. Archetype image unavailable.`)}">◇</span>`;
 }
 function normalizeArchetypeName(value) {
   return ARCHETYPE_ALIASES[String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, '')] || String(value || '').trim();
@@ -114,24 +113,11 @@ function statQuality(value) {
   if (value >= 5) return 'bad';
   return 'poor';
 }
-function qualityLabel(value) {
-  return ({ perfect: 'Perfect', great: 'Great', good: 'Good', okay: 'Okay', bad: 'Bad', poor: 'Poor' })[value] || value;
-}
+function qualityLabel(value) { return ({ perfect: 'Perfect', great: 'Great', good: 'Good', okay: 'Okay', bad: 'Bad', poor: 'Poor' })[value] || value; }
 function lightBadgeText(row) { return row.Power || row.Light || ''; }
-function tagEmoji(row, isNew = false) {
-  const tag = TAGS.find((item) => item.value === row.Tag && item.value);
-  if (tag) return tag.emoji;
-  return isNew ? '✨' : '＋';
-}
-function tagTitle(row, isNew = false) {
-  const tag = TAGS.find((item) => item.value === row.Tag && item.value);
-  if (tag) return `Tag: ${tag.label}`;
-  return isNew ? 'New item — assign tag' : 'Assign tag';
-}
-function locationLabel(row) {
-  if (row.Source !== 'Bungie') return 'DIM';
-  return row.IsInVault ? 'Vault' : row.IsEquipped ? 'Equipped' : 'Inventory';
-}
+function tagEmoji(row, isNew = false) { const tag = TAGS.find((item) => item.value === row.Tag && item.value); if (tag) return tag.emoji; return isNew ? '✨' : '＋'; }
+function tagTitle(row, isNew = false) { const tag = TAGS.find((item) => item.value === row.Tag && item.value); if (tag) return `Tag: ${tag.label}`; return isNew ? 'New item — assign tag' : 'Assign tag'; }
+function locationLabel(row) { if (row.Source !== 'Bungie') return 'DIM'; return row.IsInVault ? 'Vault' : row.IsEquipped ? 'Equipped' : 'Inventory'; }
 function iconImg(src, label, className = 'meta-icon') { return src ? `<img class="${html(className)}" src="${html(src)}" alt="${html(label || '')}" title="${html(label || '')}" loading="lazy">` : ''; }
 function maskIcon(src, label) { return src ? `<span class="meta-mask" style="--icon:url('${html(src)}')" title="${html(label || '')}" aria-label="${html(label || '')}"></span>` : ''; }
 function diamonds(tier, max = 5) { const m = Number(max || 5); const n = Math.max(0, Math.min(m, Number(tier || 0))); return '◆'.repeat(n); }
