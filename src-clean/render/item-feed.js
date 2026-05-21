@@ -38,20 +38,45 @@ function renderEmptyFeed(loadedCount = 0) {
 }
 
 function renderFeedCard(row) {
-  const feedNew = true;
   const groupLabel = row.Dupe_Group || row.Group || '';
   const groupKey = row.GroupActionKey || '';
+  const loc = locationLabel(row);
   const groupButton = row.Is_Dupe ? `<button type="button" class="feed-group-badge ${row.GroupColor || ''}" title="Compare duplicate group ${html(groupLabel)}" data-feed-compare-group="${html(groupKey)}">${html(groupLabel)}</button>` : '';
   const dismiss = `<button type="button" class="feed-dismiss-new" data-id="${html(row.Id)}" data-dismiss-new title="Dismiss new marker" aria-label="Dismiss new marker for ${html(row.Name)}">×</button>`;
-  const loc = locationLabel(row);
   const metaIcons = `<span class="feed-meta-icons" aria-label="${html(`${row.Class} ${row.Slot} ${row.Rarity} ${loc}`)}">${iconImg(CLASS_ICONS[row.Class], row.Class)}${maskIcon(SLOT_ICONS[row.Slot], row.Slot)}${iconImg(RARITY_ICONS[row.Rarity], row.Rarity)}${locationIcon(loc)}</span>`;
   const tagButton = `<button class="card-tag-slot feed-card-tag ${row.Tag ? 'has-tag' : 'is-empty'}" type="button" data-tag-trigger data-id="${html(row.Id)}" title="${html(tagTitle(row))}">${tagEmoji(row)}</button>`;
-  return `<article class="feed-card ${feedNew ? 'is-new is-new-found' : 'is-latest'} ${row.Is_Dupe ? `is-feed-grouped ${row.GroupColor || ''}` : ''}" data-feed-card-id="${html(row.Id)}" data-card-id="${html(row.Id)}" data-feed-group="${html(groupLabel)}">
+  const context = renderFeedContext(row, loc, groupLabel);
+  return `<article class="feed-card is-new is-new-found ${row.Is_Dupe ? `is-feed-grouped ${row.GroupColor || ''}` : ''}" data-feed-card-id="${html(row.Id)}" data-card-id="${html(row.Id)}" data-feed-group="${html(groupLabel)}">
     ${dismiss}${groupButton}${tagButton}
-    <div class="feed-icon">${row.Icon ? `<img src="${html(row.Icon)}" alt="" loading="lazy">` : '<span>◇</span>'}${row.Power || row.Light ? `<b>${row.Power || row.Light}</b>` : ''}${feedNew ? '<i class="feed-new-spark">✨</i>' : ''}</div>
-    <div class="feed-main"><div class="feed-title-line"><strong title="${html(row.Name)}">${html(row.Name)}</strong>${metaIcons}</div><div class="feed-stats">${STAT_KEYS.map((key) => statChip(row, key)).join('')}</div></div>
+    <div class="feed-icon">${row.Icon ? `<img src="${html(row.Icon)}" alt="" loading="lazy">` : '<span>◇</span>'}${row.Power || row.Light ? `<b>${row.Power || row.Light}</b>` : ''}</div>
+    <div class="feed-main"><div class="feed-title-line"><strong title="${html(row.Name)}">${html(row.Name)}</strong>${metaIcons}</div>${context}<div class="feed-stats">${STAT_KEYS.map((key) => statChip(row, key)).join('')}</div></div>
   </article>`;
 }
+
+function renderFeedContext(row, loc, groupLabel) {
+  const parts = [`<span class="feed-context-pill is-new">New drop</span>`];
+  parts.push(`<span class="feed-context-pill">${html(loc)}</span>`);
+  if (row.Is_Dupe && groupLabel) parts.push(`<span class="feed-context-pill is-group">Matched group ${html(groupLabel)}</span>`);
+  else parts.push(`<span class="feed-context-pill is-solo">No group match</span>`);
+  const when = feedTimeLabel(row);
+  if (when) parts.push(`<span class="feed-context-pill is-time">${html(when)}</span>`);
+  return `<div class="feed-context-strip">${parts.join('')}</div>`;
+}
+
+function feedTimeLabel(row) {
+  const value = Number(row.ActivityAt || row.FoundAt || Date.parse(row.LastChangedAt || '') || 0);
+  if (!value) return '';
+  const diffMs = Date.now() - value;
+  if (!Number.isFinite(diffMs) || diffMs < 0) return 'Just now';
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 1) return 'Just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
+}
+
 function statChip(row, key) {
   const value = Number(row[key] || 0);
   const quality = statQuality(value);
