@@ -1,0 +1,72 @@
+/* v1.69 hard fix: archetype cell must match Total/Tier/stat boxes exactly. */
+.d2aa-version-badge::after{content:"v1.69"!important}
+
+.armor-card .card-grid-3x3{
+  display:grid!important;
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  grid-auto-rows:52px!important;
+  align-items:stretch!important;
+}
+
+.armor-card .card-grid-3x3 > *,
+.armor-card .card-grid-3x3 > div,
+.armor-card .card-grid-3x3 > .tier-cell,
+.armor-card .card-grid-3x3 > .arch-cell,
+.armor-card .card-grid-3x3 > .stat-cell{
+  box-sizing:border-box!important;
+  width:100%!important;
+  min-width:0!important;
+  height:52px!important;
+  min-height:52px!important;
+  max-height:52px!important;
+  margin:0!important;
+  border-radius:8px 3px 8px 3px!important;
+  border:1px solid rgba(255,255,255,.095)!important;
+  background:linear-gradient(180deg,rgba(255,255,255,.052),rgba(0,0,0,.245))!important;
+}
+
+.armor-card .card-grid-3x3 > .arch-cell{
+  display:grid!important;
+  place-items:center!important;
+  align-content:center!important;
+  justify-content:center!important;
+  padding:0!important;
+  line-height:1!important;
+  overflow:hidden!important;
+}
+
+.armor-card .card-grid-3x3 > .arch-cell > *,
+.armor-card .card-grid-3x3 > .arch-cell .arch-frame{
+  position:static!important;
+  inset:auto!important;
+  transform:none!important;
+  margin:0!important;
+  padding:0!important;
+  width:26px!important;
+  height:26px!important;
+  min-width:26px!important;
+  min-height:26px!important;
+  max-width:26px!important;
+  max-height:26px!important;
+  display:grid!important;
+  place-items:center!important;
+}
+
+.armor-card .card-grid-3x3 > .arch-cell img,
+.armor-card .card-grid-3x3 > .arch-cell .arch-image{
+  width:26px!important;
+  height:26px!important;
+  min-width:26px!important;
+  min-height:26px!important;
+  max-width:26px!important;
+  max-height:26px!important;
+  object-fit:contain!important;
+  object-position:center!important;
+  display:block!important;
+  opacity:1!important;
+}
+
+.armor-card .card-grid-3x3 > .arch-cell .arch-missing{
+  font-size:18px!important;
+  color:#d6cedf!important;
+}
