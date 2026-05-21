@@ -1,0 +1,4 @@
+D2AA deploy-check
+expected-clean-version=v1.87
+created-for-debug=2026-05-21
+If GitHub Pages is serving current main/root, this file should be reachable at /D2AA/deploy-check.txt.
