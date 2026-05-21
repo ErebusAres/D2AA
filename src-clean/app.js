@@ -9,6 +9,7 @@ import { renderItemFeed } from './render/item-feed.js';
 import { attachTagPicker } from './render/tag-picker.js';
 import { openCompareModal } from './render/compare-modal.js';
 
+const ACTIVE_FEED_LIMIT = 20;
 const els = {};
 let lastGroupedRows = [];
 
@@ -127,7 +128,12 @@ async function pullGroup(groupKey, button) {
 }
 function requestBungieRefresh(reason) { setTimeout(() => { window.dispatchEvent(new CustomEvent('d2aa:bungie-sync-request', { detail: { reason, background: true } })); }, 1200); }
 function getFilteredRowsFrom(rows) { const oldRows = state.rows; state.rows = rows; const result = getFilteredRows(); state.rows = oldRows; return result; }
-function updateSummary(allRows, shownRows) { els.summaryShown.textContent = shownRows.length; els.summaryCached.textContent = allRows.length; els.summaryGroups.textContent = new Set(allRows.filter((r) => r.Is_Dupe).map((r) => r.GroupActionKey)).size; els.summaryRecent.textContent = allRows.filter((row) => !row.Tag && (row.RecentlyFound === true || row.RecentStatus === 'new')).length; const counts = CLASS_ORDER.map((cls) => `${cls[0]}:${allRows.filter((r) => rowMatchesClass(r, cls)).length}`).join(' '); els.summaryClasses.textContent = counts || '—'; }
+function updateSummary(allRows, shownRows) { els.summaryShown.textContent = shownRows.length; els.summaryCached.textContent = allRows.length; els.summaryGroups.textContent = new Set(allRows.filter((r) => r.Is_Dupe).map((r) => r.GroupActionKey)).size; els.summaryRecent.textContent = String(activeFeedRows(allRows).length); const counts = CLASS_ORDER.map((cls) => `${cls[0]}:${allRows.filter((r) => rowMatchesClass(r, cls)).length}`).join(' '); els.summaryClasses.textContent = counts || '—'; }
+function activeFeedRows(rows) { return rows.slice().filter((row) => row && row.Id && !row.Tag && (row.RecentStatus === 'new' || row.RecentlyFound === true)).sort(compareRecent).slice(0, ACTIVE_FEED_LIMIT); }
+function compareRecent(a, b) { const aTime = recentTime(a); const bTime = recentTime(b); return bTime - aTime || compareInstanceIdsDesc(a.Id, b.Id) || String(a.Name).localeCompare(String(b.Name)); }
+function recentTime(row) { return Number(row.ActivityAt || row.FoundAt || Date.parse(row.LastChangedAt || '') || 0); }
+function compareInstanceIdsDesc(a, b) { const left = digitsOnly(a); const right = digitsOnly(b); if (left.length !== right.length) return right.length - left.length; return right.localeCompare(left); }
+function digitsOnly(value) { return String(value || '').split('').filter((char) => char >= '0' && char <= '9').join('').replace(/^0+/, ''); }
 function syncViewButtons() { document.querySelectorAll('[data-view]').forEach((button) => button.classList.toggle('is-active', button.dataset.view === state.view)); }
 function syncThemeButtons() { els.themePills?.querySelectorAll('[data-theme]').forEach((button) => button.classList.toggle('is-active', button.dataset.theme === normalizeTheme(state.theme))); }
 function syncClassToggle() { if (!els.classToggle) return; const counts = countByClass(state.rows); els.classToggle.querySelectorAll('[data-class-filter]').forEach((button) => { const cls = normalizeClassFilter(button.dataset.classFilter || 'all'); button.classList.toggle('is-active', normalizeClassFilter(state.filters.class) === cls); const count = cls === 'all' ? state.rows.length : counts[cls] || 0; const badge = button.querySelector('b'); if (badge) badge.textContent = String(count); }); }
