@@ -8,6 +8,7 @@ const IDB_ROWS_KEY = 'bungieRows';
 const IDB_META_KEY = 'bungieMeta';
 const SEEN_LEDGER_KEY = 'd2aa_clean_seen_item_ids_v1';
 const SEEN_LEDGER_LIMIT = 2500;
+const ACTIVE_FEED_LIMIT = 20;
 const OLD_OVERSIZED_KEYS = ['d2aa_clean_rows_v1', 'd2aa_clean_bungie_rows_v1'];
 
 export async function getCachedBungieInventory() {
@@ -35,11 +36,12 @@ export async function saveBungieInventory(rows, reason = 'sync') {
   const now = Date.now();
   const sortedRows = sortRowsForFirstSeen(rows);
   const orderById = new Map(sortedRows.map((row, index) => [String(row.Id), index]));
-  const cleanRows = rows.map((row) => markInventoryActivity({ ...row, Source: 'Bungie', FromCache: false }, previousById, seenLedger, handled, savedAt, now, hasPrevious, orderById));
+  const activityRows = rows.map((row) => markInventoryActivity({ ...row, Source: 'Bungie', FromCache: false }, previousById, seenLedger, handled, savedAt, now, hasPrevious, orderById));
+  const cleanRows = enforceActiveFeedLimit(activityRows);
   const slimRows = cleanRows.map(slimRowForStorage);
   writeSeenLedger(slimRows, seenLedger, handled, savedAt);
   const changes = summarizeChanges(slimRows, previousById);
-  const meta = { savedAt, count: slimRows.length, reason, version: 11, store: 'indexeddb', ...changes };
+  const meta = { savedAt, count: slimRows.length, reason, version: 12, store: 'indexeddb', activeFeedLimit: ACTIVE_FEED_LIMIT, ...changes };
   try {
     await idbSet(IDB_ROWS_KEY, slimRows);
     await idbSet(IDB_META_KEY, meta);
@@ -148,6 +150,24 @@ function markInventoryActivity(row, previousById, seenLedger, handled, savedAt, 
     ItemSignature: nextSignature,
     LocationSignature: nextLocation
   };
+}
+
+function enforceActiveFeedLimit(rows) {
+  const activeIds = new Set(rows
+    .filter((row) => row?.Id && (row.RecentStatus === 'new' || row.RecentlyFound === true))
+    .sort((a, b) => recentSortValue(b) - recentSortValue(a) || compareInstanceIdsDesc(a.Id, b.Id))
+    .slice(0, ACTIVE_FEED_LIMIT)
+    .map((row) => String(row.Id)));
+
+  return rows.map((row) => {
+    if (!(row.RecentStatus === 'new' || row.RecentlyFound === true)) return row;
+    if (activeIds.has(String(row.Id))) return row;
+    return { ...row, RecentStatus: '', RecentlyFound: false };
+  });
+}
+
+function recentSortValue(row) {
+  return Number(row.ActivityAt || row.FoundAt || Date.parse(row.LastChangedAt || '') || 0);
 }
 
 function readSeenLedger() {
