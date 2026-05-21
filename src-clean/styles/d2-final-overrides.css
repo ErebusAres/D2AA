@@ -253,3 +253,47 @@ body.feed-polling:has(#itemFeed[data-live-state]) .brand-chip .brand-mark{
   content:none!important;
   display:none!important;
 }
+
+/* Final item-feed layout lock. Loaded last so feed content cannot collide with the action lane. */
+#itemFeed .feed-card{
+  display:grid!important;
+  grid-template-columns:72px minmax(0,1fr)!important;
+  column-gap:4px!important;
+  padding-right:76px!important;
+  overflow:hidden!important;
+}
+#itemFeed .feed-main,
+#itemFeed .feed-title-line,
+#itemFeed .feed-stats{
+  min-width:0!important;
+  max-width:100%!important;
+  overflow:hidden!important;
+  transform:none!important;
+}
+#itemFeed .feed-title-line small{display:none!important;}
+#itemFeed .feed-title-line strong{
+  display:block!important;
+  min-width:0!important;
+  max-width:100%!important;
+  width:100%!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+}
+#itemFeed .feed-stats{
+  display:grid!important;
+  grid-template-columns:repeat(6,minmax(19px,1fr))!important;
+  gap:2px!important;
+  padding-right:0!important;
+}
+#itemFeed .feed-stats em{
+  min-width:0!important;
+  max-width:100%!important;
+  overflow:hidden!important;
+  padding-left:1px!important;
+  padding-right:1px!important;
+}
+#itemFeed .feed-group-badge{right:32px!important;top:7px!important;max-width:42px!important;}
+#itemFeed .feed-dismiss-new{right:8px!important;top:8px!important;}
+#itemFeed .feed-card-tag{right:8px!important;bottom:8px!important;top:auto!important;}
+@media(max-width:720px){#itemFeed .feed-card{padding-right:76px!important}#itemFeed .feed-stats{grid-template-columns:repeat(3,1fr)!important}}
