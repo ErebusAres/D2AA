@@ -164,9 +164,8 @@ export function clearCache() {
   localStorage.removeItem(STORAGE_KEYS.rows);
   localStorage.removeItem(STORAGE_KEYS.bungieRows);
   localStorage.removeItem(STORAGE_KEYS.bungieMeta);
-  localStorage.removeItem(STORAGE_KEYS.dismissedRecent);
   try { indexedDB.deleteDatabase('d2aa-clean-cache'); } catch (_) {}
-  setRows([], 'Clean cache cleared.');
+  setRows([], 'Inventory cache cleared. New-item baseline, dismissed feed items, and tags were kept.');
 }
 
 export function readJson(key, fallback) {
