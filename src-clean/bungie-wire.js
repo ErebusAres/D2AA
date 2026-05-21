@@ -237,6 +237,8 @@ function updateLiveDiagnostics(stateName, message) {
     feed.dataset.liveState = stateName;
     feed.dataset.liveText = message;
     feed.title = message;
+    const title = feed.querySelector('.feed-head strong');
+    if (title) title.dataset.liveText = message;
   }
   document.body.dataset.liveFeedState = stateName;
 }
