@@ -1,4 +1,3 @@
-const CLEAN_BUILD_VERSION = '1.86';
 const statusEl = document.getElementById('statusText');
 const brandChip = document.querySelector('.brand-chip');
 const STATUS_TIME_ID = 'statusTime';
@@ -6,9 +5,12 @@ const STATUS_TIME_ID = 'statusTime';
 let updating = false;
 let lastRawStatus = '';
 let lastStatusAt = Date.now();
+let cleanBuildVersion = readShellVersion();
 
 function bootStatusChip() {
-  assertCleanBuildVersion();
+  installBadgeOverlayKillSwitch();
+  assertCleanBuildVersion(cleanBuildVersion);
+  syncManifestVersion();
   if (!statusEl || !brandChip) return;
   ensureTimeElement();
   updateFromStatus(true);
@@ -16,16 +18,55 @@ function bootStatusChip() {
   observer.observe(statusEl, { childList: true, characterData: true, subtree: true });
 }
 
-function assertCleanBuildVersion() {
-  window.D2AA_VERSION = CLEAN_BUILD_VERSION;
-  document.documentElement.dataset.d2aaRuntimeVersion = CLEAN_BUILD_VERSION;
+function readShellVersion() {
+  return window.D2AA_VERSION
+    || document.querySelector('meta[name="d2aa-version"]')?.getAttribute('content')
+    || '1.89';
+}
+
+async function syncManifestVersion() {
+  try {
+    const res = await fetch(`./version.json?t=${Date.now()}`, { cache: 'no-store' });
+    const data = await res.json();
+    if (data?.version) {
+      cleanBuildVersion = data.version;
+      assertCleanBuildVersion(cleanBuildVersion);
+      updateDeployMarker(cleanBuildVersion, true);
+    }
+  } catch (error) {
+    assertCleanBuildVersion(cleanBuildVersion);
+  }
+}
+
+function assertCleanBuildVersion(version) {
+  const normalized = String(version || readShellVersion()).replace(/^v/i, '');
+  window.D2AA_VERSION = normalized;
+  document.documentElement.dataset.d2aaRuntimeVersion = normalized;
   const meta = document.querySelector('meta[name="d2aa-version"]');
-  if (meta) meta.setAttribute('content', CLEAN_BUILD_VERSION);
+  if (meta) meta.setAttribute('content', normalized);
   const badge = document.querySelector('.d2aa-version-badge');
   if (badge) {
-    badge.textContent = `v${CLEAN_BUILD_VERSION}`;
-    badge.setAttribute('title', `D2AA clean runtime v${CLEAN_BUILD_VERSION}`);
+    badge.textContent = `v${normalized}`;
+    badge.setAttribute('data-version', normalized);
+    badge.setAttribute('title', `D2AA clean runtime v${normalized}`);
   }
+}
+
+function updateDeployMarker(version, ok) {
+  const marker = document.getElementById('deployMarker');
+  if (!marker) return;
+  const normalized = String(version || '').replace(/^v/i, '');
+  marker.textContent = `shell v${window.D2AA_VERSION} · manifest v${normalized}${ok ? ' · OK' : ' · MISMATCH'}`;
+  marker.dataset.ok = String(Boolean(ok));
+  marker.dataset.mismatch = String(!ok);
+}
+
+function installBadgeOverlayKillSwitch() {
+  if (document.getElementById('d2aa-version-overlay-kill')) return;
+  const style = document.createElement('style');
+  style.id = 'd2aa-version-overlay-kill';
+  style.textContent = `.d2aa-version-badge::before,.d2aa-version-badge::after{content:none!important;display:none!important}`;
+  document.head.appendChild(style);
 }
 
 function ensureTimeElement() {
