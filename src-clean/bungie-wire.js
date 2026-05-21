@@ -88,6 +88,13 @@ async function runSync(reason, background = false) {
     const result = await syncBungieInventory({ setStatus, setRows, reason, background });
     refreshLoginState();
 
+    if (result?.error) {
+      const message = result.message || 'Unknown sync error';
+      updateLiveDiagnostics('error', `Sync failed · ${message}`);
+      setStatus(`Bungie sync failed: ${message}`);
+      return;
+    }
+
     if (result) {
       lastLiveRefreshAt = Date.now();
       clearOversizedGenericCache();
