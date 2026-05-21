@@ -66,6 +66,9 @@ export async function clearBungieInventoryCache() {
   await idbDelete(IDB_META_KEY).catch(() => {});
   localStorage.removeItem(STORAGE_KEYS.bungieRows);
   localStorage.removeItem(STORAGE_KEYS.bungieMeta);
+}
+
+export function resetNewItemBaseline() {
   localStorage.removeItem(SEEN_LEDGER_KEY);
 }
 
