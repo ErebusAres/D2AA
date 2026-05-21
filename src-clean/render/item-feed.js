@@ -93,13 +93,13 @@ function locationLabel(row) {
 }
 function locationIcon(loc) {
   const emoji = LOCATION_EMOJIS[loc] || '';
-  return emoji ? `<span class="feed-location-icon" title="${html(loc)}" aria-label="${html(loc)}">${emoji}</span>` : '';
+  return emoji ? `<span class="feed-rail-location" title="${html(loc)}" aria-label="${html(loc)}">${emoji}</span>` : '';
 }
 function iconImg(src, label) {
-  return src ? `<img class="meta-icon" src="${html(src)}" alt="${html(label || '')}" title="${html(label || '')}" loading="lazy">` : '';
+  return src ? `<img class="feed-rail-icon" src="${html(src)}" alt="${html(label || '')}" title="${html(label || '')}" loading="lazy">` : '';
 }
 function maskIcon(src, label) {
-  return src ? `<span class="meta-mask" style="--icon:url('${html(src)}')" title="${html(label || '')}" aria-label="${html(label || '')}"></span>` : '';
+  return src ? `<span class="feed-rail-mask" style="--icon:url('${html(src)}')" title="${html(label || '')}" aria-label="${html(label || '')}"></span>` : '';
 }
 function html(value) {
   return String(value ?? '').replace(/[&<>"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[char]));
