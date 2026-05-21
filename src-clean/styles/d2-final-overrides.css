@@ -5,6 +5,59 @@
 .d2aa-version-badge::before{content:none!important;display:none!important;}
 .d2aa-version-badge::after{color:#e8c56a!important;font:900 11px/1 Inter,Segoe UI,system-ui,sans-serif!important;letter-spacing:.04em!important;writing-mode:vertical-rl!important;text-orientation:mixed!important;}
 
+/* Brand mark doubles as global live/sync state indicator. */
+.brand-chip .brand-mark{
+  display:inline-grid!important;
+  place-items:center!important;
+  width:22px!important;
+  height:22px!important;
+  border-radius:7px 2px 7px 2px!important;
+  color:#8f899b!important;
+  background:rgba(143,137,155,.08)!important;
+  border:1px solid rgba(143,137,155,.22)!important;
+  box-shadow:0 0 0 1px rgba(0,0,0,.22),0 0 10px rgba(143,137,155,.16)!important;
+  transition:color .18s ease,border-color .18s ease,background .18s ease,box-shadow .18s ease,transform .18s ease!important;
+}
+.brand-chip .brand-mark::before{content:none!important;display:none!important;}
+.item-feed .feed-head::before{content:none!important;display:none!important;}
+body.feed-polling .brand-chip .brand-mark,
+.item-feed[data-live-state="syncing"] ~ *,
+.brand-chip:has(+ *) .brand-mark{ }
+body.feed-polling .brand-chip .brand-mark,
+body[data-live-state="syncing"] .brand-chip .brand-mark,
+body[data-live-state="busy"] .brand-chip .brand-mark{
+  color:#ffe39a!important;
+  background:rgba(255,227,154,.10)!important;
+  border-color:rgba(255,227,154,.45)!important;
+  box-shadow:0 0 0 1px rgba(0,0,0,.24),0 0 14px rgba(255,227,154,.34)!important;
+  animation:d2aa-brand-live-pulse 1.05s ease-in-out infinite!important;
+}
+body[data-live-state="current"] .brand-chip .brand-mark,
+body[data-live-state="new"] .brand-chip .brand-mark,
+body[data-live-state="waiting"] .brand-chip .brand-mark,
+body[data-live-state="queued"] .brand-chip .brand-mark{
+  color:#68eba3!important;
+  background:rgba(104,235,163,.10)!important;
+  border-color:rgba(104,235,163,.42)!important;
+  box-shadow:0 0 0 1px rgba(0,0,0,.24),0 0 14px rgba(104,235,163,.30)!important;
+}
+body[data-live-state="error"] .brand-chip .brand-mark,
+body[data-live-state="failed"] .brand-chip .brand-mark{
+  color:#ff83ad!important;
+  background:rgba(255,131,173,.10)!important;
+  border-color:rgba(255,131,173,.44)!important;
+  box-shadow:0 0 0 1px rgba(0,0,0,.24),0 0 14px rgba(255,131,173,.32)!important;
+}
+body[data-live-state="offline"] .brand-chip .brand-mark,
+body[data-live-state="signed-out"] .brand-chip .brand-mark,
+body[data-live-state="disconnected"] .brand-chip .brand-mark{
+  color:#8f899b!important;
+  background:rgba(143,137,155,.08)!important;
+  border-color:rgba(143,137,155,.24)!important;
+  box-shadow:0 0 0 1px rgba(0,0,0,.22),0 0 10px rgba(143,137,155,.16)!important;
+}
+@keyframes d2aa-brand-live-pulse{0%,100%{opacity:.68;transform:scale(.96)}50%{opacity:1;transform:scale(1.05)}}
+
 /* Unified grid badge/HUD strip polish */
 .armor-card .light-tag-badge,
 .armor-card .card-tag-slot,
@@ -99,33 +152,6 @@ body.feed-polling .item-feed .feed-head strong::after,
 .item-feed[data-live-state="signed-out"] .feed-head strong::after{
   color:#ff83ad!important;
 }
-.item-feed .feed-head::before{
-  content:""!important;
-  width:7px!important;
-  height:7px!important;
-  margin-top:6px!important;
-  border-radius:999px!important;
-  background:#8f899b!important;
-  box-shadow:0 0 8px rgba(143,137,155,.3)!important;
-  flex:0 0 auto!important;
-}
-.item-feed[data-live-state="syncing"] .feed-head::before,
-.item-feed[data-live-state="busy"] .feed-head::before,
-body.feed-polling .item-feed .feed-head::before{
-  background:#ffe39a!important;
-  box-shadow:0 0 10px rgba(255,227,154,.6)!important;
-  animation:d2aa-live-dot 1.05s ease-in-out infinite!important;
-}
-.item-feed[data-live-state="current"] .feed-head::before,
-.item-feed[data-live-state="waiting"] .feed-head::before,
-.item-feed[data-live-state="queued"] .feed-head::before{
-  background:#68eba3!important;
-  box-shadow:0 0 10px rgba(104,235,163,.5)!important;
-}
-.item-feed[data-live-state="new"] .feed-head::before{background:#ffcf5d!important;box-shadow:0 0 12px rgba(255,207,93,.58)!important;}
-.item-feed[data-live-state="error"] .feed-head::before,
-.item-feed[data-live-state="offline"] .feed-head::before,
-.item-feed[data-live-state="signed-out"] .feed-head::before{background:#ff83ad!important;box-shadow:0 0 10px rgba(255,131,173,.5)!important;}
 @keyframes d2aa-live-dot{0%,100%{opacity:.45;transform:scale(.85)}50%{opacity:1;transform:scale(1.18)}}
 
 /* Archetype stabilization */
