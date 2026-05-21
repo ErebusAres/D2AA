@@ -10,7 +10,7 @@ import { renderItemFeed } from './render/item-feed.js';
 import { attachTagPicker } from './render/tag-picker.js';
 import { openCompareModal } from './render/compare-modal.js';
 
-const CLEAN_BUILD_VERSION = '1.87';
+const CLEAN_BUILD_VERSION = window.D2AA_VERSION || document.querySelector('meta[name="d2aa-version"]')?.getAttribute('content') || '1.89';
 const els = {};
 let lastGroupedRows = [];
 
@@ -35,7 +35,7 @@ function assertCleanBuildVersion() {
   const badge = document.querySelector('.d2aa-version-badge');
   if (badge) {
     badge.textContent = `v${CLEAN_BUILD_VERSION}`;
-    badge.setAttribute('title', `D2AA clean app runtime v${CLEAN_BUILD_VERSION}`);
+    badge.setAttribute('title', `D2AA clean runtime v${CLEAN_BUILD_VERSION}`);
   }
 }
 
