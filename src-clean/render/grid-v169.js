@@ -1,5 +1,6 @@
 import { STAT_KEYS, STAT_LABELS, STAT_ICONS, RARITY_ICONS, CLASS_ICONS, SLOT_ICONS, LOCATION_EMOJIS, TAGS, SLOT_ORDER, ARMOR_ARCHETYPES, ARCHETYPE_ALIASES } from '../constants.js';
 import { actionLabel, canRunAction } from '../data/actions.js';
+import { isActiveFeedItem } from '../data/feed-state.js';
 
 const ARCHETYPE_STAT_BY_NAME = {
   Paragon: 'Super',
@@ -39,7 +40,7 @@ function renderCard(row) {
   const badge = lightBadgeText(row);
   const groupLabel = row.Dupe_Group || row.Group || '';
   const groupActionKey = row.GroupActionKey || `${row.GroupKey || ''}::${groupLabel}`;
-  const isNew = row.RecentStatus === 'new' || row.RecentlyFound === true || row.Tag === 'feed';
+  const isNew = isActiveFeedItem(row);
   const group = row.Is_Dupe ? `<button type="button" class="group-badge ${row.GroupColor || ''}" title="Compare duplicate group ${html(groupLabel)}" data-compare-group="${html(groupActionKey)}">${row.Is_Dupe_Exotic ? iconImg(RARITY_ICONS.Exotic, 'Exotic duplicate group', 'badge-icon') : ''}${html(groupLabel)}</button>` : '';
   const tagControl = `<button class="card-tag-slot card-tag-badge ${row.Tag ? 'has-tag' : 'is-empty'} ${isNew ? 'is-new-context' : ''}" type="button" data-tag-trigger data-id="${html(row.Id)}" title="${html(tagTitle(row, isNew))}">${tagEmoji(row, isNew)}</button>`;
   const action = actionLabel(row);
