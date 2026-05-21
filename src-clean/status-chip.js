@@ -1,3 +1,4 @@
+const CLEAN_BUILD_VERSION = '1.86';
 const statusEl = document.getElementById('statusText');
 const brandChip = document.querySelector('.brand-chip');
 const STATUS_TIME_ID = 'statusTime';
@@ -7,11 +8,24 @@ let lastRawStatus = '';
 let lastStatusAt = Date.now();
 
 function bootStatusChip() {
+  assertCleanBuildVersion();
   if (!statusEl || !brandChip) return;
   ensureTimeElement();
   updateFromStatus(true);
   const observer = new MutationObserver(() => updateFromStatus(false));
   observer.observe(statusEl, { childList: true, characterData: true, subtree: true });
+}
+
+function assertCleanBuildVersion() {
+  window.D2AA_VERSION = CLEAN_BUILD_VERSION;
+  document.documentElement.dataset.d2aaRuntimeVersion = CLEAN_BUILD_VERSION;
+  const meta = document.querySelector('meta[name="d2aa-version"]');
+  if (meta) meta.setAttribute('content', CLEAN_BUILD_VERSION);
+  const badge = document.querySelector('.d2aa-version-badge');
+  if (badge) {
+    badge.textContent = `v${CLEAN_BUILD_VERSION}`;
+    badge.setAttribute('title', `D2AA clean runtime v${CLEAN_BUILD_VERSION}`);
+  }
 }
 
 function ensureTimeElement() {
