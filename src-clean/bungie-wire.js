@@ -111,8 +111,10 @@ async function runSync(reason, background = false) {
       updateLiveDiagnostics('waiting', `Sync skipped · ${lastSyncSummary}`);
     }
   } catch (error) {
-    updateLiveDiagnostics('error', `Sync failed · ${error.message || error}`);
-    throw error;
+    console.error('D2AA Bungie sync failed', error);
+    const message = error?.message || String(error);
+    updateLiveDiagnostics('error', `Sync failed · ${message}`);
+    setStatus(`Bungie sync failed: ${message}`);
   } finally {
     activeSyncReason = '';
     setFeedPolling(false);
