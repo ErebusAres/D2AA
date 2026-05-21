@@ -1,5 +1,5 @@
-/* v1.69 hard fix: archetype cell must match Total/Tier/stat boxes exactly. */
-.d2aa-version-badge::after{content:"v1.69"!important}
+/* v1.70 hard fix: archetype cell must match Total/Tier/stat boxes exactly and center icon. */
+.d2aa-version-badge::after{content:"v1.70"!important}
 
 .armor-card .card-grid-3x3{
   display:grid!important;
@@ -26,20 +26,25 @@
 }
 
 .armor-card .card-grid-3x3 > .arch-cell{
-  display:grid!important;
-  place-items:center!important;
-  align-content:center!important;
+  position:relative!important;
+  display:flex!important;
+  align-items:center!important;
   justify-content:center!important;
   padding:0!important;
-  line-height:1!important;
+  line-height:0!important;
   overflow:hidden!important;
+  text-align:center!important;
+  vertical-align:middle!important;
 }
 
 .armor-card .card-grid-3x3 > .arch-cell > *,
 .armor-card .card-grid-3x3 > .arch-cell .arch-frame{
-  position:static!important;
-  inset:auto!important;
-  transform:none!important;
+  position:absolute!important;
+  left:50%!important;
+  top:50%!important;
+  right:auto!important;
+  bottom:auto!important;
+  transform:translate(-50%,-50%)!important;
   margin:0!important;
   padding:0!important;
   width:26px!important;
@@ -48,12 +53,16 @@
   min-height:26px!important;
   max-width:26px!important;
   max-height:26px!important;
-  display:grid!important;
-  place-items:center!important;
+  display:block!important;
+  line-height:0!important;
 }
 
 .armor-card .card-grid-3x3 > .arch-cell img,
 .armor-card .card-grid-3x3 > .arch-cell .arch-image{
+  position:absolute!important;
+  left:50%!important;
+  top:50%!important;
+  transform:translate(-50%,-50%)!important;
   width:26px!important;
   height:26px!important;
   min-width:26px!important;
@@ -64,9 +73,14 @@
   object-position:center!important;
   display:block!important;
   opacity:1!important;
+  margin:0!important;
+  padding:0!important;
 }
 
 .armor-card .card-grid-3x3 > .arch-cell .arch-missing{
   font-size:18px!important;
   color:#d6cedf!important;
+  line-height:1!important;
+  display:grid!important;
+  place-items:center!important;
 }
