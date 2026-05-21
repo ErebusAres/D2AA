@@ -37,15 +37,14 @@ function renderFeedCard(row) {
   const loc = locationLabel(row);
   const groupButton = row.Is_Dupe ? `<button type="button" class="feed-group-badge ${row.GroupColor || ''}" title="Compare duplicate group ${html(groupLabel)}" data-feed-compare-group="${html(groupKey)}">${html(groupLabel)}</button>` : '';
   const dismiss = `<button type="button" class="feed-dismiss-new" data-id="${html(row.Id)}" data-dismiss-new title="Dismiss from feed" aria-label="Dismiss ${html(row.Name)} from item feed">×</button>`;
-  const metaIcons = `<span class="feed-meta-icons" aria-label="${html(`${row.Class} ${row.Slot} ${row.Rarity} ${loc}`)}">${iconImg(CLASS_ICONS[row.Class], row.Class)}${maskIcon(SLOT_ICONS[row.Slot], row.Slot)}${iconImg(RARITY_ICONS[row.Rarity], row.Rarity)}${locationIcon(loc)}</span>`;
+  const identityRail = `<span class="feed-identity-rail" aria-label="${html(`${row.Class} ${row.Slot} ${row.Rarity} ${loc}`)}">${iconImg(CLASS_ICONS[row.Class], row.Class)}${maskIcon(SLOT_ICONS[row.Slot], row.Slot)}${iconImg(RARITY_ICONS[row.Rarity], row.Rarity)}${locationIcon(loc)}</span>`;
   const tagButton = `<button class="card-tag-slot feed-card-tag ${row.Tag ? 'has-tag' : 'is-empty'}" type="button" data-tag-trigger data-id="${html(row.Id)}" title="${html(tagTitle(row))}">${tagEmoji(row)}</button>`;
   const age = feedTimeLabel(row);
   return `<article class="feed-card is-new is-new-found ${row.Is_Dupe ? `is-feed-grouped ${row.GroupColor || ''}` : ''}" data-feed-card-id="${html(row.Id)}" data-card-id="${html(row.Id)}" data-feed-group="${html(groupLabel)}">
     ${dismiss}${groupButton}${tagButton}
-    <div class="feed-icon">${row.Icon ? `<img src="${html(row.Icon)}" alt="" loading="lazy">` : '<span>◇</span>'}${row.Power || row.Light ? `<b>${row.Power || row.Light}</b>` : ''}</div>
+    <div class="feed-media"><div class="feed-icon">${row.Icon ? `<img src="${html(row.Icon)}" alt="" loading="lazy">` : '<span>◇</span>'}${row.Power || row.Light ? `<b>${row.Power || row.Light}</b>` : ''}</div>${identityRail}</div>
     <div class="feed-main">
-      <div class="feed-title-line"><strong title="${html(row.Name)}">${html(row.Name)}</strong>${metaIcons}</div>
-      <div class="feed-quickline"><span>NEW</span>${age ? `<span>${html(age)}</span>` : ''}</div>
+      <div class="feed-title-line"><strong title="${html(row.Name)}">${html(row.Name)}</strong>${age ? `<small title="Found ${html(age)} ago">${html(age)}</small>` : ''}</div>
       <div class="feed-stats">${STAT_KEYS.map((key) => statChip(row, key)).join('')}</div>
     </div>
   </article>`;
