@@ -97,16 +97,14 @@ async function runSync(reason, background = false) {
 
       const meta = result.meta || {};
       const added = Number(meta.added || 0);
-      const moved = Number(meta.moved || 0);
-      const changed = Number(meta.changed || 0);
       const checked = new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-      lastSyncSummary = added || moved || changed
-        ? `Checked ${checked} · New ${added} · Moved ${moved} · Changed ${changed}`
+      lastSyncSummary = added
+        ? `Checked ${checked} · New ${added}`
         : `Checked ${checked} · No new armor`;
       updateLiveDiagnostics(added ? 'new' : 'current', lastSyncSummary);
       if (background || visibleBefore) {
-        setStatus(added || moved || changed
-          ? `Live feed updated ${checked}. New: ${added}. Moved: ${moved}. Changed: ${changed}.`
+        setStatus(added
+          ? `Live feed updated ${checked}. New armor: ${added}.`
           : `Live feed current ${checked}. No new armor found.`);
       }
     } else {
