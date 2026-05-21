@@ -27,7 +27,7 @@ window.D2AA_ASSET_STAMP=Date.now().toString(36);
 <div class="brand-chip"><span class="brand-mark">◆</span><div><strong>D2 Armor Analyzer</strong><span id="statusText">Ready</span></div></div>
 <nav class="view-toggle"><button type="button" class="is-active" data-view="grid">Grid</button><button type="button" data-view="table">Table</button></nav>
 <nav class="class-toggle" id="classToggle"><button type="button" data-class-filter="all" class="is-active">All</button><button type="button" data-class-filter="Warlock">Warlock <b>0</b></button><button type="button" data-class-filter="Hunter">Hunter <b>0</b></button><button type="button" data-class-filter="Titan">Titan <b>0</b></button></nav>
-<section class="overview-row command-summary"><article><span>Shown</span><strong id="summaryShown">0</strong></article><article><span>Cached</span><strong id="summaryCached">0</strong></article><article><span>Groups</span><strong id="summaryGroups">0</strong></article><article><span>New</span><strong id="summaryRecent">0</strong></article><article class="class-overview"><span>Classes</span><strong id="summaryClasses">—</strong></article></section>
+<section class="overview-row command-summary"><article><span>Shown</span><strong id="summaryShown">0</strong></article><article><span>Cached</span><strong id="summaryCached">0</strong></article><article><span>Groups</span><strong id="summaryGroups">0</strong></article><article><span>Recent</span><strong id="summaryRecent">0</strong></article><article class="class-overview"><span>Classes</span><strong id="summaryClasses">—</strong></article></section>
 <label class="search-wrap" for="searchBox"><span>Search</span><input id="searchBox" type="search" placeholder="Armor name, slot, class, id..." autocomplete="off" /></label>
 <button type="button" id="refreshBtn" class="command-button">Refresh</button>
 <button type="button" id="menuBtn" class="command-button command-button--primary" aria-expanded="false" aria-controls="commandPanel">Options</button>
@@ -41,7 +41,7 @@ window.D2AA_ASSET_STAMP=Date.now().toString(36);
 </aside>
 <section class="results-panel"><div class="active-chips results-inline-chips" id="activeChips"></div><div id="gridView" class="armor-grid-view"></div><div id="tableView" class="armor-table-wrap" hidden><table class="armor-table"><thead><tr><th>Item</th><th>Slot</th><th>Class</th><th>Tier</th><th>Total</th><th>Stats</th><th>Tag</th><th>Action</th></tr></thead><tbody id="tableBody"></tbody></table></div><div id="emptyState" class="empty-state"><h2>No armor loaded yet.</h2><p>Upload a DIM CSV or connect Bungie to sync your armor.</p></div></section>
 </main>
-<aside class="item-feed" id="itemFeed"><button type="button" class="feed-tab" id="feedToggle">Item Feed</button><div class="feed-shell"><div class="feed-head"><strong>New Items</strong><span id="feedCount">0</span></div><div class="feed-list" id="feedList"></div></div></aside>
+<aside class="item-feed" id="itemFeed"><button type="button" class="feed-tab" id="feedToggle">Item Feed</button><div class="feed-shell"><div class="feed-head"><strong>Latest Items</strong><span id="feedCount">0</span></div><div class="feed-list" id="feedList"></div></div></aside>
 </div>
 <script type="module">
 const assetStamp=window.D2AA_ASSET_STAMP||Date.now().toString(36);
