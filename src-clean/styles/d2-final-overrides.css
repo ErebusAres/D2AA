@@ -21,40 +21,40 @@
 .brand-chip .brand-mark::before{content:none!important;display:none!important;}
 .item-feed .feed-head::before{content:none!important;display:none!important;}
 body.feed-polling .brand-chip .brand-mark,
-.item-feed[data-live-state="syncing"] ~ *,
-.brand-chip:has(+ *) .brand-mark{ }
-body.feed-polling .brand-chip .brand-mark,
-body[data-live-state="syncing"] .brand-chip .brand-mark,
-body[data-live-state="busy"] .brand-chip .brand-mark{
+body[data-live-feed-state="syncing"] .brand-chip .brand-mark,
+body[data-live-feed-state="busy"] .brand-chip .brand-mark{
   color:#ffe39a!important;
   background:rgba(255,227,154,.10)!important;
   border-color:rgba(255,227,154,.45)!important;
   box-shadow:0 0 0 1px rgba(0,0,0,.24),0 0 14px rgba(255,227,154,.34)!important;
   animation:d2aa-brand-live-pulse 1.05s ease-in-out infinite!important;
 }
-body[data-live-state="current"] .brand-chip .brand-mark,
-body[data-live-state="new"] .brand-chip .brand-mark,
-body[data-live-state="waiting"] .brand-chip .brand-mark,
-body[data-live-state="queued"] .brand-chip .brand-mark{
+body[data-live-feed-state="current"] .brand-chip .brand-mark,
+body[data-live-feed-state="new"] .brand-chip .brand-mark,
+body[data-live-feed-state="waiting"] .brand-chip .brand-mark,
+body[data-live-feed-state="queued"] .brand-chip .brand-mark{
   color:#68eba3!important;
   background:rgba(104,235,163,.10)!important;
   border-color:rgba(104,235,163,.42)!important;
   box-shadow:0 0 0 1px rgba(0,0,0,.24),0 0 14px rgba(104,235,163,.30)!important;
 }
-body[data-live-state="error"] .brand-chip .brand-mark,
-body[data-live-state="failed"] .brand-chip .brand-mark{
+body[data-live-feed-state="error"] .brand-chip .brand-mark,
+body[data-live-feed-state="failed"] .brand-chip .brand-mark{
   color:#ff83ad!important;
   background:rgba(255,131,173,.10)!important;
   border-color:rgba(255,131,173,.44)!important;
   box-shadow:0 0 0 1px rgba(0,0,0,.24),0 0 14px rgba(255,131,173,.32)!important;
 }
-body[data-live-state="offline"] .brand-chip .brand-mark,
-body[data-live-state="signed-out"] .brand-chip .brand-mark,
-body[data-live-state="disconnected"] .brand-chip .brand-mark{
+body[data-live-feed-state="offline"] .brand-chip .brand-mark,
+body[data-live-feed-state="signed-out"] .brand-chip .brand-mark,
+body[data-live-feed-state="disconnected"] .brand-chip .brand-mark,
+body[data-live-feed-state="paused"] .brand-chip .brand-mark,
+body[data-live-feed-state="idle"] .brand-chip .brand-mark{
   color:#8f899b!important;
   background:rgba(143,137,155,.08)!important;
   border-color:rgba(143,137,155,.24)!important;
   box-shadow:0 0 0 1px rgba(0,0,0,.22),0 0 10px rgba(143,137,155,.16)!important;
+  animation:none!important;
 }
 @keyframes d2aa-brand-live-pulse{0%,100%{opacity:.68;transform:scale(.96)}50%{opacity:1;transform:scale(1.05)}}
 
