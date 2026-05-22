@@ -1,0 +1,190 @@
+/* v1.94 readable categorical stat quality colors.
+   Strategy: neutral stat boxes + obvious quality rail + colored number.
+   Avoid broad gradients/spotlights that make quality meaning unclear. */
+.card-grid-3x3 .stat-cell,
+#itemFeed .feed-stats em{
+  position:relative!important;
+  isolation:isolate!important;
+  overflow:hidden!important;
+  border:1px solid var(--q-border,rgba(255,255,255,.12))!important;
+  border-left:4px solid var(--q-color,rgba(255,255,255,.18))!important;
+  background:
+    linear-gradient(90deg,var(--q-fill,rgba(255,255,255,.05)),rgba(255,255,255,.028) 42%,rgba(0,0,0,.10)),
+    rgba(15,16,25,.78)!important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.045),
+    inset 0 0 0 1px rgba(0,0,0,.22),
+    0 0 var(--q-glow-size,0px) var(--q-glow,transparent)!important;
+  color:var(--q-text,#e8e3d5)!important;
+  text-shadow:none!important;
+}
+.card-grid-3x3 .stat-cell::before,
+#itemFeed .feed-stats em::before{
+  content:""!important;
+  position:absolute!important;
+  left:0!important;
+  top:0!important;
+  bottom:0!important;
+  width:18px!important;
+  background:linear-gradient(90deg,var(--q-color,transparent),transparent)!important;
+  opacity:var(--q-rail-opacity,.22)!important;
+  pointer-events:none!important;
+  z-index:0!important;
+}
+.card-grid-3x3 .stat-cell::after,
+#itemFeed .feed-stats em::after{
+  content:""!important;
+  position:absolute!important;
+  left:0!important;
+  right:0!important;
+  bottom:0!important;
+  height:2px!important;
+  background:var(--q-color,transparent)!important;
+  opacity:var(--q-bottom-opacity,.55)!important;
+  pointer-events:none!important;
+  z-index:1!important;
+}
+.card-grid-3x3 .stat-cell strong,
+#itemFeed .feed-stats em strong{
+  position:relative!important;
+  z-index:2!important;
+  color:var(--q-text,#e8e3d5)!important;
+  font-weight:var(--q-weight,850)!important;
+  text-shadow:0 0 var(--q-text-glow-size,0px) var(--q-glow,transparent),0 1px 0 rgba(0,0,0,.75)!important;
+}
+.card-grid-3x3 .stat-cell .stat-icon,
+#itemFeed .feed-stats .stat-icon{
+  position:relative!important;
+  z-index:2!important;
+  opacity:var(--q-icon-opacity,.72)!important;
+  filter:brightness(var(--q-icon-brightness,.9)) saturate(var(--q-icon-saturation,.82)) drop-shadow(0 0 3px rgba(0,0,0,.55))!important;
+}
+.card-grid-3x3 .stat-cell .stat-icon-only{position:relative!important;z-index:2!important;}
+
+/* Perfect: exactly 30. Gold should be unmistakable. */
+.stat-quality-perfect{
+  --q-color:#ffd84d!important;
+  --q-text:#ffeaa3!important;
+  --q-border:rgba(255,216,77,.88)!important;
+  --q-fill:rgba(255,216,77,.20)!important;
+  --q-glow:rgba(255,196,0,.42)!important;
+  --q-glow-size:16px!important;
+  --q-text-glow-size:10px!important;
+  --q-weight:1000!important;
+  --q-rail-opacity:.42!important;
+  --q-bottom-opacity:.88!important;
+  --q-icon-opacity:1!important;
+  --q-icon-brightness:1.22!important;
+  --q-icon-saturation:1.20!important;
+}
+
+/* Near perfect: 28-29. Distinct from perfect, but still elite. */
+.stat-quality-near{
+  --q-color:#55e7ff!important;
+  --q-text:#bff8ff!important;
+  --q-border:rgba(85,231,255,.72)!important;
+  --q-fill:rgba(85,231,255,.16)!important;
+  --q-glow:rgba(85,231,255,.28)!important;
+  --q-glow-size:12px!important;
+  --q-text-glow-size:8px!important;
+  --q-weight:975!important;
+  --q-rail-opacity:.34!important;
+  --q-bottom-opacity:.78!important;
+  --q-icon-opacity:.96!important;
+  --q-icon-brightness:1.14!important;
+  --q-icon-saturation:1.12!important;
+}
+
+/* High: 24-27. Blue. */
+.stat-quality-great{
+  --q-color:#3aa7ff!important;
+  --q-text:#8fd2ff!important;
+  --q-border:rgba(58,167,255,.58)!important;
+  --q-fill:rgba(58,167,255,.12)!important;
+  --q-glow:rgba(58,167,255,.18)!important;
+  --q-glow-size:9px!important;
+  --q-text-glow-size:6px!important;
+  --q-weight:940!important;
+  --q-rail-opacity:.28!important;
+  --q-bottom-opacity:.70!important;
+  --q-icon-opacity:.88!important;
+  --q-icon-brightness:1.05!important;
+  --q-icon-saturation:1.04!important;
+}
+
+/* Good: 18-23. Green. */
+.stat-quality-good{
+  --q-color:#54e27f!important;
+  --q-text:#9cffb4!important;
+  --q-border:rgba(84,226,127,.48)!important;
+  --q-fill:rgba(84,226,127,.10)!important;
+  --q-glow:rgba(84,226,127,.13)!important;
+  --q-glow-size:7px!important;
+  --q-text-glow-size:4px!important;
+  --q-weight:900!important;
+  --q-rail-opacity:.24!important;
+  --q-bottom-opacity:.58!important;
+  --q-icon-opacity:.80!important;
+  --q-icon-brightness:.98!important;
+  --q-icon-saturation:.92!important;
+}
+
+/* Average: 12-17. Neutral, intentionally not colorful. */
+.stat-quality-okay{
+  --q-color:#a99f8d!important;
+  --q-text:#d4cbbd!important;
+  --q-border:rgba(169,159,141,.26)!important;
+  --q-fill:rgba(169,159,141,.045)!important;
+  --q-glow:transparent!important;
+  --q-glow-size:0px!important;
+  --q-text-glow-size:0px!important;
+  --q-weight:840!important;
+  --q-rail-opacity:.16!important;
+  --q-bottom-opacity:.32!important;
+  --q-icon-opacity:.62!important;
+  --q-icon-brightness:.82!important;
+  --q-icon-saturation:.70!important;
+}
+
+/* Weak: 6-11. Orange warning. */
+.stat-quality-bad{
+  --q-color:#ff914d!important;
+  --q-text:#ffb27f!important;
+  --q-border:rgba(255,145,77,.46)!important;
+  --q-fill:rgba(255,145,77,.095)!important;
+  --q-glow:rgba(255,145,77,.12)!important;
+  --q-glow-size:6px!important;
+  --q-text-glow-size:3px!important;
+  --q-weight:820!important;
+  --q-rail-opacity:.24!important;
+  --q-bottom-opacity:.56!important;
+  --q-icon-opacity:.56!important;
+  --q-icon-brightness:.76!important;
+  --q-icon-saturation:.72!important;
+}
+
+/* Dead/terrible: 0-5. Red and dim. */
+.stat-quality-poor{
+  --q-color:#ff4f68!important;
+  --q-text:#ff8394!important;
+  --q-border:rgba(255,79,104,.42)!important;
+  --q-fill:rgba(255,79,104,.075)!important;
+  --q-glow:rgba(255,79,104,.10)!important;
+  --q-glow-size:5px!important;
+  --q-text-glow-size:2px!important;
+  --q-weight:800!important;
+  --q-rail-opacity:.22!important;
+  --q-bottom-opacity:.48!important;
+  --q-icon-opacity:.42!important;
+  --q-icon-brightness:.62!important;
+  --q-icon-saturation:.62!important;
+}
+
+/* Grid is larger, so make the value the visual anchor. */
+.card-grid-3x3 .stat-cell strong{font-size:16px!important;letter-spacing:.01em!important;}
+.card-grid-3x3 .stat-cell.stat-quality-perfect strong{font-size:17px!important;}
+.card-grid-3x3 .stat-cell.stat-quality-poor strong{opacity:.86!important;}
+
+/* Feed is compact but must still match the exact same color language. */
+#itemFeed .feed-stats em{border-left-width:3px!important;}
+#itemFeed .feed-stats em strong{font-size:9px!important;}
