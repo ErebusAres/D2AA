@@ -11,9 +11,9 @@ function schedule() {
   requestAnimationFrame(() => {
     queued = false;
     fixTagChips();
-    fixStatusText();
     fixFeedTiers();
     fixSetBonuses();
+    cleanTooltipTitles();
   });
 }
 
@@ -34,22 +34,11 @@ function fixTagChips() {
   });
 }
 
-function fixStatusText() {
-  const el = document.getElementById('statusText');
-  if (!el) return;
-  const text = String(el.textContent || '');
-  if (/^Loaded Bungie cache:/i.test(text) && !text.includes('Click Sync')) {
-    const next = `${text} Click Sync for live Bungie refresh.`;
-    el.textContent = next;
-    el.title = next;
-  }
-}
-
 function fixFeedTiers() {
   document.querySelectorAll('.feed-card[data-id]').forEach((card) => {
     if (card.querySelector('.feed-tier-rail')) return;
     const row = rowById(card.dataset.id);
-    const img = card.querySelector('img');
+    const img = card.querySelector(':scope > img');
     if (!row || !img) return;
     const wrap = document.createElement('span');
     wrap.className = 'feed-icon-wrap';
@@ -66,17 +55,77 @@ function fixSetBonuses() {
   document.querySelectorAll('.armor-card[data-id]').forEach((card) => {
     const row = rowById(card.dataset.id);
     if (!row) return;
-    const bonuses = parsePerks(row.ArmorSetBonuses || row.SetBonuses);
-    if (!bonuses.length) return;
+    const bonuses = extractSetBonuses(row);
     const container = card.querySelector('.bonus-icons');
-    if (!container || container.dataset.setFixed === 'true') return;
+    if (!container) return;
+    const currentKey = bonuses.map((perk) => perk.hash || perk.name || perk.description || '').join('|');
+    if (container.dataset.setFixedKey === currentKey) return;
+    container.querySelectorAll('.is-set-bonus[data-set-hash]').forEach((node) => node.remove());
+    container.dataset.setFixedKey = currentKey;
+    if (!bonuses.length) return;
     container.classList.remove('is-empty');
-    const existing = new Set([...container.querySelectorAll('[data-set-hash]')].map((el) => el.dataset.setHash));
-    const html = bonuses.slice(0, 4).filter((perk) => !existing.has(String(perk.hash || perk.name || 'set'))).map((perk) => bonusIcon(perk)).join('');
-    if (!html) return;
-    container.insertAdjacentHTML('afterbegin', html);
-    container.dataset.setFixed = 'true';
+    container.insertAdjacentHTML('afterbegin', bonuses.slice(0, 4).map((perk) => bonusIcon(perk)).join(''));
   });
+}
+
+function extractSetBonuses(row) {
+  const out = [];
+  for (const value of [row.ArmorSetBonuses, row.SetBonuses]) out.push(...parsePerks(value));
+  const plugs = [
+    ...(Array.isArray(row.StatAudit?.activePlugs) ? row.StatAudit.activePlugs : []),
+    ...(Array.isArray(row.SocketAudit?.activePlugs) ? row.SocketAudit.activePlugs : [])
+  ];
+  for (const plug of plugs) {
+    const text = [plug.name, plug.description, plug.type, plug.category, JSON.stringify(plug.stats || [])].filter(Boolean).join(' ');
+    if (!looksLikeSetBonus(text)) continue;
+    out.push({
+      kind: 'set',
+      label: setBonusLabel(text),
+      name: plug.name || setBonusLabel(text),
+      description: plug.description || plug.type || plug.category || 'Armor set bonus socket detected.',
+      icon: plug.icon || '',
+      hash: plug.hash || plug.name || text
+    });
+  }
+  return uniquePerks(out.filter((perk) => perk && (perk.name || perk.description)));
+}
+
+function looksLikeSetBonus(text) {
+  const value = String(text || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ');
+  const hasSet = value.includes(' set ') || value.startsWith('set ') || value.includes('armor set') || value.includes('setbonus');
+  const hasBonus = value.includes(' bonus ') || value.includes(' perk ') || value.includes(' trait ') || value.includes('pieces') || value.includes('piece');
+  return (hasSet && hasBonus)
+    || value.includes('set bonus')
+    || value.includes('armor set bonus')
+    || value.includes('2 piece')
+    || value.includes('4 piece')
+    || value.includes('two piece')
+    || value.includes('four piece')
+    || value.includes('wearing 2')
+    || value.includes('wearing 4')
+    || value.includes('while wearing')
+    || value.includes('smokejumper');
+}
+
+function setBonusLabel(text) {
+  const value = String(text || '').toLowerCase();
+  if (/\b2\b/.test(value) || value.includes('two')) return '2-Piece Set Bonus';
+  if (/\b4\b/.test(value) || value.includes('four')) return '4-Piece Set Bonus';
+  return 'Armor Set Bonus';
+}
+
+function uniquePerks(perks) {
+  const seen = new Set();
+  return perks.filter((perk) => {
+    const key = `${perk.hash || ''}|${perk.name || ''}|${perk.description || ''}`.toLowerCase();
+    if (!key.trim() || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function cleanTooltipTitles() {
+  document.querySelectorAll('.archetype-icon-wrap[title], .bonus-icon[title]').forEach((node) => node.removeAttribute('title'));
 }
 
 function tierMarks(row) {
@@ -95,18 +144,13 @@ function bonusIcon(perk) {
   const desc = esc(perk.description || 'Armor set bonus.');
   const hash = esc(perk.hash || perk.name || 'set');
   const icon = perk.icon ? `<img src="${esc(perk.icon)}" alt="" loading="lazy">` : '<span class="set-fallback-mark">◆</span>';
-  return `<span class="bonus-icon is-set-bonus" data-set-hash="${hash}" tabindex="0" title="${name}: ${desc}">${icon}<span class="d2-tooltip"><b>${name}</b><em>${label}</em><p>${desc}</p></span></span>`;
+  return `<span class="bonus-icon is-set-bonus" data-set-hash="${hash}" tabindex="0" aria-label="${name}">${icon}<span class="d2-tooltip"><b>${name}</b><em>${label}</em><p>${desc}</p></span></span>`;
 }
 
 function parsePerks(value) {
   if (!value) return [];
   if (Array.isArray(value)) return value;
-  try {
-    const parsed = JSON.parse(value);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
+  try { const parsed = JSON.parse(value); return Array.isArray(parsed) ? parsed : []; } catch { return []; }
 }
 
 function num(value) {
