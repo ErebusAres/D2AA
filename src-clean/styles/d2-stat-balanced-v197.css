@@ -1,0 +1,210 @@
+/* v1.97 balanced full-box stat quality.
+   Goal: clear but not screaming. Whole box is tinted, number is vibrant.
+   30 is the ONLY gold category. 24-27 is blue, never gold. */
+
+.armor-card .card-grid-3x3 > .stat-cell,
+#itemFeed .feed-stats > em{
+  position:relative!important;
+  isolation:isolate!important;
+  overflow:hidden!important;
+  border:1px solid var(--bal-border,rgba(255,255,255,.10))!important;
+  border-radius:8px 3px 8px 3px!important;
+  background:
+    linear-gradient(180deg,var(--bal-top,rgba(255,255,255,.045)),var(--bal-bottom,rgba(255,255,255,.018))),
+    #171824!important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.045),
+    inset 0 0 0 1px rgba(0,0,0,.20),
+    0 0 var(--bal-glow-size,0px) var(--bal-glow,transparent)!important;
+  color:var(--bal-number,#d9d3c7)!important;
+  text-shadow:none!important;
+}
+
+.armor-card .card-grid-3x3 > .stat-cell::before,
+#itemFeed .feed-stats > em::before{
+  content:""!important;
+  position:absolute!important;
+  inset:0!important;
+  z-index:0!important;
+  width:auto!important;
+  height:auto!important;
+  opacity:1!important;
+  pointer-events:none!important;
+  background:
+    radial-gradient(circle at 70% 12%,var(--bal-pop,transparent),transparent 55%),
+    linear-gradient(90deg,var(--bal-side,transparent),transparent 34%)!important;
+}
+
+.armor-card .card-grid-3x3 > .stat-cell::after,
+#itemFeed .feed-stats > em::after{
+  content:""!important;
+  position:absolute!important;
+  inset:auto 0 0 0!important;
+  height:2px!important;
+  z-index:1!important;
+  background:linear-gradient(90deg,transparent,var(--bal-line,transparent),transparent)!important;
+  opacity:var(--bal-line-opacity,.62)!important;
+  pointer-events:none!important;
+}
+
+.armor-card .card-grid-3x3 > .stat-cell strong,
+#itemFeed .feed-stats > em strong{
+  position:relative!important;
+  z-index:3!important;
+  color:var(--bal-number,#d9d3c7)!important;
+  font-weight:var(--bal-weight,850)!important;
+  text-shadow:0 0 var(--bal-text-glow-size,0px) var(--bal-text-glow,transparent),0 1px 0 rgba(0,0,0,.85)!important;
+}
+
+.armor-card .card-grid-3x3 > .stat-cell .stat-icon,
+#itemFeed .feed-stats > em .stat-icon{
+  position:relative!important;
+  z-index:3!important;
+  opacity:var(--bal-icon-opacity,.62)!important;
+  filter:brightness(var(--bal-icon-brightness,.78)) saturate(var(--bal-icon-saturation,.65)) drop-shadow(0 1px 3px rgba(0,0,0,.75))!important;
+}
+
+/* 30 only: noticeable gold, but no giant neon fill. */
+.stat-quality-perfect{
+  --bal-number:#ffe58a!important;
+  --bal-border:rgba(255,213,72,.62)!important;
+  --bal-top:rgba(255,203,52,.22)!important;
+  --bal-bottom:rgba(118,80,0,.20)!important;
+  --bal-pop:rgba(255,225,110,.20)!important;
+  --bal-side:rgba(255,213,72,.14)!important;
+  --bal-line:#ffd84d!important;
+  --bal-line-opacity:.90!important;
+  --bal-glow:rgba(255,196,0,.22)!important;
+  --bal-glow-size:10px!important;
+  --bal-text-glow:rgba(255,218,84,.55)!important;
+  --bal-text-glow-size:7px!important;
+  --bal-weight:1000!important;
+  --bal-icon-opacity:.92!important;
+  --bal-icon-brightness:1.05!important;
+  --bal-icon-saturation:1.03!important;
+}
+
+/* 28-29: cyan. */
+.stat-quality-near{
+  --bal-number:#9ff5ff!important;
+  --bal-border:rgba(70,219,245,.54)!important;
+  --bal-top:rgba(70,219,245,.16)!important;
+  --bal-bottom:rgba(0,83,103,.16)!important;
+  --bal-pop:rgba(70,219,245,.15)!important;
+  --bal-side:rgba(70,219,245,.10)!important;
+  --bal-line:#55e7ff!important;
+  --bal-line-opacity:.78!important;
+  --bal-glow:rgba(70,219,245,.16)!important;
+  --bal-glow-size:8px!important;
+  --bal-text-glow:rgba(70,219,245,.36)!important;
+  --bal-text-glow-size:5px!important;
+  --bal-weight:955!important;
+  --bal-icon-opacity:.82!important;
+  --bal-icon-brightness:.98!important;
+  --bal-icon-saturation:.95!important;
+}
+
+/* 24-27: BLUE, deliberately not yellow/gold. */
+.stat-quality-great{
+  --bal-number:#77c8ff!important;
+  --bal-border:rgba(70,155,255,.46)!important;
+  --bal-top:rgba(70,155,255,.13)!important;
+  --bal-bottom:rgba(16,56,114,.15)!important;
+  --bal-pop:rgba(70,155,255,.12)!important;
+  --bal-side:rgba(70,155,255,.085)!important;
+  --bal-line:#469bff!important;
+  --bal-line-opacity:.68!important;
+  --bal-glow:rgba(70,155,255,.10)!important;
+  --bal-glow-size:6px!important;
+  --bal-text-glow:rgba(70,155,255,.25)!important;
+  --bal-text-glow-size:4px!important;
+  --bal-weight:920!important;
+  --bal-icon-opacity:.72!important;
+  --bal-icon-brightness:.88!important;
+  --bal-icon-saturation:.82!important;
+}
+
+/* 18-23: green. */
+.stat-quality-good{
+  --bal-number:#8bf0a4!important;
+  --bal-border:rgba(78,211,113,.38)!important;
+  --bal-top:rgba(78,211,113,.105)!important;
+  --bal-bottom:rgba(20,80,42,.13)!important;
+  --bal-pop:rgba(78,211,113,.09)!important;
+  --bal-side:rgba(78,211,113,.07)!important;
+  --bal-line:#54d77b!important;
+  --bal-line-opacity:.55!important;
+  --bal-glow:transparent!important;
+  --bal-glow-size:0!important;
+  --bal-text-glow:rgba(78,211,113,.16)!important;
+  --bal-text-glow-size:3px!important;
+  --bal-weight:880!important;
+  --bal-icon-opacity:.62!important;
+  --bal-icon-brightness:.78!important;
+  --bal-icon-saturation:.70!important;
+}
+
+/* 12-17: meh neutral. */
+.stat-quality-okay{
+  --bal-number:#c8beb0!important;
+  --bal-border:rgba(190,178,157,.22)!important;
+  --bal-top:rgba(190,178,157,.055)!important;
+  --bal-bottom:rgba(40,39,45,.10)!important;
+  --bal-pop:rgba(190,178,157,.035)!important;
+  --bal-side:rgba(190,178,157,.035)!important;
+  --bal-line:rgba(190,178,157,.42)!important;
+  --bal-line-opacity:.32!important;
+  --bal-glow:transparent!important;
+  --bal-glow-size:0!important;
+  --bal-text-glow:transparent!important;
+  --bal-text-glow-size:0!important;
+  --bal-weight:820!important;
+  --bal-icon-opacity:.48!important;
+  --bal-icon-brightness:.66!important;
+  --bal-icon-saturation:.48!important;
+}
+
+/* 6-11: weak orange. */
+.stat-quality-bad{
+  --bal-number:#ffa269!important;
+  --bal-border:rgba(222,111,45,.34)!important;
+  --bal-top:rgba(222,111,45,.09)!important;
+  --bal-bottom:rgba(91,38,16,.12)!important;
+  --bal-pop:rgba(222,111,45,.07)!important;
+  --bal-side:rgba(222,111,45,.055)!important;
+  --bal-line:#e8793f!important;
+  --bal-line-opacity:.44!important;
+  --bal-glow:transparent!important;
+  --bal-glow-size:0!important;
+  --bal-text-glow:rgba(222,111,45,.14)!important;
+  --bal-text-glow-size:3px!important;
+  --bal-weight:800!important;
+  --bal-icon-opacity:.42!important;
+  --bal-icon-brightness:.57!important;
+  --bal-icon-saturation:.45!important;
+}
+
+/* 0-5: ew red/dark, but not full neon. */
+.stat-quality-poor{
+  --bal-number:#ff7182!important;
+  --bal-border:rgba(213,58,82,.38)!important;
+  --bal-top:rgba(213,58,82,.105)!important;
+  --bal-bottom:rgba(71,15,27,.16)!important;
+  --bal-pop:rgba(213,58,82,.075)!important;
+  --bal-side:rgba(213,58,82,.06)!important;
+  --bal-line:#e0445b!important;
+  --bal-line-opacity:.46!important;
+  --bal-glow:transparent!important;
+  --bal-glow-size:0!important;
+  --bal-text-glow:rgba(213,58,82,.16)!important;
+  --bal-text-glow-size:3px!important;
+  --bal-weight:790!important;
+  --bal-icon-opacity:.34!important;
+  --bal-icon-brightness:.48!important;
+  --bal-icon-saturation:.38!important;
+}
+
+.armor-card .card-grid-3x3 > .stat-cell strong{font-size:16px!important;letter-spacing:.012em!important;}
+.armor-card .card-grid-3x3 > .stat-cell.stat-quality-perfect strong{font-size:17px!important;}
+#itemFeed .feed-stats > em strong{font-size:9px!important;}
+#itemFeed .feed-stats > em{border-radius:5px!important;}
