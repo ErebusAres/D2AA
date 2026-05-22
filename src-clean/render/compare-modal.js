@@ -4,11 +4,13 @@ let modal;
 let currentRows = [];
 let onTagChange = null;
 let onPullGroup = null;
+let onPullItem = null;
 
 export function openCompareModal(rows, options = {}) {
   currentRows = Array.isArray(rows) ? rows.slice() : [];
   onTagChange = options.onTag || null;
   onPullGroup = options.onPullGroup || null;
+  onPullItem = options.onPullItem || null;
   ensureModal();
   modal.innerHTML = renderModal(currentRows);
   document.body.classList.add('compare-open');
@@ -37,6 +39,12 @@ function bindModal() {
   modal.querySelector('[data-close-compare]')?.addEventListener('click', closeCompareModal);
   modal.querySelector('[data-compare-backdrop]')?.addEventListener('click', closeCompareModal);
   modal.querySelector('[data-pull-group]')?.addEventListener('click', () => onPullGroup?.(currentRows, modal.querySelector('[data-pull-group]')));
+  modal.querySelectorAll('[data-pull-item]').forEach((button) => {
+    button.addEventListener('click', () => {
+      const row = currentRows.find((item) => String(item.Id) === String(button.dataset.pullItem));
+      if (row) onPullItem?.(row, button);
+    });
+  });
   modal.querySelectorAll('[data-compare-tag]').forEach((button) => {
     button.addEventListener('click', () => {
       onTagChange?.(button.dataset.id, button.dataset.compareTag);
@@ -75,7 +83,7 @@ function renderCompareCard(row, bestId) {
   return `<article class="compare-card ${String(row.Id) === String(bestId) ? 'is-best' : ''}">
     <div class="compare-item-head"><div class="compare-icon">${row.Icon ? `<img src="${html(row.Icon)}" alt="" loading="lazy">` : '◇'}${row.Power || row.Light ? `<b>${row.Power || row.Light}</b>` : ''}</div><div><h3>${html(row.Name)}</h3><p>${html(row.Class)} • ${html(row.Slot)} • ${html(row.Rarity)} ${row.IsInVault ? '• Vault' : row.IsEquipped ? '• Equipped' : '• Inventory'}</p></div><strong class="compare-score">${score}</strong></div>
     <div class="compare-stat-grid">${STAT_KEYS.map((key) => renderStat(row, key)).join('')}<div class="compare-total"><span>Total</span><strong>${row.Total || 0}</strong></div><div class="compare-total"><span>Tier</span><strong>${diamonds(row.Tier, row.TierMax)}</strong></div></div>
-    <div class="compare-tags" aria-label="Assign item tag">${TAGS.filter((tag) => tag.picker !== false).map((tag) => `<button type="button" class="${row.Tag === tag.value ? 'is-active' : ''}" data-id="${html(row.Id)}" data-compare-tag="${html(tag.value)}" title="${html(tag.label)}">${tag.emoji}</button>`).join('')}</div>
+    <div class="compare-tags" aria-label="Assign item tag"><div class="compare-tag-set">${TAGS.filter((tag) => tag.picker !== false).map((tag) => `<button type="button" class="${row.Tag === tag.value ? 'is-active' : ''}" data-id="${html(row.Id)}" data-compare-tag="${html(tag.value)}" title="${html(tag.label)}">${tag.emoji}</button>`).join('')}</div>${onPullItem ? `<button type="button" class="compare-pull-button" data-pull-item="${html(row.Id)}">${row.IsInVault ? 'Pull' : 'Push'}</button>` : ''}</div>
   </article>`;
 }
 
