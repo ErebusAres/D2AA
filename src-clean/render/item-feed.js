@@ -69,10 +69,18 @@ function feedTimeLabel(row) {
 function statChip(row, key) {
   const value = Number(row[key] || 0);
   const quality = statQuality(value);
-  return `<em class="stat-quality-${quality}" title="${html(STAT_LABELS[key])}: ${value} · ${qualityLabel(quality)}"><img class="stat-icon" src="${html(STAT_ICONS[key])}" alt="${html(STAT_LABELS[key])}" loading="lazy">${value}</em>`;
+  return `<em class="stat-quality-${quality}" title="${html(STAT_LABELS[key])}: ${value} · ${qualityLabel(quality)}"><img class="stat-icon" src="${html(STAT_ICONS[key])}" alt="${html(STAT_LABELS[key])}" loading="lazy"><strong>${value}</strong></em>`;
 }
-function statQuality(value) { if (value >= 25) return 'perfect'; if (value >= 20) return 'great'; if (value >= 15) return 'good'; if (value >= 10) return 'okay'; if (value >= 5) return 'bad'; return 'poor'; }
-function qualityLabel(value) { return ({ perfect: 'Perfect', great: 'Great', good: 'Good', okay: 'Okay', bad: 'Bad', poor: 'Poor' })[value] || value; }
+function statQuality(value) {
+  if (value >= 30) return 'perfect';
+  if (value >= 28) return 'near';
+  if (value >= 24) return 'great';
+  if (value >= 18) return 'good';
+  if (value >= 12) return 'okay';
+  if (value >= 6) return 'bad';
+  return 'poor';
+}
+function qualityLabel(value) { return ({ perfect: 'Perfect', near: 'Near-perfect', great: 'Great', good: 'Good', okay: 'Okay', bad: 'Bad', poor: 'Poor' })[value] || value; }
 function tagEmoji(row) { const tag = TAGS.find((item) => item.value === row.Tag && item.value); return tag ? tag.emoji : '＋'; }
 function tagTitle(row) { const tag = TAGS.find((item) => item.value === row.Tag && item.value); return tag ? `Tag: ${tag.label}` : 'Assign tag'; }
 function locationLabel(row) { if (row.Source !== 'Bungie') return 'DIM'; return row.IsInVault ? 'Vault' : row.IsEquipped ? 'Equipped' : 'Inventory'; }
