@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="0" />
+<meta name="d2aa-version" content="ingame-0.1" />
+<title>D2AA In-Game Prototype</title>
+<script>
+window.D2AA_VERSION='ingame-0.1';
+window.D2AA_ASSET_STAMP=Date.now().toString(36);
+document.write(`<link rel="stylesheet" href="./ingame.css?t=${window.D2AA_ASSET_STAMP}" />`);
+</script>
+</head>
+<body data-theme="ingame">
+<div class="app-shell">
+  <header class="command-bar">
+    <button type="button" class="gear-button" id="menuBtn" aria-label="Options" aria-expanded="false" aria-controls="commandPanel">⚙</button>
+    <div class="brand-lockup"><span class="brand-diamond">◆</span><div><strong>D2 Armor Analyzer</strong><span id="statusText">Ready</span></div></div>
+    <nav class="class-toggle" id="classToggle" aria-label="Class filter">
+      <button type="button" data-class-filter="Warlock">Warlock <b>0</b></button>
+      <button type="button" data-class-filter="Hunter">Hunter <b>0</b></button>
+      <button type="button" data-class-filter="Titan">Titan <b>0</b></button>
+    </nav>
+    <label class="search-wrap" for="searchBox"><span>Search</span><input id="searchBox" type="search" placeholder="Armor name, slot, tag, group..." autocomplete="off" /></label>
+    <button type="button" id="refreshBtn" class="command-button">Refresh</button>
+    <button type="button" id="bungieLoginBtn" class="command-button command-button--gold"><span>◇</span><b>Connect Destiny Account</b><small>Bungie OAuth login</small></button>
+    <button type="button" id="bungieSyncBtn" class="command-button"><span>↓</span><b>Sync</b><small>Bungie armor</small></button>
+    <div class="live-chip" id="liveChip" title="Live feed status"><span></span>Live</div>
+  </header>
+
+  <aside class="side-panel" id="commandPanel" aria-label="Options panel">
+    <section class="panel-card">
+      <h2>Options</h2>
+      <button type="button" class="action-card" id="restoreCacheBtn"><span>↻</span><b>Restore Cache</b><small>Load locally cached rows</small></button>
+      <button type="button" class="action-card action-card--danger" id="clearCacheBtn"><span>×</span><b>Clear Cache</b><small>Keep tags and dismissed feed state</small></button>
+      <input id="csvFile" type="file" accept=".csv" hidden />
+      <button type="button" class="action-card is-hidden" id="uploadCsvBtn"><span>⇧</span><b>Upload DIM CSV</b><small>Hidden in this prototype</small></button>
+    </section>
+    <section class="panel-card">
+      <h2>Filters</h2>
+      <label>Class <select id="classFilter"><option value="Warlock">Warlock</option><option value="Hunter">Hunter</option><option value="Titan">Titan</option></select></label>
+      <label>Slot <select id="slotFilter"><option value="all">All slots</option></select></label>
+      <label>Rarity <select id="rarityFilter"><option value="all">All rarity</option></select></label>
+      <label>Sort <select id="sortBy"><option value="default">Default analyzer order</option><option value="totalDesc">Base total high to low</option><option value="rankDesc">Grade high to low</option><option value="nameAsc">Name A to Z</option><option value="slotAsc">Slot order</option></select></label>
+      <label>Duplicate tolerance <input id="duplicateTolerance" type="range" min="0" max="20" value="5" /></label><strong id="duplicateToleranceOut">±5</strong>
+    </section>
+  </aside>
+
+  <main class="workspace" id="workspace">
+    <section class="summary-strip" id="summaryStrip">
+      <article><span>Shown</span><strong id="summaryShown">0</strong></article>
+      <article><span>Cached</span><strong id="summaryCached">0</strong></article>
+      <article><span>Groups</span><strong id="summaryGroups">0</strong></article>
+      <article><span>Recent</span><strong id="summaryRecent">0</strong></article>
+      <article><span>Class</span><strong id="summaryClasses">—</strong></article>
+    </section>
+    <div class="active-chips" id="activeChips"></div>
+    <section id="gridView" class="slot-board"></section>
+    <section id="tableView" hidden></section>
+    <table hidden><tbody id="tableBody"></tbody></table>
+    <div id="emptyState" class="empty-state"><h2>No armor loaded yet.</h2><p>Connect Destiny Account, then Sync. This prototype is Bungie-first and keeps the DIM CSV path hidden.</p></div>
+  </main>
+
+  <aside class="item-feed is-open" id="itemFeed">
+    <button type="button" class="feed-tab" id="feedToggle">Item Feed</button>
+    <div class="feed-shell"><div class="feed-head"><strong>Latest Items</strong><span id="feedCount">0</span></div><div class="feed-list" id="feedList"></div></div>
+  </aside>
+</div>
+<script type="module">
+const assetStamp=window.D2AA_ASSET_STAMP||Date.now().toString(36);
+await import(`./ingame.js?t=${assetStamp}`);
+await import(`../src-clean/bungie-wire.js?t=${assetStamp}`);
+</script>
+</body>
+</html>
