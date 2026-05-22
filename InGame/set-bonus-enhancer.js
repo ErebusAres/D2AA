@@ -3,48 +3,43 @@ import { getDef, bungieIconUrl, mapLimit, toUint32 } from '../src-clean/data/bun
 import { saveBungieInventory } from '../src-clean/data/inventory-cache.js';
 
 const ARCHETYPE_NAMES = new Set(['paragon', 'grenadier', 'specialist', 'brawler', 'bulwark', 'gunner']);
+const ENHANCEMENT_CACHE_KEY = 'd2aa_ingame_item_definition_enhancements_v2';
 const enhancedItems = new Set();
+const enhancementCache = readEnhancementCache();
 let running = false;
 let queued = false;
 let persistTimer = null;
 
 function scheduleEnhance(){
   if (running) { queued = true; return; }
-  requestIdleCallbackSafe(enhanceVisibleRows);
+  requestIdleCallbackSafe(enhanceRows);
 }
 
-async function enhanceVisibleRows(){
+async function enhanceRows(){
   if (running || !state.rows?.length) return;
   running = true;
   queued = false;
   try {
-    const candidates = state.rows.filter((row) => row.ItemHash && !enhancedItems.has(String(row.ItemHash))).slice(0, 120);
-    if (!candidates.length) return;
-    const byHash = new Map(candidates.map((row) => [String(toUint32(row.ItemHash)), row]));
-    const enhancements = new Map();
-    await mapLimit([...byHash.keys()], 4, async (hash) => {
-      const def = await getDef('DestinyInventoryItemDefinition', hash).catch(() => null);
-      const enhancement = await buildEnhancement(def, byHash.get(String(hash)));
-      enhancedItems.add(String(hash));
-      if (enhancement) enhancements.set(String(hash), enhancement);
-    });
-    if (!enhancements.size) return;
-    let changed = false;
-    const rows = state.rows.map((row) => {
-      const info = enhancements.get(String(toUint32(row.ItemHash)));
-      if (!info) return row;
-      const next = { ...row, EnhancedDefinitions: info.audit };
-      if (info.archetype?.name && (!next.Archetype || sameKey(next.Archetype) === sameKey('—'))) { next.Archetype = info.archetype.name; changed = true; }
-      if (info.archetype?.icon && (!next.ArchetypeIcon || fallbackIcon(next.ArchetypeIcon))) { next.ArchetypeIcon = info.archetype.icon; changed = true; }
-      if (info.archetype?.description && !next.ArchetypeDescription) { next.ArchetypeDescription = info.archetype.description; changed = true; }
-      if (info.setBonuses?.length && !equivalentList(next.ArmorSetBonuses, info.setBonuses)) { next.ArmorSetBonuses = info.setBonuses; next.SetBonuses = info.setBonuses; changed = true; }
-      if (String(next.Rarity || '').toLowerCase() === 'exotic' && info.exotic?.name && !sameKey(info.exotic.name).includes(sameKey(next.Name))) {
-        if (sameKey(next.ExoticPerkName) !== sameKey(info.exotic.name)) { next.ExoticPerkName = info.exotic.name; next.ExoticPerkDescription = info.exotic.description || next.ExoticPerkDescription || ''; next.ExoticIcon = info.exotic.icon || next.ExoticIcon || ''; changed = true; }
-      }
-      if (info.audit && !equivalentList(next.EnhancedDefinitions, info.audit)) { next.EnhancedDefinitions = info.audit; changed = true; }
-      return next;
-    });
-    if (changed) {
+    let rows = applyCachedEnhancements(state.rows);
+    const changedFromCache = rows !== state.rows;
+
+    const candidates = rows
+      .filter((row) => row.ItemHash && !enhancementCache[String(toUint32(row.ItemHash))] && !enhancedItems.has(String(toUint32(row.ItemHash))))
+      .slice(0, 120);
+
+    if (candidates.length) {
+      const byHash = new Map(candidates.map((row) => [String(toUint32(row.ItemHash)), row]));
+      await mapLimit([...byHash.keys()], 4, async (hash) => {
+        const def = await getDef('DestinyInventoryItemDefinition', hash).catch(() => null);
+        const enhancement = await buildEnhancement(def, byHash.get(String(hash)));
+        enhancedItems.add(String(hash));
+        if (enhancement) enhancementCache[String(hash)] = enhancement;
+      });
+      writeEnhancementCache();
+      rows = applyCachedEnhancements(rows);
+    }
+
+    if (rows !== state.rows || changedFromCache) {
       setState({ rows, status: state.status });
       persistEnhancedRows(rows);
     }
@@ -54,17 +49,44 @@ async function enhanceVisibleRows(){
   }
 }
 
+function applyCachedEnhancements(rows){
+  let changed = false;
+  const nextRows = rows.map((row) => {
+    const info = enhancementCache[String(toUint32(row.ItemHash))];
+    if (!info) return row;
+    const next = { ...row, EnhancedDefinitions: info.audit };
+    if (info.archetype?.name && (!next.Archetype || sameKey(next.Archetype) === sameKey('—'))) { next.Archetype = info.archetype.name; changed = true; }
+    if (info.archetype?.icon && (!next.ArchetypeIcon || fallbackIcon(next.ArchetypeIcon))) { next.ArchetypeIcon = info.archetype.icon; changed = true; }
+    if (info.archetype?.description && !next.ArchetypeDescription) { next.ArchetypeDescription = info.archetype.description; changed = true; }
+
+    const cleanSetBonuses = cleanSetBonusList(info.setBonuses || [], next);
+    if (cleanSetBonuses.length && !equivalentList(next.ArmorSetBonuses, cleanSetBonuses)) {
+      next.ArmorSetBonuses = cleanSetBonuses;
+      next.SetBonuses = cleanSetBonuses;
+      changed = true;
+    }
+
+    if (String(next.Rarity || '').toLowerCase() === 'exotic' && info.exotic?.name && !sameKey(info.exotic.name).includes(sameKey(next.Name))) {
+      if (sameKey(next.ExoticPerkName) !== sameKey(info.exotic.name)) {
+        next.ExoticPerkName = info.exotic.name;
+        next.ExoticPerkDescription = info.exotic.description || next.ExoticPerkDescription || '';
+        next.ExoticIcon = info.exotic.icon || next.ExoticIcon || '';
+        changed = true;
+      }
+    }
+    return next;
+  });
+  return changed ? nextRows : rows;
+}
+
 async function buildEnhancement(def, row){
   if (!def) return null;
-  const plugHashes = [...new Set([...
-    directPlugHashes(def),
-    ...await plugSetHashes(def)
-  ].filter(Boolean).map(toUint32))];
+  const plugHashes = [...new Set([...directPlugHashes(def), ...await plugSetHashes(def)].filter(Boolean).map(toUint32))];
   const plugDefs = (await mapLimit(plugHashes, 6, (hash) => getDef('DestinyInventoryItemDefinition', hash).catch(() => null))).filter(Boolean);
-  const itemSet = await itemSetInfo(def);
+  const itemSet = await itemSetInfo(def, row);
   const archetype = bestArchetype(plugDefs, row);
   const setFromPlugs = uniquePerks(plugDefs.filter((plug) => isSetBonus(plug, row)).map((plug) => perk(plug, setLabel(plug), 'set')));
-  const setBonuses = uniquePerks([...itemSet.bonuses, ...setFromPlugs]).slice(0, 6);
+  const setBonuses = cleanSetBonusList(uniquePerks([...itemSet.bonuses, ...setFromPlugs]).slice(0, 6), row);
   const exotic = String(row?.Rarity || '').toLowerCase() === 'exotic' ? bestExotic(plugDefs, def, row) : null;
   const audit = {
     itemHash: def.hash || row?.ItemHash || '',
@@ -78,7 +100,7 @@ async function buildEnhancement(def, row){
   return { archetype, setBonuses, exotic, audit };
 }
 
-async function itemSetInfo(def){
+async function itemSetInfo(def, row){
   const setHash = def?.itemSetData?.itemSetHash || def?.itemSetData?.setHash;
   if (!setHash) return { name: '', bonuses: [] };
   const setDef = await getDef('DestinyItemSetDefinition', setHash).catch(() => null);
@@ -86,30 +108,36 @@ async function itemSetInfo(def){
   const entries = [
     ...(setDef?.setPerks || []),
     ...(setDef?.setBonuses || []),
-    ...(setDef?.itemList || []),
+    ...(setDef?.perks || []),
     ...(def?.itemSetData?.setPerks || []),
-    ...(def?.itemSetData?.setBonuses || [])
+    ...(def?.itemSetData?.setBonuses || []),
+    ...(def?.itemSetData?.perks || [])
   ];
+
   for (const entry of entries) {
-    const plugHash = entry.plugItemHash || entry.itemHash || entry.rewardItemHash || entry.perkHash;
+    const plugHash = entry.plugItemHash || entry.perkHash || entry.rewardItemHash;
     const plug = plugHash ? await getDef('DestinyInventoryItemDefinition', plugHash).catch(() => null) : null;
     const rawName = entry.name || entry.displayProperties?.name || plug?.displayProperties?.name || '';
     const rawDesc = entry.description || entry.displayProperties?.description || plug?.displayProperties?.description || '';
-    const name = rawName || setDef?.displayProperties?.name || 'Armor Set Bonus';
+    const name = rawName || setDef?.displayProperties?.name || def?.itemSetData?.name || 'Armor Set Bonus';
     if (!name && !rawDesc) continue;
-    bonuses.push({
+    const candidate = {
       kind: 'set',
       label: setEntryLabel(entry, rawDesc || rawName),
       name,
       description: rawDesc,
       icon: bungieIconUrl(entry.icon || entry.displayProperties?.icon || plug?.displayProperties?.icon || setDef?.displayProperties?.icon),
       hash: plugHash || entry.hash || ''
-    });
+    };
+    if (isRealSetBonus(candidate, row)) bonuses.push(candidate);
   }
-  if (!bonuses.length && (setDef?.displayProperties?.name || def?.itemSetData?.name)) {
-    bonuses.push({ kind: 'set', label: 'Armor Set Bonus', name: setDef?.displayProperties?.name || def.itemSetData.name, description: setDef?.displayProperties?.description || '', icon: bungieIconUrl(setDef?.displayProperties?.icon), hash: setHash });
+
+  const setName = setDef?.displayProperties?.name || def?.itemSetData?.name || '';
+  const setDesc = setDef?.displayProperties?.description || '';
+  if (!bonuses.length && setName && setDesc && /bonus|piece|wearing|set/i.test(`${setName} ${setDesc}`)) {
+    bonuses.push({ kind: 'set', label: 'Armor Set Bonus', name: setName, description: setDesc, icon: bungieIconUrl(setDef?.displayProperties?.icon), hash: setHash });
   }
-  return { name: setDef?.displayProperties?.name || def?.itemSetData?.name || '', bonuses: uniquePerks(bonuses) };
+  return { name: setName, bonuses: uniquePerks(bonuses) };
 }
 
 function directPlugHashes(def){
@@ -155,11 +183,21 @@ function isArchetype(plug){
 function isSetBonus(plug, row){
   if (!plug?.displayProperties?.name) return false;
   if (isArchetype(plug)) return false;
-  const text = sameKey(`${plug.displayProperties?.name || ''} ${plug.displayProperties?.description || ''} ${plug.itemTypeDisplayName || ''} ${plug.plug?.plugCategoryIdentifier || ''}`);
-  if (!text || text.includes('emptymodsocket') || text.includes('defaultornament')) return false;
-  if (sameKey(plug.displayProperties?.name) === sameKey(row?.Name)) return false;
-  return text.includes('armorsetbonus') || text.includes('setbonus') || text.includes('armorset') || text.includes('2piece') || text.includes('4piece') || text.includes('twopiece') || text.includes('fourpiece') || text.includes('wearing2') || text.includes('wearing4') || text.includes('smokejumper');
+  const candidate = perk(plug, setLabel(plug), 'set');
+  return isRealSetBonus(candidate, row) && looksSetBonusText(`${plug.displayProperties?.name || ''} ${plug.displayProperties?.description || ''} ${plug.itemTypeDisplayName || ''} ${plug.plug?.plugCategoryIdentifier || ''}`);
 }
+function isRealSetBonus(candidate, row){
+  const name = sameKey(candidate?.name);
+  const desc = sameKey(candidate?.description);
+  const text = `${name}${desc}${sameKey(candidate?.label)}`;
+  if (!name) return false;
+  if (name === sameKey(row?.Name)) return false;
+  if (looksLikeArmorPieceName(candidate.name) && !looksSetBonusText(candidate.description)) return false;
+  return looksSetBonusText(text) || desc.length > 0;
+}
+function cleanSetBonusList(list, row){ return uniquePerks((list || []).filter((bonus) => isRealSetBonus(bonus, row))); }
+function looksSetBonusText(value){ const text = sameKey(value); return text.includes('armorsetbonus') || text.includes('setbonus') || text.includes('armorset') || text.includes('2piece') || text.includes('4piece') || text.includes('twopiece') || text.includes('fourpiece') || text.includes('wearing2') || text.includes('wearing4') || text.includes('piecesofthisset') || text.includes('smokejumper'); }
+function looksLikeArmorPieceName(value){ const text = sameKey(value); return ['helmet','helm','gauntlet','glove','chest','vest','plate','robe','leg','boot','bond','cloak','mark','cover','grips','robes','strides'].some((part) => text.includes(part)); }
 function bestExotic(plugs, def, row){
   const itemName = sameKey(row?.Name || def?.displayProperties?.name);
   const candidates = plugs.filter((plug) => {
@@ -180,6 +218,8 @@ function fallbackIcon(value){ return !value || String(value).includes('undefined
 function sameKey(value){ return String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, ''); }
 function requestIdleCallbackSafe(fn){ if ('requestIdleCallback' in window) requestIdleCallback(fn, { timeout: 1200 }); else setTimeout(fn, 50); }
 function persistEnhancedRows(rows){ clearTimeout(persistTimer); persistTimer = setTimeout(() => saveBungieInventory(rows, 'ingame-enhanced-metadata').catch((error) => console.warn('D2AA enhanced metadata cache failed', error)), 1200); }
+function readEnhancementCache(){ try { return JSON.parse(localStorage.getItem(ENHANCEMENT_CACHE_KEY) || '{}'); } catch { return {}; } }
+function writeEnhancementCache(){ try { localStorage.setItem(ENHANCEMENT_CACHE_KEY, JSON.stringify(enhancementCache)); } catch (error) { console.warn('D2AA enhancement metadata cache skipped', error); } }
 
 subscribe(scheduleEnhance);
 scheduleEnhance();
