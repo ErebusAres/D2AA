@@ -23,11 +23,13 @@ function buildBonuses(row){
   for (const perk of setBonusesFromAudit(row)) pushCleanBonus(bonuses, perk, row);
 
   for (const perk of parseMany(row.ArmorBonuses, row.ArmorPerks, row.Perks)) {
-    const normalized = normalizePerk(perk, perk.kind || inferKind(perk), perk.label || labelForKind(perk.kind || inferKind(perk)));
+    const kind = perk.kind || inferKind(perk);
+    const normalized = normalizePerk(perk, kind, perk.label || labelForKind(kind));
     if (sameText(normalized.name, archetypeName)) continue;
     if (normalized.kind === 'archetype') continue;
     if (normalized.kind === 'exotic' && sameText(normalized.name, itemName)) continue;
     if (looksLikeArchetype(normalized, row)) continue;
+    if (sameText(normalized.name, row.ExoticPerkName) || sameText(normalized.description, row.ExoticPerkDescription)) continue;
     pushCleanBonus(bonuses, normalized, row);
   }
 
@@ -39,11 +41,11 @@ function buildBonuses(row){
 
   const seen = new Set();
   return bonuses.filter((bonus) => {
-    const key = `${sameKey(bonus.kind)}|${sameKey(bonus.name)}|${sameKey(bonus.description)}`;
+    const key = dedupeKey(bonus);
     if (!bonus.name || seen.has(key)) return false;
     seen.add(key);
     return true;
-  });
+  }).sort((a,b) => kindOrder(a.kind) - kindOrder(b.kind));
 }
 
 function pushCleanBonus(target, bonus, row){
@@ -56,19 +58,13 @@ function pushCleanBonus(target, bonus, row){
 function setBonusesFromAudit(row){
   const audit = typeof row.StatAudit === 'string' ? parseJson(row.StatAudit) : row.StatAudit;
   const plugs = audit?.activePlugs || [];
-  return plugs.filter((plug) => looksLikeSetBonusPlug(plug, row)).map((plug) => ({
-    kind: 'set',
-    label: setLabel(plug),
-    name: clean(plug.name || 'Armor Set Bonus'),
-    description: clean(plug.description || plug.desc || plug.subtitle || ''),
-    icon: plug.icon || plug.iconUrl || ''
-  }));
+  return plugs.filter((plug) => looksLikeSetBonusPlug(plug, row)).map((plug) => ({ kind: 'set', label: setLabel(plug), name: clean(plug.name || 'Armor Set Bonus'), description: clean(plug.description || plug.desc || plug.subtitle || ''), icon: plug.icon || plug.iconUrl || '' }));
 }
 
 function looksLikeSetBonusPlug(plug, row){
   const text = sameKey(`${plug?.name || ''} ${plug?.description || ''} ${plug?.type || ''} ${plug?.category || ''}`);
   if (!text || looksLikeArchetype(plug, row)) return false;
-  return text.includes('setbonus') || text.includes('armorset') || text.includes('twopiece') || text.includes('fourpiece') || text.includes('2piece') || text.includes('4piece') || text.includes('wearing2') || text.includes('wearing4');
+  return text.includes('setbonus') || text.includes('armorset') || text.includes('twopiece') || text.includes('fourpiece') || text.includes('2piece') || text.includes('4piece') || text.includes('wearing2') || text.includes('wearing4') || text.includes('smokejumper');
 }
 
 function looksLikeArchetype(perk, row){
@@ -99,13 +95,15 @@ function parsePerks(value){
   return text.split(/\s*\|\s*|\s*;\s*/).filter(Boolean);
 }
 function parseJson(value){ try { return JSON.parse(value); } catch { return null; } }
-function inferKind(perk){ const text = sameKey(`${perk?.name || perk || ''} ${perk?.description || ''} ${perk?.kind || ''} ${perk?.label || ''}`); if (text.includes('setbonus') || text.includes('piecebonus')) return 'set'; if (text.includes('exotic')) return 'exotic'; if (text.includes('archetype')) return 'archetype'; return 'armor'; }
+function inferKind(perk){ const text = sameKey(`${perk?.name || perk || ''} ${perk?.description || ''} ${perk?.kind || ''} ${perk?.label || ''}`); if (text.includes('setbonus') || text.includes('piecebonus') || text.includes('armorset')) return 'set'; if (text.includes('exotic')) return 'exotic'; if (text.includes('archetype')) return 'archetype'; return 'armor'; }
 function labelForKind(kind){ if (kind === 'archetype') return 'Archetype'; if (kind === 'set') return 'Armor Set Bonus'; if (kind === 'exotic') return 'Exotic Armor Perk'; return 'Armor Bonus'; }
 function setLabel(plug){ const text = sameKey(`${plug?.name || ''} ${plug?.description || ''}`); if (text.includes('2piece') || text.includes('twopiece') || text.includes('wearing2')) return '2-Piece Set Bonus'; if (text.includes('4piece') || text.includes('fourpiece') || text.includes('wearing4')) return '4-Piece Set Bonus'; return 'Armor Set Bonus'; }
 function fallbackIcon(kind){ if (kind === 'set') return '◆'; if (kind === 'exotic') return '✦'; return '✧'; }
 function sameText(a,b){ return sameKey(a) === sameKey(b); }
 function sameKey(value){ return clean(value).toLowerCase().replace(/[^a-z0-9]+/g, ''); }
 function safeClass(value){ return sameKey(value) || 'armor'; }
+function kindOrder(kind){ return kind === 'set' ? 0 : kind === 'exotic' ? 1 : 2; }
+function dedupeKey(bonus){ const name = sameKey(bonus.name); const desc = sameKey(bonus.description); return desc ? desc : name; }
 function clean(value){ return String(value ?? '').trim(); }
 function escapeHtml(value){ return clean(value).replace(/[&<>"]/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 
