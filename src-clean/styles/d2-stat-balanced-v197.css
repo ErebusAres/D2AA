@@ -1,6 +1,6 @@
-/* v1.99 balanced full-box stat quality.
-   Goal: clear but not screaming. Whole box is tinted, number is vibrant.
-   30 is the ONLY gold category. 24-27 is unmistakably cool blue. */
+/* v2.00 active balanced full-box stat quality.
+   This is the ONLY active final stat palette loaded by d2aa-clean.html.
+   30 is the ONLY gold category. 24-27 is hard-forced cool blue. */
 
 .armor-card .card-grid-3x3 > .stat-cell,
 #itemFeed .feed-stats > em{
@@ -104,24 +104,24 @@
   --bal-icon-saturation:.95!important;
 }
 
-/* 24-27: blue-violet so it cannot be mistaken for gold/theme yellow. */
+/* 24-27: hard cool blue. No yellow/gold values anywhere. */
 .stat-quality-great{
-  --bal-number:#7aa7ff!important;
-  --bal-border:rgba(96,128,255,.56)!important;
-  --bal-top:rgba(80,105,255,.16)!important;
-  --bal-bottom:rgba(24,35,116,.18)!important;
-  --bal-pop:rgba(96,128,255,.14)!important;
-  --bal-side:rgba(96,128,255,.10)!important;
-  --bal-line:#6685ff!important;
-  --bal-line-opacity:.74!important;
-  --bal-glow:rgba(96,128,255,.13)!important;
-  --bal-glow-size:7px!important;
-  --bal-text-glow:rgba(96,128,255,.32)!important;
-  --bal-text-glow-size:5px!important;
+  --bal-number:#72a6ff!important;
+  --bal-border:rgba(88,126,255,.58)!important;
+  --bal-top:rgba(64,88,210,.135)!important;
+  --bal-bottom:rgba(24,34,116,.11)!important;
+  --bal-pop:rgba(88,126,255,.10)!important;
+  --bal-side:rgba(88,126,255,.07)!important;
+  --bal-line:#5f83ff!important;
+  --bal-line-opacity:.72!important;
+  --bal-glow:rgba(88,126,255,.08)!important;
+  --bal-glow-size:5px!important;
+  --bal-text-glow:rgba(88,126,255,.28)!important;
+  --bal-text-glow-size:4px!important;
   --bal-weight:930!important;
-  --bal-icon-opacity:.72!important;
-  --bal-icon-brightness:.82!important;
-  --bal-icon-saturation:.76!important;
+  --bal-icon-opacity:.70!important;
+  --bal-icon-brightness:.80!important;
+  --bal-icon-saturation:.70!important;
 }
 
 /* 18-23: green. */
@@ -202,6 +202,25 @@
   --bal-icon-opacity:.34!important;
   --bal-icon-brightness:.48!important;
   --bal-icon-saturation:.38!important;
+}
+
+/* Hard lock: quality wins over old stat/theme variables in d2-final-overrides. */
+.armor-card .card-grid-3x3 > .stat-cell.stat-quality-great,
+#itemFeed .feed-stats > em.stat-quality-great{
+  color:#72a6ff!important;
+  border-color:rgba(88,126,255,.58)!important;
+  background:radial-gradient(circle at 70% 12%,rgba(88,126,255,.10),transparent 55%),linear-gradient(180deg,rgba(64,88,210,.135),rgba(24,34,116,.11)),#171824!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.045),inset 0 0 0 1px rgba(0,0,0,.20),0 0 5px rgba(88,126,255,.08)!important;
+}
+.armor-card .card-grid-3x3 > .stat-cell.stat-quality-great strong,
+#itemFeed .feed-stats > em.stat-quality-great strong{
+  color:#72a6ff!important;
+  text-shadow:0 0 4px rgba(88,126,255,.28),0 1px 0 rgba(0,0,0,.85)!important;
+}
+.armor-card .card-grid-3x3 > .stat-cell.stat-quality-great::after,
+#itemFeed .feed-stats > em.stat-quality-great::after{
+  background:linear-gradient(90deg,transparent,#5f83ff,transparent)!important;
+  opacity:.72!important;
 }
 
 .armor-card .card-grid-3x3 > .stat-cell strong{font-size:16px!important;letter-spacing:.012em!important;}
