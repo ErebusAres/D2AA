@@ -1,9 +1,10 @@
 import { state, subscribe } from '../src-clean/state.js';
-import { TAGS } from '../src-clean/constants.js';
+import { TAGS, STAT_KEYS, STAT_LABELS, STAT_ICONS } from '../src-clean/constants.js';
 
 const TAG_BY_LABEL = new Map(TAGS.map((tag) => [String(tag.label || '').trim(), tag]));
 const TAG_BY_VALUE = new Map(TAGS.map((tag) => [String(tag.value || '').trim(), tag]));
 const ARCHETYPE_ICON_CACHE = new Map();
+const BONUS_ORDER = ['masterwork', 'mod', 'artifice', 'other'];
 let queued = false;
 
 function schedule() {
@@ -14,6 +15,7 @@ function schedule() {
     rebuildArchetypeIconCache();
     fixTagChips();
     fixFeedTiers();
+    fixFeedStatPopouts();
     fixArchetypeIcons();
     fixSetBonuses();
     cleanTooltipTitles();
@@ -54,6 +56,7 @@ function fixFeedTiers() {
     if (!row || !img) return;
     const wrap = document.createElement('span');
     wrap.className = 'feed-icon-wrap';
+    wrap.tabIndex = 0;
     img.parentNode.insertBefore(wrap, img);
     wrap.appendChild(img);
     const rail = document.createElement('span');
@@ -61,6 +64,88 @@ function fixFeedTiers() {
     rail.innerHTML = tierMarks(row);
     wrap.appendChild(rail);
   });
+}
+
+function fixFeedStatPopouts() {
+  document.querySelectorAll('.feed-card[data-id]').forEach((card) => {
+    const row = rowById(card.dataset.id);
+    const wrap = card.querySelector('.feed-icon-wrap');
+    if (!row || !wrap) return;
+    wrap.tabIndex = 0;
+    wrap.setAttribute('aria-label', `${displayName(row)} details`);
+    const key = feedTooltipKey(row);
+    const existing = wrap.querySelector(':scope > .feed-stat-popout');
+    if (existing && existing.dataset.tooltipKey === key) return;
+    existing?.remove();
+    const popout = document.createElement('span');
+    popout.className = 'feed-stat-popout';
+    popout.dataset.tooltipKey = key;
+    popout.innerHTML = renderFeedPopout(row);
+    wrap.appendChild(popout);
+  });
+}
+
+function renderFeedPopout(row) {
+  const name = esc(displayName(row));
+  const rarity = esc(row.Rarity || 'Legendary');
+  const slot = esc(row.Slot || row.Type || 'Armor');
+  const power = esc(row.Power || row.Light || '');
+  const archetypeIcon = row.ArchetypeIcon || ARCHETYPE_ICON_CACHE.get(normalize(row.Archetype)) || '';
+  const archetype = esc(row.Archetype || '—');
+  return `<span class="feed-popout-head"><strong>${name}</strong><em>${rarity} ${slot}${power ? ` · ${power}` : ''}</em></span>
+    <span class="feed-popout-body">
+      <span class="feed-popout-side"><span class="feed-popout-archetype">${archetypeIcon ? `<img src="${esc(archetypeIcon)}" alt="" loading="lazy">` : '<b>◇</b>'}<span>${archetype}</span></span></span>
+      <span class="feed-popout-stats">${STAT_KEYS.map((key) => renderTooltipStat(row, key)).join('')}${renderTooltipTotal(row)}</span>
+    </span>`;
+}
+
+function renderTooltipStat(row, key) {
+  const base = num(row[`Base${key}`] ?? row[key]);
+  const current = num(row[`Current${key}`] ?? row[key]);
+  const parts = bonusParts(row, key);
+  const label = esc(STAT_LABELS[key] || key);
+  return `<span class="feed-popout-stat" title="${label}: base ${base}${parts.length ? `, ${parts.map((part) => `+${part.value} ${part.type}`).join(', ')}` : ''}"><img src="${esc(STAT_ICONS[key] || '')}" alt="${label}"><span class="bar"><span class="bar-base" style="width:${Math.min(100, base)}%"></span>${renderBonusSegments(base, parts)}</span><b>${pad(current)}</b></span>`;
+}
+
+function renderBonusSegments(base, parts) {
+  let left = Math.min(100, base);
+  return parts.map((part) => {
+    const width = Math.max(0, Math.min(100 - left, part.value));
+    const html = `<span class="bar-bonus bonus-${esc(part.type)}" title="+${part.value} ${esc(part.type)}" style="left:${left}%;width:${width}%"></span>`;
+    left += width;
+    return html;
+  }).join('');
+}
+
+function renderTooltipTotal(row) {
+  const base = num(row.BaseTotal ?? row.Total);
+  const parts = totalBonusParts(row);
+  return `<span class="feed-popout-total"><span>Total</span><b><span class="base-total">${base}</span>${parts.map((part) => `<span class="bonus-total bonus-${esc(part.type)}">+${part.value}</span>`).join('')}</b></span>`;
+}
+
+function bonusParts(row, key) {
+  const fallback = num(row[`StatBonus${key}`]);
+  const parts = BONUS_ORDER.map((type) => ({ type, value: num(row[`${cap(type)}Bonus${key}`]) })).filter((part) => part.value > 0);
+  const known = parts.reduce((sum, part) => sum + part.value, 0);
+  if (fallback > known) parts.push({ type: 'other', value: fallback - known });
+  if (!parts.length && fallback > 0) parts.push({ type: 'other', value: fallback });
+  return parts;
+}
+
+function totalBonusParts(row) {
+  const fallback = num(row.StatBonusTotal ?? Math.max(0, num(row.CurrentTotal) - num(row.BaseTotal)));
+  const parts = BONUS_ORDER.map((type) => ({
+    type,
+    value: num(row[`${cap(type)}BonusTotal`]) || STAT_KEYS.reduce((sum, key) => sum + num(row[`${cap(type)}Bonus${key}`]), 0)
+  })).filter((part) => part.value > 0);
+  const known = parts.reduce((sum, part) => sum + part.value, 0);
+  if (fallback > known) parts.push({ type: 'other', value: fallback - known });
+  if (!parts.length && fallback > 0) parts.push({ type: 'other', value: fallback });
+  return parts;
+}
+
+function feedTooltipKey(row) {
+  return [row.Id, row.BaseTotal, row.CurrentTotal, row.StatBonusTotal, row.Archetype, row.ArchetypeIcon, STAT_KEYS.map((key) => `${row[`Base${key}`] ?? row[key]}:${row[`Current${key}`] ?? row[key]}:${row[`StatBonus${key}`] ?? ''}`).join(',')].join('|');
 }
 
 function fixArchetypeIcons() {
@@ -111,14 +196,7 @@ function extractSetBonuses(row) {
     if (isExoticOrArchetypePerk(plug, row)) continue;
     const text = [plug.name, plug.description, plug.type, plug.category, plug.label, JSON.stringify(plug.stats || [])].filter(Boolean).join(' ');
     if (!looksLikeSetBonus(text)) continue;
-    out.push({
-      kind: 'set',
-      label: setBonusLabel(text),
-      name: plug.name || setBonusLabel(text),
-      description: plug.description || plug.type || plug.category || 'Armor set bonus socket detected.',
-      icon: plug.icon || '',
-      hash: plug.hash || plug.name || text
-    });
+    out.push({ kind: 'set', label: setBonusLabel(text), name: plug.name || setBonusLabel(text), description: plug.description || plug.type || plug.category || 'Armor set bonus socket detected.', icon: plug.icon || '', hash: plug.hash || plug.name || text });
   }
   return uniquePerks(out.filter((perk) => perk && (perk.name || perk.description)));
 }
@@ -126,29 +204,14 @@ function extractSetBonuses(row) {
 function isExoticOrArchetypePerk(perk, row) {
   const text = normalize([perk?.name, perk?.description, perk?.label, perk?.type, perk?.category, perk?.kind].filter(Boolean).join(' '));
   const name = normalize(perk?.name);
-  return normalize(row.Rarity) === 'exotic'
-    || text.includes('exotic')
-    || text.includes('intrinsic')
-    || text.includes('archetype')
-    || name === normalize(row.Name)
-    || name === normalize(row.Archetype);
+  return normalize(row.Rarity) === 'exotic' || text.includes('exotic') || text.includes('intrinsic') || text.includes('archetype') || name === normalize(row.Name) || name === normalize(row.Archetype);
 }
 
 function looksLikeSetBonus(text) {
   const value = normalize(text);
   const hasSet = value.includes(' set ') || value.startsWith('set ') || value.includes('armor set') || value.includes('setbonus');
   const hasBonus = value.includes('bonus') || value.includes('perk') || value.includes('trait') || value.includes('pieces') || value.includes('piece');
-  return (hasSet && hasBonus)
-    || value.includes('set bonus')
-    || value.includes('armor set bonus')
-    || value.includes('2 piece')
-    || value.includes('4 piece')
-    || value.includes('two piece')
-    || value.includes('four piece')
-    || value.includes('wearing 2')
-    || value.includes('wearing 4')
-    || value.includes('while wearing')
-    || value.includes('smokejumper');
+  return (hasSet && hasBonus) || value.includes('set bonus') || value.includes('armor set bonus') || value.includes('2 piece') || value.includes('4 piece') || value.includes('two piece') || value.includes('four piece') || value.includes('wearing 2') || value.includes('wearing 4') || value.includes('while wearing') || value.includes('smokejumper');
 }
 
 function setBonusLabel(text) {
@@ -195,6 +258,19 @@ function parsePerks(value) {
   if (!value) return [];
   if (Array.isArray(value)) return value;
   try { const parsed = JSON.parse(value); return Array.isArray(parsed) ? parsed : []; } catch { return []; }
+}
+
+function displayName(row) {
+  const name = String(row.Name || '').trim();
+  return name && !name.includes('|') ? name : String(row.Type || row.Slot || 'Unknown Armor');
+}
+
+function cap(value) {
+  return String(value || '').replace(/^./, (char) => char.toUpperCase());
+}
+
+function pad(value) {
+  return String(num(value)).padStart(2, ' ');
 }
 
 function normalize(value) {
