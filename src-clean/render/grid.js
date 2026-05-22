@@ -107,15 +107,16 @@ function statCell(row, key) {
   return `<div class="stat-cell stat-${key.toLowerCase()} stat-quality-${quality}" title="${html(STAT_LABELS[key])}: ${value} · ${qualityLabel(quality)}"><span class="stat-icon-only"><img class="stat-icon" src="${html(STAT_ICONS[key])}" alt="${html(STAT_LABELS[key])}" loading="lazy"></span><strong>${value}</strong></div>`;
 }
 function statQuality(value) {
-  if (value >= 25) return 'perfect';
-  if (value >= 20) return 'great';
-  if (value >= 15) return 'good';
-  if (value >= 10) return 'okay';
-  if (value >= 5) return 'bad';
+  if (value >= 30) return 'perfect';
+  if (value >= 28) return 'near';
+  if (value >= 24) return 'great';
+  if (value >= 18) return 'good';
+  if (value >= 12) return 'okay';
+  if (value >= 6) return 'bad';
   return 'poor';
 }
 function qualityLabel(value) {
-  return ({ perfect: 'Perfect', great: 'Great', good: 'Good', okay: 'Okay', bad: 'Bad', poor: 'Poor' })[value] || value;
+  return ({ perfect: 'Perfect', near: 'Near-perfect', great: 'Great', good: 'Good', okay: 'Okay', bad: 'Bad', poor: 'Poor' })[value] || value;
 }
 function lightBadgeText(row) {
   return row.Power || row.Light || '';
