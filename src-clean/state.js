@@ -11,6 +11,7 @@ const ARCHETYPE_STATS = [
   ['Weapon', 'Weapon']
 ];
 const STAT_KEYS = ['Health', 'Melee', 'Grenade', 'Super', 'ClassAbility', 'Weapon'];
+const BONUS_TYPES = ['Masterwork', 'Mod', 'Artifice', 'Other'];
 
 export const state = {
   rows: [],
@@ -178,61 +179,39 @@ export function writeJson(key, value) {
 }
 
 export function slimRowForStorage(row) {
-  const slim = {
-    Name: row.Name,
-    Id: row.Id,
-    Type: row.Type,
-    Slot: row.Slot,
-    Rarity: row.Rarity,
-    Class: row.Class,
-    Equippable: row.Equippable,
-    Tier: row.Tier,
-    GearTier: row.GearTier,
-    TierSource: row.TierSource,
-    TierMax: row.TierMax,
-    Power: row.Power,
-    Light: row.Light,
-    Archetype: row.Archetype,
-    ArchetypeIcon: row.ArchetypeIcon,
-    ArchetypeDescription: row.ArchetypeDescription,
-    ArchetypeHash: row.ArchetypeHash,
-    ArchetypeTrait: row.ArchetypeTrait,
-    Icon: row.Icon,
-    IconUrl: row.IconUrl,
-    Health: row.Health,
-    Melee: row.Melee,
-    Grenade: row.Grenade,
-    Super: row.Super,
-    ClassAbility: row.ClassAbility,
-    Weapon: row.Weapon,
-    Total: row.Total,
-    BaseTotal: row.BaseTotal,
-    CurrentTotal: row.CurrentTotal,
-    StatBonusTotal: row.StatBonusTotal,
-    StatSource: row.StatSource,
-    Source: row.Source,
-    FoundAt: row.FoundAt,
-    ActivityAt: row.ActivityAt,
-    RecentStatus: row.RecentStatus,
-    RecentlyFound: row.RecentlyFound,
-    LastChangedAt: row.LastChangedAt,
-    Tag: row.Tag,
-    ItemHash: row.ItemHash,
-    BucketHash: row.BucketHash,
-    MembershipType: row.MembershipType,
-    OwnerCharacterId: row.OwnerCharacterId,
-    TargetCharacterId: row.TargetCharacterId,
-    IsInVault: row.IsInVault,
-    IsEquipped: row.IsEquipped,
-    ItemSignature: row.ItemSignature,
-    LocationSignature: row.LocationSignature
-  };
+  const slim = { ...row };
+  delete slim._index;
+  delete slim.Group;
+  delete slim.GroupActionKey;
+  delete slim.GroupColor;
+  delete slim.Is_Dupe;
+  delete slim.Dupe_Group;
+  delete slim.SortGroup;
+
   for (const key of STAT_KEYS) {
+    slim[key] = row[key];
     slim[`Base${key}`] = row[`Base${key}`];
     slim[`Current${key}`] = row[`Current${key}`];
     slim[`StatBonus${key}`] = row[`StatBonus${key}`];
+    for (const type of BONUS_TYPES) slim[`${type}Bonus${key}`] = row[`${type}Bonus${key}`];
   }
+  for (const type of BONUS_TYPES) slim[`${type}BonusTotal`] = row[`${type}BonusTotal`];
+
+  slim.ArmorSetBonuses = cloneJsonSafe(row.ArmorSetBonuses || row.SetBonuses || []);
+  slim.SetBonuses = cloneJsonSafe(row.SetBonuses || row.ArmorSetBonuses || []);
+  slim.ArmorBonuses = cloneJsonSafe(row.ArmorBonuses || row.ArmorPerks || []);
+  slim.ArmorPerks = cloneJsonSafe(row.ArmorPerks || row.ArmorBonuses || []);
+  slim.StatAudit = cloneJsonSafe(row.StatAudit || null);
+  slim.SocketAudit = cloneJsonSafe(row.SocketAudit || null);
+  slim.DefinitionAudit = cloneJsonSafe(row.DefinitionAudit || null);
+  slim.EnhancedDefinitions = cloneJsonSafe(row.EnhancedDefinitions || null);
   return slim;
+}
+
+function cloneJsonSafe(value) {
+  if (value == null) return value;
+  try { return JSON.parse(JSON.stringify(value)); }
+  catch (_) { return value; }
 }
 
 function persistSettings() {
