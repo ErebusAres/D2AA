@@ -9,7 +9,7 @@ function applyBonusIcons(){
     if (!host) return;
     const bonuses = buildBonuses(row).slice(0, 6);
     host.classList.toggle('is-empty', bonuses.length === 0);
-    host.setAttribute('aria-label', 'Archetype, set bonuses, and exotic perks');
+    host.setAttribute('aria-label', 'Armor set bonuses and exotic perks');
     host.innerHTML = bonuses.length
       ? bonuses.map(renderBonus).join('')
       : '<span></span><span></span><span></span>';
@@ -19,32 +19,30 @@ function applyBonusIcons(){
 function buildBonuses(row){
   const bonuses = [];
   const archetypeName = clean(row.Archetype);
-  if (archetypeName && archetypeName !== '—') {
-    bonuses.push({
-      kind: 'archetype',
-      label: 'Archetype',
-      name: archetypeName,
-      description: clean(row.ArchetypeDescription) || 'Armor archetype bonus.',
-      icon: row.ArchetypeIcon
-    });
-  }
+  const itemName = clean(row.Name);
 
   for (const perk of parseMany(row.ArmorSetBonuses, row.SetBonuses, row.SetBonus, row.ArmorSetBonus)) {
     bonuses.push(normalizePerk(perk, 'set', 'Armor Set Bonus'));
   }
 
   for (const perk of parseMany(row.ArmorBonuses, row.ArmorPerks, row.Perks)) {
-    const normalized = normalizePerk(perk, perk.kind || inferKind(perk), perk.label || 'Armor Bonus');
-    if (normalized.name && !sameText(normalized.name, archetypeName)) bonuses.push(normalized);
+    const normalized = normalizePerk(perk, perk.kind || inferKind(perk), perk.label || labelForKind(perk.kind || inferKind(perk)));
+    if (!normalized.name) continue;
+    if (sameText(normalized.name, archetypeName)) continue;
+    if (normalized.kind === 'archetype') continue;
+    if (normalized.kind === 'exotic' && sameText(normalized.name, itemName)) continue;
+    bonuses.push(normalized);
   }
 
-  if (String(row.Rarity || '').toLowerCase() === 'exotic') {
+  const exoticName = clean(row.ExoticPerkName || row.ExoticName);
+  const exoticDesc = clean(row.ExoticPerkDescription || row.ExoticDescription);
+  if (String(row.Rarity || '').toLowerCase() === 'exotic' && exoticName && !sameText(exoticName, itemName)) {
     bonuses.push({
       kind: 'exotic',
       label: 'Exotic Armor Perk',
-      name: clean(row.ExoticPerkName) || clean(row.ExoticName) || clean(row.Name) || 'Exotic Armor Perk',
-      description: clean(row.ExoticPerkDescription) || clean(row.ExoticDescription) || 'Exotic armor perk. A fresh Bungie sync is needed if this still only shows the item name.',
-      icon: row.ExoticIcon || row.IconUrl || row.Icon
+      name: exoticName,
+      description: exoticDesc || 'No description available yet.',
+      icon: row.ExoticIcon || ''
     });
   }
 
@@ -59,9 +57,10 @@ function buildBonuses(row){
 
 function normalizePerk(perk, kind = 'armor', fallbackLabel = 'Armor Bonus'){
   if (typeof perk === 'string') return { kind, label: fallbackLabel, name: perk, description: '', icon: '' };
+  const normalizedKind = kind || 'armor';
   return {
-    kind,
-    label: perk.label || labelForKind(kind) || fallbackLabel,
+    kind: normalizedKind,
+    label: perk.label || labelForKind(normalizedKind) || fallbackLabel,
     name: clean(perk.name || perk.displayName || perk.title),
     description: clean(perk.description || perk.desc || perk.subtitle),
     icon: perk.icon || perk.iconUrl || perk.Icon || ''
@@ -74,10 +73,7 @@ function renderBonus(bonus){
   return `<span class="${cls}" tabindex="0">${icon}<span class="d2-tooltip"><b>${escapeHtml(bonus.name)}</b><em>${escapeHtml(bonus.label || labelForKind(bonus.kind))}</em><p>${escapeHtml(bonus.description || 'No description available yet.')}</p></span></span>`;
 }
 
-function parseMany(...values){
-  return values.flatMap(parsePerks).filter(Boolean);
-}
-
+function parseMany(...values){ return values.flatMap(parsePerks).filter(Boolean); }
 function parsePerks(value){
   if (!value) return [];
   if (Array.isArray(value)) return value;
@@ -91,29 +87,24 @@ function parsePerks(value){
   } catch {}
   return text.split(/\s*\|\s*|\s*;\s*/).filter(Boolean);
 }
-
 function inferKind(perk){
-  const text = sameKey(`${perk?.name || perk || ''} ${perk?.description || ''} ${perk?.kind || ''}`);
-  if (text.includes('set bonus') || text.includes('setbonus')) return 'set';
+  const text = sameKey(`${perk?.name || perk || ''} ${perk?.description || ''} ${perk?.kind || ''} ${perk?.label || ''}`);
+  if (text.includes('setbonus') || text.includes('piecebonus')) return 'set';
   if (text.includes('exotic')) return 'exotic';
   if (text.includes('archetype')) return 'archetype';
   return 'armor';
 }
-
 function labelForKind(kind){
   if (kind === 'archetype') return 'Archetype';
   if (kind === 'set') return 'Armor Set Bonus';
   if (kind === 'exotic') return 'Exotic Armor Perk';
   return 'Armor Bonus';
 }
-
 function fallbackIcon(kind){
-  if (kind === 'archetype') return '◇';
   if (kind === 'set') return '◆';
   if (kind === 'exotic') return '✦';
   return '✧';
 }
-
 function sameText(a,b){ return sameKey(a) === sameKey(b); }
 function sameKey(value){ return clean(value).toLowerCase().replace(/[^a-z0-9]+/g, ''); }
 function safeClass(value){ return sameKey(value) || 'armor'; }
