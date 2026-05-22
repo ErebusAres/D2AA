@@ -6,10 +6,10 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
-<meta name="d2aa-version" content="ingame-0.27-action-labels" />
+<meta name="d2aa-version" content="ingame-0.28-feed-refresh" />
 <title>D2AA In-Game Prototype</title>
 <script>
-window.D2AA_VERSION='ingame-0.27-action-labels';
+window.D2AA_VERSION='ingame-0.28-feed-refresh';
 window.D2AA_BUNGIE_REDIRECT_URI='https://erebusares.github.io/D2AA/InGame/InGame.html';
 window.D2AA_DISABLE_DIM_CONTROLS=true;
 window.D2AA_ASSET_STAMP=Date.now().toString(36);
@@ -30,8 +30,7 @@ document.write(`<link rel="stylesheet" href="./ingame-overrides.css?t=${window.D
       <button type="button" data-class-filter="Titan">Titan <b>0</b></button>
     </nav>
     <label class="search-wrap" for="searchBox"><span>Search</span><input id="searchBox" type="search" placeholder="Armor name, slot, tag, group..." autocomplete="off" /></label>
-    <button type="button" id="refreshBtn" class="command-button" title="Manual live-feed check. Uses the same Bungie inventory refresh path, but is meant for checking whether new drops arrived."><span>↻</span><b>Check Now</b><small>Latest drops</small></button>
-    <button type="button" id="bungieLoginBtn" class="command-button command-button--gold" title="Sign in with Bungie"><span class="bungie-mark" aria-hidden="true">◇</span><b>Sign In</b><small>Bungie</small></button>
+    <button type="button" id="bungieLoginBtn" class="command-button command-button--gold" title="Sign in with Bungie"><span class="bungie-mark" aria-hidden="true"><img src="https://www.bungie.net/favicon.ico" alt="" loading="lazy"></span><b>Sign In</b><small>Bungie</small></button>
     <button type="button" id="bungieSyncBtn" class="command-button" title="Manual Bungie armor sync"><span>↓</span><b>Sync Armor</b><small>Full inventory</small></button>
   </header>
 
@@ -63,7 +62,7 @@ document.write(`<link rel="stylesheet" href="./ingame-overrides.css?t=${window.D
 
   <aside class="item-feed is-open" id="itemFeed">
     <button type="button" class="feed-tab" id="feedToggle">Item Feed</button>
-    <div class="feed-shell"><div class="feed-head"><strong>Latest Items</strong><span id="feedCount">0</span></div><div class="feed-list" id="feedList"></div></div>
+    <div class="feed-shell"><div class="feed-head"><strong>Latest Items</strong><span id="feedCount">0</span><button type="button" id="refreshBtn" class="feed-refresh-button" title="Check latest drops now" aria-label="Check latest drops now"><span aria-hidden="true">↻</span></button></div><div class="feed-list" id="feedList"></div></div>
   </aside>
 </div>
 <script type="module">
