@@ -21,6 +21,7 @@ let activeSyncReason = '';
 let lastSyncSummary = 'Live feed waiting';
 
 const dataButtonHtml = (icon, label, detail) => `<span>${icon}</span><b>${label}</b><small>${detail}</small>`;
+const dimControlsDisabled = () => Boolean(window.D2AA_DISABLE_DIM_CONTROLS);
 
 function bindBungieControls() {
   if (controlsBound) return;
@@ -151,6 +152,11 @@ async function runDimTagSync(button) {
 }
 
 function ensureDimSyncButton() {
+  if (dimControlsDisabled()) {
+    document.getElementById('dimTagSyncBtn')?.remove();
+    document.getElementById('dimTagResetBtn')?.remove();
+    return;
+  }
   if (document.getElementById('dimTagSyncBtn')) return;
   const sync = document.getElementById('bungieSyncBtn');
   const host = sync?.parentElement;
@@ -170,6 +176,7 @@ function ensureDimSyncButton() {
 }
 
 function updateDimSyncAvailability() {
+  if (dimControlsDisabled()) return;
   const button = document.getElementById('dimTagSyncBtn');
   if (!button) return;
   if (canRunLiveDimSync()) {
@@ -246,6 +253,11 @@ function updateLiveDiagnostics(stateName, message) {
     feed.title = message;
     const title = feed.querySelector('.feed-head strong');
     if (title) title.dataset.liveText = message;
+  }
+  const chip = document.getElementById('liveChip');
+  if (chip) {
+    chip.dataset.liveState = stateName;
+    chip.title = message;
   }
   document.body.dataset.liveFeedState = stateName;
 }
