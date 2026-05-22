@@ -85,7 +85,6 @@ async function runSync(reason, background = false) {
   const visibleBefore = state.rows.length;
 
   try {
-    if (background) setStatus(`Live feed checking… ${shortReason(reason)}`);
     const result = await syncBungieInventory({ setStatus, setRows, reason, background });
     refreshLoginState();
 
@@ -106,15 +105,9 @@ async function runSync(reason, background = false) {
       const meta = result.meta || {};
       const added = Number(meta.added || 0);
       const checked = new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-      lastSyncSummary = added
-        ? `Checked ${checked} · New ${added}`
-        : `Checked ${checked} · No new armor`;
+      lastSyncSummary = added ? `Checked ${checked} · New ${added}` : `Checked ${checked} · No new armor`;
       updateLiveDiagnostics(added ? 'new' : 'current', lastSyncSummary);
-      if (background || visibleBefore) {
-        setStatus(added
-          ? `Live feed updated ${checked}. New armor: ${added}.`
-          : `Live feed current ${checked}. No new armor found.`);
-      }
+      if (!background || !visibleBefore) setStatus(added ? `Bungie sync complete. New armor: ${added}.` : `Bungie sync complete. No new armor found.`);
     } else {
       updateLiveDiagnostics('waiting', `Sync skipped · ${lastSyncSummary}`);
     }
@@ -137,177 +130,31 @@ async function runDimTagSync(button) {
     let changed = 0;
     state.rows.forEach((row) => {
       const tag = result.tags?.[row.InstanceId || row.Id] || result.tags?.[row.Id];
-      if (tag && tag !== row.Tag) {
-        updateTag(row.Id, tag);
-        changed += 1;
-      }
+      if (tag && tag !== row.Tag) { updateTag(row.Id, tag); changed += 1; }
     });
     setStatus(`DIM tag sync complete. Applied ${changed} matching tags from ${result.count} DIM-tagged items.`);
-  } catch (error) {
-    console.error('D2AA DIM tag sync failed', error);
-    setStatus(error.message || String(error));
-  } finally {
-    if (button) setTimeout(() => { button.innerHTML = original; updateDimSyncAvailability(); }, 1200);
-  }
+  } catch (error) { console.error('D2AA DIM tag sync failed', error); setStatus(error.message || String(error)); }
+  finally { if (button) setTimeout(() => { button.innerHTML = original; updateDimSyncAvailability(); }, 1200); }
 }
 
 function ensureDimSyncButton() {
-  if (dimControlsDisabled()) {
-    document.getElementById('dimTagSyncBtn')?.remove();
-    document.getElementById('dimTagResetBtn')?.remove();
-    return;
-  }
+  if (dimControlsDisabled()) { document.getElementById('dimTagSyncBtn')?.remove(); document.getElementById('dimTagResetBtn')?.remove(); return; }
   if (document.getElementById('dimTagSyncBtn')) return;
-  const sync = document.getElementById('bungieSyncBtn');
-  const host = sync?.parentElement;
-  if (!host) return;
-  const button = document.createElement('button');
-  button.id = 'dimTagSyncBtn';
-  button.type = 'button';
-  button.className = `${sync?.className || 'option-button'} data-secondary-card`;
-  host.appendChild(button);
-  const reset = document.createElement('button');
-  reset.id = 'dimTagResetBtn';
-  reset.type = 'button';
-  reset.className = `${sync?.className || 'option-button'} data-secondary-card data-reset-card`;
-  reset.innerHTML = dataButtonHtml('⟲', 'Reset DIM Key', 'Clear local DIM API token');
-  host.appendChild(reset);
+  const sync = document.getElementById('bungieSyncBtn'); const host = sync?.parentElement; if (!host) return;
+  const button = document.createElement('button'); button.id = 'dimTagSyncBtn'; button.type = 'button'; button.className = `${sync?.className || 'option-button'} data-secondary-card`; host.appendChild(button);
+  const reset = document.createElement('button'); reset.id = 'dimTagResetBtn'; reset.type = 'button'; reset.className = `${sync?.className || 'option-button'} data-secondary-card data-reset-card`; reset.innerHTML = dataButtonHtml('⟲', 'Reset DIM Key', 'Clear local DIM API token'); host.appendChild(reset);
   updateDimSyncAvailability();
 }
-
-function updateDimSyncAvailability() {
-  if (dimControlsDisabled()) return;
-  const button = document.getElementById('dimTagSyncBtn');
-  if (!button) return;
-  if (canRunLiveDimSync()) {
-    button.disabled = false;
-    button.title = '';
-    button.innerHTML = dataButtonHtml('⌁', 'Sync DIM Tags', 'Pull favorite/keep/junk/infuse/archive');
-  } else {
-    button.disabled = true;
-    button.title = 'DIM blocks automatic app registration from GitHub Pages.';
-    button.innerHTML = dataButtonHtml('⌁', 'DIM Tags Unavailable', 'Use DIM CSV import for tags');
-  }
-}
-
-function canRunLiveDimSync() {
-  const host = window.location.hostname || 'localhost';
-  const hasKey = Boolean(localStorage.getItem('d2aa_dim_api_key_v1') || localStorage.getItem('dimApiKey') || window.D2AA_DIM_API_KEY);
-  const localHost = host === 'localhost' || host === '127.0.0.1';
-  return hasKey || localHost;
-}
-
-function requestLiveRefresh(reason, bypassGap = false) {
-  if (!isSignedIn()) return refreshLoginState();
-  if (!isPageLive()) return scheduleItemFeedPoll();
-  if (!bypassGap && Date.now() - lastLiveRefreshAt < LIVE_MIN_GAP_MS) {
-    updateLiveDiagnostics('waiting', `Waiting · next check soon · ${lastSyncSummary}`);
-    return;
-  }
-  runSync(reason, true);
-}
-
-function scheduleLivePulse() {
-  clearTimeout(liveRefreshTimer);
-  if (!isSignedIn()) return refreshLoginState();
-  liveRefreshTimer = setTimeout(() => {
-    requestLiveRefresh('live-pulse');
-    scheduleLivePulse();
-  }, LIVE_REFRESH_MS);
-}
-
-function scheduleItemFeedPoll(delay = ITEM_FEED_CHECK_MS) {
-  clearTimeout(itemFeedPollTimer);
-  if (!isSignedIn()) return refreshLoginState();
-  updateLiveDiagnostics(lastLiveRefreshAt ? 'waiting' : 'queued', lastLiveRefreshAt ? `Next feed check queued · ${lastSyncSummary}` : 'Initial feed check queued');
-  itemFeedPollTimer = setTimeout(() => {
-    if (isPageLive()) requestLiveRefresh('item-feed-poll');
-    scheduleItemFeedPoll();
-  }, delay);
-}
-
-function setFeedPolling(active, reason = '', immediate = false) {
-  clearTimeout(feedPollingClearTimer);
-  const feed = document.getElementById('itemFeed');
-  if (active) {
-    feedPollingStartedAt = Date.now();
-    document.body.classList.add('feed-polling');
-    if (feed) feed.dataset.pollingReason = reason || 'syncing';
-    return;
-  }
-  const clear = () => {
-    document.body.classList.remove('feed-polling');
-    if (feed) feed.dataset.pollingReason = '';
-    feedPollingStartedAt = 0;
-  };
-  if (immediate || !feedPollingStartedAt) return clear();
-  const elapsed = Date.now() - feedPollingStartedAt;
-  feedPollingClearTimer = setTimeout(clear, Math.max(0, MIN_FEED_SPINNER_MS - elapsed));
-}
-
-function updateLiveDiagnostics(stateName, message) {
-  const feed = document.getElementById('itemFeed');
-  if (feed) {
-    feed.dataset.liveState = stateName;
-    feed.dataset.liveText = message;
-    feed.title = message;
-    const title = feed.querySelector('.feed-head strong');
-    if (title) title.dataset.liveText = message;
-  }
-  const chip = document.getElementById('liveChip');
-  if (chip) {
-    chip.dataset.liveState = stateName;
-    chip.title = message;
-  }
-  document.body.dataset.liveFeedState = stateName;
-}
-
-function isPageLive() {
-  return !document.hidden && navigator.onLine && (document.hasFocus?.() ?? true);
-}
-
-function refreshLoginState() {
-  const login = document.getElementById('bungieLoginBtn');
-  const sync = document.getElementById('bungieSyncBtn');
-  const signedIn = isSignedIn();
-  if (login) {
-    const label = login.querySelector('b');
-    const detail = login.querySelector('small');
-    if (label) label.textContent = signedIn ? 'Destiny Account Connected' : 'Connect Destiny Account';
-    if (detail) detail.textContent = signedIn ? 'Session remembered; refresh uses Bungie token' : 'Bungie OAuth login';
-    login.disabled = false;
-  }
-  if (sync) sync.disabled = false;
-  document.body.classList.toggle('bungie-signed-in', signedIn);
-  updateDimSyncAvailability();
-  if (!signedIn) updateLiveDiagnostics('signed-out', 'Not connected · Bungie login needed');
-}
-
-function clearOversizedGenericCache() {
-  try {
-    const value = localStorage.getItem(ROW_CACHE_KEY) || '';
-    if (value.length > 750000) localStorage.removeItem(ROW_CACHE_KEY);
-  } catch (_) {}
-}
-
-function shortReason(reason) {
-  return String(reason || '').replace(/[-_]/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
-}
-
-async function bootBungieSidecar() {
-  clearOversizedGenericCache();
-  bindBungieControls();
-  try {
-    await initializeBungieSync({ setStatus, setRows, hasRows });
-    refreshLoginState();
-    scheduleLivePulse();
-    scheduleItemFeedPoll(isSignedIn() ? 3000 : ITEM_FEED_CHECK_MS);
-  } catch (error) {
-    console.error('D2AA clean Bungie sidecar failed', error);
-    updateLiveDiagnostics('error', error.message || String(error));
-    setStatus(error.message || String(error));
-    refreshLoginState();
-  }
-}
-
+function updateDimSyncAvailability() { if (dimControlsDisabled()) return; const button = document.getElementById('dimTagSyncBtn'); if (!button) return; if (canRunLiveDimSync()) { button.disabled = false; button.title = ''; button.innerHTML = dataButtonHtml('⌁', 'Sync DIM Tags', 'Pull favorite/keep/junk/infuse/archive'); } else { button.disabled = true; button.title = 'DIM blocks automatic app registration from GitHub Pages.'; button.innerHTML = dataButtonHtml('⌁', 'DIM Tags Unavailable', 'Use DIM CSV import for tags'); } }
+function canRunLiveDimSync() { const host = window.location.hostname || 'localhost'; const hasKey = Boolean(localStorage.getItem('d2aa_dim_api_key_v1') || localStorage.getItem('dimApiKey') || window.D2AA_DIM_API_KEY); const localHost = host === 'localhost' || host === '127.0.0.1'; return hasKey || localHost; }
+function requestLiveRefresh(reason, bypassGap = false) { if (!isSignedIn()) return refreshLoginState(); if (!isPageLive()) return scheduleItemFeedPoll(); if (!bypassGap && Date.now() - lastLiveRefreshAt < LIVE_MIN_GAP_MS) { updateLiveDiagnostics('waiting', `Waiting · next check soon · ${lastSyncSummary}`); return; } runSync(reason, true); }
+function scheduleLivePulse() { clearTimeout(liveRefreshTimer); if (!isSignedIn()) return refreshLoginState(); liveRefreshTimer = setTimeout(() => { requestLiveRefresh('live-pulse'); scheduleLivePulse(); }, LIVE_REFRESH_MS); }
+function scheduleItemFeedPoll(delay = ITEM_FEED_CHECK_MS) { clearTimeout(itemFeedPollTimer); if (!isSignedIn()) return refreshLoginState(); updateLiveDiagnostics(lastLiveRefreshAt ? 'waiting' : 'queued', lastLiveRefreshAt ? `Next feed check queued · ${lastSyncSummary}` : 'Initial feed check queued'); itemFeedPollTimer = setTimeout(() => { if (isPageLive()) requestLiveRefresh('item-feed-poll'); scheduleItemFeedPoll(); }, delay); }
+function setFeedPolling(active, reason = '', immediate = false) { clearTimeout(feedPollingClearTimer); const feed = document.getElementById('itemFeed'); if (active) { feedPollingStartedAt = Date.now(); document.body.classList.add('feed-polling'); if (feed) feed.dataset.pollingReason = reason || 'syncing'; return; } const clear = () => { document.body.classList.remove('feed-polling'); if (feed) feed.dataset.pollingReason = ''; feedPollingStartedAt = 0; }; if (immediate || !feedPollingStartedAt) return clear(); const elapsed = Date.now() - feedPollingStartedAt; feedPollingClearTimer = setTimeout(clear, Math.max(0, MIN_FEED_SPINNER_MS - elapsed)); }
+function updateLiveDiagnostics(stateName, message) { const feed = document.getElementById('itemFeed'); if (feed) { feed.dataset.liveState = stateName; feed.dataset.liveText = message; feed.title = message; const title = feed.querySelector('.feed-head strong'); if (title) title.dataset.liveText = message; } const chip = document.getElementById('liveChip'); if (chip) { chip.dataset.liveState = stateName; chip.title = message; } document.body.dataset.liveFeedState = stateName; }
+function isPageLive() { return !document.hidden && navigator.onLine && (document.hasFocus?.() ?? true); }
+function refreshLoginState() { const login = document.getElementById('bungieLoginBtn'); const sync = document.getElementById('bungieSyncBtn'); const signedIn = isSignedIn(); if (login) { const label = login.querySelector('b'); const detail = login.querySelector('small'); if (label) label.textContent = signedIn ? 'Destiny Account Connected' : 'Connect Destiny Account'; if (detail) detail.textContent = signedIn ? 'Session remembered; refresh uses Bungie token' : 'Bungie OAuth login'; login.disabled = false; } if (sync) sync.disabled = false; document.body.classList.toggle('bungie-signed-in', signedIn); updateDimSyncAvailability(); if (!signedIn) updateLiveDiagnostics('signed-out', 'Not connected · Bungie login needed'); }
+function clearOversizedGenericCache() { try { const value = localStorage.getItem(ROW_CACHE_KEY) || ''; if (value.length > 750000) localStorage.removeItem(ROW_CACHE_KEY); } catch (_) {} }
+function shortReason(reason) { return String(reason || '').replace(/[-_]/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase()); }
+async function bootBungieSidecar() { clearOversizedGenericCache(); bindBungieControls(); try { await initializeBungieSync({ setStatus, setRows, hasRows }); refreshLoginState(); scheduleLivePulse(); scheduleItemFeedPoll(isSignedIn() ? 3000 : ITEM_FEED_CHECK_MS); } catch (error) { console.error('D2AA clean Bungie sidecar failed', error); updateLiveDiagnostics('error', error.message || String(error)); setStatus(error.message || String(error)); refreshLoginState(); } }
 bootBungieSidecar();
