@@ -3,43 +3,44 @@ import { getDef, bungieIconUrl, mapLimit, toUint32 } from '../src-clean/data/bun
 import { saveBungieInventory } from '../src-clean/data/inventory-cache.js';
 
 const ARCHETYPE_NAMES = new Set(['paragon', 'grenadier', 'specialist', 'brawler', 'bulwark', 'gunner']);
-const ENHANCEMENT_CACHE_KEY = 'd2aa_ingame_item_definition_enhancements_v2';
+const ENHANCEMENT_CACHE_KEY = 'd2aa_ingame_item_definition_enhancements_v3';
 const enhancedItems = new Set();
 const enhancementCache = readEnhancementCache();
 let running = false;
 let queued = false;
 let persistTimer = null;
+let lastRunAt = 0;
 
 function scheduleEnhance(){
   if (running) { queued = true; return; }
-  requestIdleCallbackSafe(enhanceRows);
+  const gap = Date.now() - lastRunAt;
+  setTimeout(() => requestIdleCallbackSafe(enhanceRows), Math.max(0, 500 - gap));
 }
 
 async function enhanceRows(){
   if (running || !state.rows?.length) return;
   running = true;
   queued = false;
+  lastRunAt = Date.now();
   try {
     let rows = applyCachedEnhancements(state.rows);
-    const changedFromCache = rows !== state.rows;
-
     const candidates = rows
       .filter((row) => row.ItemHash && !enhancementCache[String(toUint32(row.ItemHash))] && !enhancedItems.has(String(toUint32(row.ItemHash))))
-      .slice(0, 120);
+      .slice(0, 25);
 
     if (candidates.length) {
       const byHash = new Map(candidates.map((row) => [String(toUint32(row.ItemHash)), row]));
-      await mapLimit([...byHash.keys()], 4, async (hash) => {
+      await mapLimit([...byHash.keys()], 2, async (hash) => {
         const def = await getDef('DestinyInventoryItemDefinition', hash).catch(() => null);
         const enhancement = await buildEnhancement(def, byHash.get(String(hash)));
         enhancedItems.add(String(hash));
-        if (enhancement) enhancementCache[String(hash)] = enhancement;
+        enhancementCache[String(hash)] = enhancement || { archetype: null, setBonuses: [], exotic: null, audit: { itemHash: hash, failed: true } };
       });
       writeEnhancementCache();
       rows = applyCachedEnhancements(rows);
     }
 
-    if (rows !== state.rows || changedFromCache) {
+    if (rows !== state.rows) {
       setState({ rows, status: state.status });
       persistEnhancedRows(rows);
     }
@@ -51,22 +52,25 @@ async function enhanceRows(){
 
 function applyCachedEnhancements(rows){
   let changed = false;
+  const archetypeIconByName = buildArchetypeIconMap(rows);
   const nextRows = rows.map((row) => {
     const info = enhancementCache[String(toUint32(row.ItemHash))];
-    if (!info) return row;
-    const next = { ...row, EnhancedDefinitions: info.audit };
-    if (info.archetype?.name && (!next.Archetype || sameKey(next.Archetype) === sameKey('—'))) { next.Archetype = info.archetype.name; changed = true; }
-    if (info.archetype?.icon && (!next.ArchetypeIcon || fallbackIcon(next.ArchetypeIcon))) { next.ArchetypeIcon = info.archetype.icon; changed = true; }
-    if (info.archetype?.description && !next.ArchetypeDescription) { next.ArchetypeDescription = info.archetype.description; changed = true; }
+    const next = info?.audit ? { ...row, EnhancedDefinitions: info.audit } : { ...row };
+    if (info?.archetype?.name && (!next.Archetype || sameKey(next.Archetype) === sameKey('—'))) { next.Archetype = info.archetype.name; changed = true; }
+    if (info?.archetype?.icon && (!next.ArchetypeIcon || fallbackIcon(next.ArchetypeIcon))) { next.ArchetypeIcon = info.archetype.icon; changed = true; }
+    if (info?.archetype?.description && !next.ArchetypeDescription) { next.ArchetypeDescription = info.archetype.description; changed = true; }
 
-    const cleanSetBonuses = cleanSetBonusList(info.setBonuses || [], next);
+    const sharedIcon = archetypeIconByName.get(sameKey(next.Archetype));
+    if (sharedIcon && (!next.ArchetypeIcon || fallbackIcon(next.ArchetypeIcon))) { next.ArchetypeIcon = sharedIcon; changed = true; }
+
+    const cleanSetBonuses = cleanSetBonusList(info?.setBonuses || [], next);
     if (cleanSetBonuses.length && !equivalentList(next.ArmorSetBonuses, cleanSetBonuses)) {
       next.ArmorSetBonuses = cleanSetBonuses;
       next.SetBonuses = cleanSetBonuses;
       changed = true;
     }
 
-    if (String(next.Rarity || '').toLowerCase() === 'exotic' && info.exotic?.name && !sameKey(info.exotic.name).includes(sameKey(next.Name))) {
+    if (String(next.Rarity || '').toLowerCase() === 'exotic' && info?.exotic?.name && !sameKey(info.exotic.name).includes(sameKey(next.Name))) {
       if (sameKey(next.ExoticPerkName) !== sameKey(info.exotic.name)) {
         next.ExoticPerkName = info.exotic.name;
         next.ExoticPerkDescription = info.exotic.description || next.ExoticPerkDescription || '';
@@ -74,7 +78,7 @@ function applyCachedEnhancements(rows){
         changed = true;
       }
     }
-    return next;
+    return changed ? next : row;
   });
   return changed ? nextRows : rows;
 }
@@ -82,7 +86,7 @@ function applyCachedEnhancements(rows){
 async function buildEnhancement(def, row){
   if (!def) return null;
   const plugHashes = [...new Set([...directPlugHashes(def), ...await plugSetHashes(def)].filter(Boolean).map(toUint32))];
-  const plugDefs = (await mapLimit(plugHashes, 6, (hash) => getDef('DestinyInventoryItemDefinition', hash).catch(() => null))).filter(Boolean);
+  const plugDefs = (await mapLimit(plugHashes, 4, (hash) => getDef('DestinyInventoryItemDefinition', hash).catch(() => null))).filter(Boolean);
   const itemSet = await itemSetInfo(def, row);
   const archetype = bestArchetype(plugDefs, row);
   const setFromPlugs = uniquePerks(plugDefs.filter((plug) => isSetBonus(plug, row)).map((plug) => perk(plug, setLabel(plug), 'set')));
@@ -126,7 +130,7 @@ async function itemSetInfo(def, row){
       label: setEntryLabel(entry, rawDesc || rawName),
       name,
       description: rawDesc,
-      icon: bungieIconUrl(entry.icon || entry.displayProperties?.icon || plug?.displayProperties?.icon || setDef?.displayProperties?.icon),
+      icon: bungieIconUrl(entry.icon || entry.displayProperties?.icon || plug?.displayProperties?.icon),
       hash: plugHash || entry.hash || ''
     };
     if (isRealSetBonus(candidate, row)) bonuses.push(candidate);
@@ -134,8 +138,15 @@ async function itemSetInfo(def, row){
 
   const setName = setDef?.displayProperties?.name || def?.itemSetData?.name || '';
   const setDesc = setDef?.displayProperties?.description || '';
-  if (!bonuses.length && setName && setDesc && /bonus|piece|wearing|set/i.test(`${setName} ${setDesc}`)) {
-    bonuses.push({ kind: 'set', label: 'Armor Set Bonus', name: setName, description: setDesc, icon: bungieIconUrl(setDef?.displayProperties?.icon), hash: setHash });
+  if (!bonuses.length && setName) {
+    bonuses.push({
+      kind: 'set',
+      label: 'Armor Set Bonus',
+      name: setName,
+      description: setDesc || 'Armor set bonus metadata found. Detailed 2-piece/4-piece text was not exposed in the cached socket data yet.',
+      icon: '',
+      hash: setHash
+    });
   }
   return { name: setName, bonuses: uniquePerks(bonuses) };
 }
@@ -158,7 +169,7 @@ function socketPlugSetHashes(def){
   return [...new Set(setHashes)];
 }
 async function plugSetHashes(def){
-  const plugSets = (await mapLimit(socketPlugSetHashes(def), 4, (hash) => getDef('DestinyPlugSetDefinition', hash).catch(() => null))).filter(Boolean);
+  const plugSets = (await mapLimit(socketPlugSetHashes(def), 3, (hash) => getDef('DestinyPlugSetDefinition', hash).catch(() => null))).filter(Boolean);
   const out = [];
   for (const set of plugSets) {
     for (const item of set.reusablePlugItems || []) if (item.plugItemHash) out.push(item.plugItemHash);
@@ -193,7 +204,7 @@ function isRealSetBonus(candidate, row){
   if (!name) return false;
   if (name === sameKey(row?.Name)) return false;
   if (looksLikeArmorPieceName(candidate.name) && !looksSetBonusText(candidate.description)) return false;
-  return looksSetBonusText(text) || desc.length > 0;
+  return looksSetBonusText(text) || desc.length > 0 || name.includes('set');
 }
 function cleanSetBonusList(list, row){ return uniquePerks((list || []).filter((bonus) => isRealSetBonus(bonus, row))); }
 function looksSetBonusText(value){ const text = sameKey(value); return text.includes('armorsetbonus') || text.includes('setbonus') || text.includes('armorset') || text.includes('2piece') || text.includes('4piece') || text.includes('twopiece') || text.includes('fourpiece') || text.includes('wearing2') || text.includes('wearing4') || text.includes('piecesofthisset') || text.includes('smokejumper'); }
@@ -212,6 +223,7 @@ function bestExotic(plugs, def, row){
 function perk(plug, label, kind){ return { kind, label, name: plug.displayProperties?.name || label, description: plug.displayProperties?.description || '', icon: bungieIconUrl(plug.displayProperties?.icon), hash: plug.hash || '' }; }
 function setLabel(plug){ return setEntryLabel(null, `${plug?.displayProperties?.description || ''} ${plug?.displayProperties?.name || ''}`); }
 function setEntryLabel(entry, textValue){ const text = sameKey(`${entry?.displayStyle || ''} ${entry?.requiredSetCount || ''} ${textValue || ''}`); if (text.includes('2piece') || text.includes('twopiece') || text.includes('wearing2') || text.includes('requiredsetcount2')) return '2-Piece Set Bonus'; if (text.includes('4piece') || text.includes('fourpiece') || text.includes('wearing4') || text.includes('requiredsetcount4')) return '4-Piece Set Bonus'; return 'Armor Set Bonus'; }
+function buildArchetypeIconMap(rows){ const map = new Map(); for (const row of rows || []) { const key = sameKey(row.Archetype); const icon = row.ArchetypeIcon; if (key && icon && !fallbackIcon(icon)) map.set(key, icon); } for (const info of Object.values(enhancementCache)) { const key = sameKey(info?.archetype?.name); const icon = info?.archetype?.icon; if (key && icon && !fallbackIcon(icon)) map.set(key, icon); } return map; }
 function uniquePerks(perks){ const seen = new Set(); return perks.filter((perk) => { const key = `${sameKey(perk.name)}|${sameKey(perk.description)}|${sameKey(perk.label)}`; if (!perk.name || seen.has(key)) return false; seen.add(key); return true; }); }
 function equivalentList(a,b){ return JSON.stringify(a || []) === JSON.stringify(b || []); }
 function fallbackIcon(value){ return !value || String(value).includes('undefined') || String(value).trim() === ''; }
