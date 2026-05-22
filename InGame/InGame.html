@@ -6,10 +6,10 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
-<meta name="d2aa-version" content="ingame-0.15-stable" />
+<meta name="d2aa-version" content="ingame-0.17-status" />
 <title>D2AA In-Game Prototype</title>
 <script>
-window.D2AA_VERSION='ingame-0.15-stable';
+window.D2AA_VERSION='ingame-0.17-status';
 window.D2AA_BUNGIE_REDIRECT_URI='https://erebusares.github.io/D2AA/InGame/InGame.html';
 window.D2AA_DISABLE_DIM_CONTROLS=true;
 window.D2AA_ASSET_STAMP=Date.now().toString(36);
@@ -70,6 +70,7 @@ document.write(`<link rel="stylesheet" href="./ingame-overrides.css?t=${window.D
 const assetStamp=window.D2AA_ASSET_STAMP||Date.now().toString(36);
 await import(`./ingame.js?t=${assetStamp}`);
 await import(`./ingame-fixes.js?t=${assetStamp}`);
+await import(`./status-line.js?t=${assetStamp}`);
 await import(`../src-clean/bungie-wire.js?t=${assetStamp}`);
 </script>
 </body>
