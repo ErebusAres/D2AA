@@ -11,6 +11,7 @@ let lastGroupedRows = [];
 let openTagMenu = null;
 const collapsedSlots = new Set();
 const BONUS_ORDER = ['masterwork', 'mod', 'artifice', 'other'];
+const ARCHETYPE_NAMES = new Set(['paragon','grenadier','specialist','brawler','bulwark','gunner']);
 
 function boot(){ cacheEls(); loadSettings(); forceSingleClassDefault(); bindEvents(); subscribe(render); loadCachedRows(); render(); }
 function cacheEls(){ ['statusText','searchBox','refreshBtn','menuBtn','commandPanel','classToggle','gridView','tableView','tableBody','emptyState','summaryShown','summaryCached','summaryGroups','summaryRecent','summaryClasses','activeChips','csvFile','uploadCsvBtn','restoreCacheBtn','clearCacheBtn','classFilter','slotFilter','rarityFilter','sortBy','duplicateTolerance','duplicateToleranceOut','feedList','feedCount','feedToggle','itemFeed'].forEach(id=>els[id]=document.getElementById(id)); }
@@ -82,19 +83,24 @@ function bonusParts(row,key){ const fallback=n(row[`StatBonus${key}`]); const pa
 function totalBonusParts(row){ const fallback=n(row.StatBonusTotal??Math.max(0,n(row.CurrentTotal)-n(row.BaseTotal))); const parts=BONUS_ORDER.map(type=>({type,value:n(row[`${cap(type)}BonusTotal`])||STAT_KEYS.reduce((t,k)=>t+n(row[`${cap(type)}Bonus${k}`]),0)})).filter(p=>p.value>0); const known=parts.reduce((t,p)=>t+p.value,0); if(fallback>known) parts.push({type:'other',value:fallback-known}); if(!parts.length && fallback>0) parts.push({type:'other',value:fallback}); return parts; }
 function archetypeIcon(row){ const icon=row.ArchetypeIcon?`<img class="archetype-img" src="${h(row.ArchetypeIcon)}" alt="">`:'<span>◇</span>'; return `<span class="archetype-icon-wrap" tabindex="0">${icon}<span class="d2-tooltip"><b>${h(row.Archetype||'Armor Archetype')}</b><em>Archetype</em><p>${h(row.ArchetypeDescription||'Armor archetype bonus.')}</p></span></span>`; }
 function renderArmorBonuses(row){ const perks=armorBonuses(row); if(!perks.length) return '<div class="bonus-icons is-empty"><span></span><span></span><span></span></div>'; return `<div class="bonus-icons" aria-label="Armor bonuses and perks">${perks.slice(0,6).map(renderBonusIcon).join('')}</div>`; }
-function renderBonusIcon(perk){ const kind=String(perk.kind||'armor').toLowerCase(); const exotic=kind==='exotic'; const set=kind==='set'; const icon=perk.icon?`<img src="${h(perk.icon)}" alt="" loading="lazy" onerror="this.remove()">`:set?'◆':'✦'; const label=set?(perk.label||'Armor Set Bonus'):exotic?'Exotic Perk':'Armor Bonus'; return `<span class="bonus-icon ${exotic?'is-exotic':''} ${set?'is-set-bonus':''}" tabindex="0" title="${h(`${perk.name||label}: ${perk.description||label}`)}">${icon}<span class="d2-tooltip"><b>${h(perk.name||label)}</b><em>${h(label)}</em><p>${h(perk.description||'No description available yet.')}</p></span></span>`; }
+function renderBonusIcon(perk){ const kind=String(perk.kind||'armor').toLowerCase(); const exotic=kind==='exotic'; const set=kind==='set'; const icon=perk.icon?`<img src="${h(perk.icon)}" alt="" loading="lazy" onerror="this.remove()">`:set?'◆':'✦'; const label=set?(perk.label||'Armor Set Bonus'):exotic?'Exotic Perk':'Armor Bonus'; return `<span class="bonus-icon ${exotic?'is-exotic':''} ${set?'is-set-bonus':''}" tabindex="0">${icon}<span class="d2-tooltip"><b>${h(perk.name||label)}</b><em>${h(label)}</em><p>${h(perk.description||'No description available yet.')}</p></span></span>`; }
 function armorBonuses(row){
   const out=[];
-  for(const perk of parsePerks(row.ArmorSetBonuses||row.SetBonuses)) out.push({...perk,kind:'set'});
-  for(const perk of parsePerks(row.ArmorBonuses||row.ArmorPerks||row.Perks)) out.push({...perk,kind:perk.kind||'armor'});
-  for(const perk of statAuditSetBonuses(row)) out.push(perk);
-  if(String(row.Rarity).toLowerCase()==='exotic') out.push({name:row.ExoticPerkName||row.Name||'Exotic Intrinsic',description:row.ExoticDescription||row.ExoticPerkDescription||'Exotic armor perk. Full perk details will show here when Bungie socket perk data is cached.',icon:row.ExoticIcon||'',kind:'exotic'});
+  const exoticItem=isExoticRow(row);
+  if(!exoticItem){
+    for(const perk of parsePerks(row.ArmorSetBonuses||row.SetBonuses)) if(isRealSetBonus(perk,row)) out.push({...perk,kind:'set',label:perk.label||setBonusLabelFromText(`${perk.name||''} ${perk.description||''}`)});
+    for(const perk of parsePerks(row.ArmorBonuses||row.ArmorPerks||row.Perks)) if(!isExoticOrArchetypePerk(perk,row) && !isRealSetBonus(perk,row)) out.push({...perk,kind:perk.kind||'armor'});
+    for(const perk of statAuditSetBonuses(row)) out.push(perk);
+  }
+  if(exoticItem) out.push({name:row.ExoticPerkName||row.Name||'Exotic Intrinsic',description:row.ExoticDescription||row.ExoticPerkDescription||'Exotic armor perk. Full perk details will show here when Bungie socket perk data is cached.',icon:row.ExoticIcon||'',kind:'exotic'});
   const seen=new Set();
-  return out.filter(p=>{ const key=String(p.kind||'')+'|'+String(p.name||'')+'|'+String(p.description||''); if(!p.name||seen.has(key)) return false; seen.add(key); return true; });
+  return out.filter(p=>{ const key=normal(`${p.kind||''}|${p.name||''}|${p.description||''}`); if(!p.name||seen.has(key)) return false; seen.add(key); return true; });
 }
-function statAuditSetBonuses(row){ const plugs=row.StatAudit?.activePlugs||row.SocketAudit?.activePlugs||[]; return plugs.filter(plug=>looksLikeSetBonus(`${plug.name||''} ${plug.type||''} ${plug.category||''} ${JSON.stringify(plug.stats||[])}`)).map(plug=>({kind:'set',label:setBonusLabelFromText(`${plug.name||''} ${plug.type||''} ${plug.category||''}`),name:plug.name||'Armor Set Bonus',description:plug.description||plug.type||plug.category||'Armor set bonus socket detected.',icon:plug.icon||'',hash:plug.hash||''})); }
-function looksLikeSetBonus(text){ const value=String(text||'').toLowerCase().replace(/[^a-z0-9]+/g,' '); return value.includes('set bonus')||value.includes('armor set')||value.includes('setbonus')||value.includes('2 piece')||value.includes('4 piece')||value.includes('wearing 2')||value.includes('wearing 4')||value.includes('smokejumper')||value.includes('set perk'); }
-function setBonusLabelFromText(text){ const value=String(text||'').toLowerCase(); if(value.includes('2')||value.includes('two')) return '2-Piece Set Bonus'; if(value.includes('4')||value.includes('four')) return '4-Piece Set Bonus'; return 'Armor Set Bonus'; }
+function statAuditSetBonuses(row){ if(isExoticRow(row)) return []; const plugs=[...(row.StatAudit?.activePlugs||[]),...(row.SocketAudit?.activePlugs||[])]; return plugs.filter(plug=>isRealSetBonus(plug,row)).map(plug=>({kind:'set',label:setBonusLabelFromText(`${plug.name||''} ${plug.description||''} ${plug.type||''} ${plug.category||''}`),name:plug.name||'Armor Set Bonus',description:plug.description||plug.type||plug.category||'Armor set bonus socket detected.',icon:plug.icon||'',hash:plug.hash||''})); }
+function isRealSetBonus(perk,row){ if(!perk || isExoticOrArchetypePerk(perk,row)) return false; const text=`${perk.name||''} ${perk.description||''} ${perk.label||''} ${perk.type||''} ${perk.category||''} ${perk.kind||''}`; return looksLikeSetBonus(text); }
+function isExoticOrArchetypePerk(perk,row){ const text=normal(`${perk?.name||''} ${perk?.description||''} ${perk?.label||''} ${perk?.type||''} ${perk?.category||''} ${perk?.kind||''}`); const name=normal(perk?.name); return isExoticRow(row)||text.includes('exotic')||text.includes('intrinsic')||text.includes('archetype')||ARCHETYPE_NAMES.has(name)||name===normal(row.Name)||name===normal(row.Archetype); }
+function looksLikeSetBonus(text){ const value=normal(text); const hasSet=value.includes(' set ')||value.startsWith('set ')||value.includes('armor set')||value.includes('setbonus'); const hasBonus=value.includes('bonus')||value.includes('perk')||value.includes('trait')||value.includes('piece')||value.includes('pieces'); return (hasSet&&hasBonus)||value.includes('set bonus')||value.includes('armor set bonus')||value.includes('2 piece')||value.includes('4 piece')||value.includes('two piece')||value.includes('four piece')||value.includes('wearing 2')||value.includes('wearing 4')||value.includes('while wearing')||value.includes('smokejumper'); }
+function setBonusLabelFromText(text){ const value=normal(text); if(/\b2\b/.test(value)||value.includes('two')) return '2-Piece Set Bonus'; if(/\b4\b/.test(value)||value.includes('four')) return '4-Piece Set Bonus'; return 'Armor Set Bonus'; }
 function parsePerks(value){ if(!value) return []; if(Array.isArray(value)) return value; try{ const parsed=JSON.parse(value); return Array.isArray(parsed)?parsed:[]; }catch{ return []; } }
 function tierMarks(row){ const max=5; const tier=Math.max(0,Math.min(max,n(row.Tier||row.GearTier||0))); const color=tier>=5?'gold':tier>=3?'purple':'white'; return Array.from({length:max},(_,i)=>{ const level=max-i; return `<span class="tier-mark tier-color-${color} ${level<=tier?'is-on':''}">◆</span>`; }); }
 function locationText(row){ return row.IsEquipped?'Equipped':row.IsInVault?'Vault':'Inventory'; }
@@ -109,4 +115,6 @@ function cap(v){ return String(v).replace(/^./,c=>c.toUpperCase()); }
 function n(v){ const x=Number(String(v??'').replace(/[^0-9.-]/g,'')); return Number.isFinite(x)?x:0; }
 function pad(v){ return String(n(v)).padStart(2,' '); }
 function h(v){ return String(v??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function normal(v){ return String(v||'').trim().toLowerCase().replace(/[^a-z0-9]+/g,' '); }
+function isExoticRow(row){ return normal(row.Rarity)==='exotic'; }
 boot();
