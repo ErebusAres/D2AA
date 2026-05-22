@@ -32,16 +32,18 @@ export function subscribe(fn) {
 }
 
 export function setState(patch) {
+  const keys = Object.keys(patch || {});
   Object.assign(state, patch);
-  persistSettings();
-  emit();
+  const statusOnly = keys.length === 1 && keys[0] === 'status';
+  if (!statusOnly) persistSettings();
+  emit({ statusOnly, keys });
 }
 
 export function setRows(rows, status = 'Rows loaded.') {
   state.rows = rows.map((row, index) => normalizeStoredRow({ ...row, _index: index, Tag: state.tags[row.Id] || row.Tag || '' }));
   state.status = status;
   saveRows(state.rows);
-  emit();
+  emit({ rowsChanged: true, statusChanged: true });
 }
 
 export function updateTag(id, tag) {
@@ -53,7 +55,7 @@ export function updateTag(id, tag) {
   writeJson(STORAGE_KEYS.tags, state.tags);
   writeJson(STORAGE_KEYS.dismissedRecent, state.dismissedRecent);
   saveRows(state.rows);
-  emit();
+  emit({ rowsChanged: true, tagsChanged: true });
 }
 
 export function dismissRecent(id) {
@@ -61,7 +63,7 @@ export function dismissRecent(id) {
   state.rows = state.rows.map((row) => row.Id === id ? { ...row, RecentStatus: '', RecentlyFound: false } : row);
   writeJson(STORAGE_KEYS.dismissedRecent, state.dismissedRecent);
   saveRows(state.rows);
-  emit();
+  emit({ rowsChanged: true, feedChanged: true });
 }
 
 export function getFilteredRows() {
@@ -121,16 +123,11 @@ function deriveArchetype(row = {}) {
   let bestValue = -1;
   for (const [key, label] of ARCHETYPE_STATS) {
     const value = number(row[key]);
-    if (value > bestValue) {
-      bestValue = value;
-      bestLabel = label;
-    }
+    if (value > bestValue) { bestValue = value; bestLabel = label; }
   }
   return bestValue > 0 ? bestLabel : '';
 }
-function archetypeNameFrom(value) {
-  return ARCHETYPE_ALIASES[normalizeKey(value)] || '';
-}
+function archetypeNameFrom(value) { return ARCHETYPE_ALIASES[normalizeKey(value)] || ''; }
 function normalizeKey(value) { return String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, ''); }
 
 export function loadCachedRows() {
@@ -174,9 +171,7 @@ export function readJson(key, fallback) {
   catch (_) { return fallback; }
 }
 
-export function writeJson(key, value) {
-  localStorage.setItem(key, JSON.stringify(value));
-}
+export function writeJson(key, value) { localStorage.setItem(key, JSON.stringify(value)); }
 
 export function slimRowForStorage(row) {
   const slim = { ...row };
@@ -231,6 +226,4 @@ export function loadSettings() {
   state.filters.class = normalizeClassFilter(state.filters.class);
 }
 
-function emit() {
-  listeners.forEach((fn) => fn(state));
-}
+function emit(detail = {}) { listeners.forEach((fn) => fn(state, detail)); }
