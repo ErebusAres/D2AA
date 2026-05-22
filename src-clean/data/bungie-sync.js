@@ -139,6 +139,8 @@ async function buildArmorRows(profile, membership, setStatus, background) {
     const instancePlugDefs = plugHashesForInstance(socketComponents[instanceId]).map((hash) => plugDefs[hash]).filter(Boolean);
     const archetypePlugDefs = allArchetypePlugHashes(def, socketComponents[instanceId]).map((hash) => plugDefs[hash]).filter(Boolean);
     const archetype = armorArchetype(def, archetypePlugDefs);
+    const armorBonuses = armorBonusPerks(def, instancePlugDefs, archetype.hash);
+    const exoticPerk = rarity === 'Exotic' ? exoticArmorPerk(def, instancePlugDefs, archetype.hash) : null;
     const statRow = statsForItem(def, statComponents[instanceId], socketBonusTotals(instancePlugDefs, statColumnMap), statColumnMap);
     const targetCharacterId = characterMap[equippable]?.characterId || '';
     const instanceComponent = instanceComponents[instanceId];
@@ -155,7 +157,7 @@ async function buildArmorRows(profile, membership, setStatus, background) {
       Tier: gearTier,
       GearTier: gearTier,
       TierSource: instanceComponent?.gearTier ? 'Bungie' : 'Fallback',
-      TierMax: rarity === 'Exotic' ? 2 : 5,
+      TierMax: rarity === 'Exotic' ? 5 : 5,
       Power: power,
       Light: power,
       Archetype: archetype.name,
@@ -163,6 +165,11 @@ async function buildArmorRows(profile, membership, setStatus, background) {
       ArchetypeDescription: archetype.description,
       ArchetypeHash: archetype.hash,
       ArchetypeTrait: archetype.trait,
+      ArmorBonuses: armorBonuses,
+      ArmorPerks: armorBonuses,
+      ExoticPerkName: exoticPerk?.name || '',
+      ExoticPerkDescription: exoticPerk?.description || '',
+      ExoticIcon: exoticPerk?.icon || '',
       Icon: bungieIconUrl(def.displayProperties?.icon),
       IconUrl: bungieIconUrl(def.displayProperties?.icon),
       ScreenshotUrl: bungieIconUrl(def.screenshot),
@@ -316,7 +323,7 @@ function rarityForItem(def) {
 }
 function gearTierForItem(instanceComponent, rarity, total) {
   const actual = Number(instanceComponent?.gearTier || 0);
-  if (actual) return rarity === 'Exotic' ? Math.min(actual, 2) : Math.min(actual, 5);
+  if (actual) return Math.min(actual, 5);
   if (rarity === 'Exotic') return total >= 65 ? 2 : 1;
   if (total >= 73) return 5;
   if (total >= 65) return 4;
@@ -359,4 +366,47 @@ function highestInvestmentStatName(def) {
   let value = 0;
   for (const key of STAT_KEYS) if (totals[key] > value) { best = key; value = totals[key]; }
   return best === 'ClassAbility' ? 'Class' : best;
+}
+function armorBonusPerks(def, plugDefs, archetypeHash) {
+  return uniquePerks((plugDefs || []).filter((plug) => isDisplayableArmorBonus(plug, archetypeHash)).map((plug) => perkInfo(plug, 'armor'))).slice(0, 5);
+}
+function exoticArmorPerk(def, plugDefs, archetypeHash) {
+  const candidates = [def, ...(plugDefs || [])].filter((entry) => isDisplayableExoticPerk(entry, archetypeHash));
+  return perkInfo(candidates[0] || def, 'exotic');
+}
+function isDisplayableArmorBonus(plugDef, archetypeHash) {
+  const name = normalizeName(plugDef?.displayProperties?.name);
+  const desc = normalizeName(plugDef?.displayProperties?.description);
+  const category = normalizeName(plugDef?.plug?.plugCategoryIdentifier);
+  if (!name || name === 'empty mod socket' || name === 'default ornament' || name.includes('deprecated')) return false;
+  if (String(plugDef?.hash || '') === String(archetypeHash || '')) return false;
+  if (ARMOR_ARCHETYPE_NAMES.has(name)) return true;
+  return category.includes('armor bonus') || category.includes('set bonus') || category.includes('origin trait') || desc.includes('armor bonus') || desc.includes('set bonus') || desc.includes('wearing');
+}
+function isDisplayableExoticPerk(entry, archetypeHash) {
+  if (!entry) return false;
+  const rarity = normalizeName(entry.inventory?.tierTypeName);
+  const name = normalizeName(entry.displayProperties?.name);
+  const desc = normalizeName(entry.displayProperties?.description);
+  const category = normalizeName(entry.plug?.plugCategoryIdentifier);
+  if (!name || name === 'empty mod socket' || String(entry.hash || '') === String(archetypeHash || '')) return false;
+  return rarity.includes('exotic') || category.includes('exotic') || desc.includes('exotic') || (entry.itemType === 2 && desc.length > 30);
+}
+function perkInfo(def, kind) {
+  return {
+    name: def?.displayProperties?.name || 'Armor Bonus',
+    description: def?.displayProperties?.description || '',
+    icon: bungieIconUrl(def?.displayProperties?.icon),
+    hash: def?.hash || '',
+    kind
+  };
+}
+function uniquePerks(perks) {
+  const seen = new Set();
+  return perks.filter((perk) => {
+    const key = normalizeName(`${perk.name} ${perk.description}`);
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
