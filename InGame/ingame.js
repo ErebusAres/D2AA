@@ -13,7 +13,8 @@ const collapsedSlots = new Set();
 const BONUS_ORDER = ['masterwork', 'mod', 'artifice', 'other'];
 const ARCHETYPE_NAMES = new Set(['paragon','grenadier','specialist','brawler','bulwark','gunner']);
 
-function boot(){ cacheEls(); loadSettings(); forceSingleClassDefault(); bindEvents(); subscribe(render); loadCachedRows(); render(); }
+function boot(){ cacheEls(); loadSettings(); forceSingleClassDefault(); bindEvents(); subscribe(handleStateUpdate); loadCachedRows(); render(); }
+function handleStateUpdate(_,detail={}){ if(detail.statusOnly){ if(els.statusText) els.statusText.textContent=state.status; return; } render(); }
 function cacheEls(){ ['statusText','searchBox','refreshBtn','menuBtn','commandPanel','classToggle','gridView','tableView','tableBody','emptyState','summaryShown','summaryCached','summaryGroups','summaryRecent','summaryClasses','activeChips','csvFile','uploadCsvBtn','restoreCacheBtn','clearCacheBtn','classFilter','slotFilter','rarityFilter','sortBy','duplicateTolerance','duplicateToleranceOut','feedList','feedCount','feedToggle','itemFeed'].forEach(id=>els[id]=document.getElementById(id)); }
 function forceSingleClassDefault(){ const cls = normalizeClassFilter(state.filters.class); if(cls === 'all') setState({ filters:{...state.filters, class:'Warlock'} }); }
 function bindEvents(){
