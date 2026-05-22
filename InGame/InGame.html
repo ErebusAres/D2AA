@@ -6,10 +6,10 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
-<meta name="d2aa-version" content="ingame-0.12" />
+<meta name="d2aa-version" content="ingame-0.13" />
 <title>D2AA In-Game Prototype</title>
 <script>
-window.D2AA_VERSION='ingame-0.12';
+window.D2AA_VERSION='ingame-0.13';
 window.D2AA_BUNGIE_REDIRECT_URI='https://erebusares.github.io/D2AA/InGame/InGame.html';
 window.D2AA_DISABLE_DIM_CONTROLS=true;
 window.D2AA_ASSET_STAMP=Date.now().toString(36);
@@ -72,6 +72,7 @@ await import(`./ingame.js?t=${assetStamp}`);
 await import(`./set-bonus-enhancer.js?t=${assetStamp}`);
 await import(`./bonus-icons.js?t=${assetStamp}`);
 await import(`./ingame-fixes.js?t=${assetStamp}`);
+await import(`./live-feed-polish.js?t=${assetStamp}`);
 await import(`../src-clean/bungie-wire.js?t=${assetStamp}`);
 </script>
 </body>
