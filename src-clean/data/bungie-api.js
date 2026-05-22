@@ -57,12 +57,20 @@ export async function mapLimit(items, limit, worker, progress) {
       try { out[current] = await worker(items[current], current); }
       catch (error) { console.warn('D2AA Bungie lookup failed', items[current], error); out[current] = null; }
       done++;
-      if (progress && (done % 10 === 0 || done === items.length)) progress(done, items.length);
-      if (done % 25 === 0) await new Promise((resolve) => setTimeout(resolve, 0));
+      if (progress && (done % 50 === 0 || done === items.length)) progress(done, items.length);
+      if (done % 10 === 0) await idleYield();
     }
   }
   await Promise.all(Array.from({ length: Math.min(limit, items.length) }, run));
   return out;
+}
+
+async function idleYield() {
+  if ('requestIdleCallback' in window) {
+    await new Promise((resolve) => requestIdleCallback(resolve, { timeout: 120 }));
+    return;
+  }
+  await new Promise((resolve) => setTimeout(resolve, 0));
 }
 
 export function toUint32(hash) { return Number(hash) >>> 0; }
