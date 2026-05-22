@@ -1,0 +1,238 @@
+/* v1.95 full-box stat quality vibe scale.
+   The entire stat box should read from GRAND to EW at a glance.
+   30 is the only perfect tier. 0-5 should feel clearly bad. */
+.card-grid-3x3 .stat-cell,
+#itemFeed .feed-stats em{
+  position:relative!important;
+  isolation:isolate!important;
+  overflow:hidden!important;
+  border:1px solid var(--vibe-border,rgba(255,255,255,.12))!important;
+  border-radius:9px!important;
+  background:
+    radial-gradient(circle at 50% -18%,var(--vibe-pop,transparent),transparent 58%),
+    linear-gradient(135deg,var(--vibe-bg-a),var(--vibe-bg-b) 48%,var(--vibe-bg-c))!important;
+  box-shadow:
+    inset 0 1px 0 var(--vibe-inset,rgba(255,255,255,.05)),
+    inset 0 -1px 0 rgba(0,0,0,.35),
+    inset 0 0 0 1px var(--vibe-inner,rgba(255,255,255,.03)),
+    0 0 var(--vibe-glow-size,0px) var(--vibe-glow,transparent)!important;
+  color:var(--vibe-number,#ddd6c7)!important;
+  text-shadow:none!important;
+}
+.card-grid-3x3 .stat-cell::before,
+#itemFeed .feed-stats em::before{
+  content:""!important;
+  position:absolute!important;
+  inset:0!important;
+  z-index:0!important;
+  background:
+    linear-gradient(90deg,var(--vibe-edge,transparent),transparent 28%,transparent 72%,var(--vibe-edge,transparent)),
+    linear-gradient(180deg,var(--vibe-sheen,transparent),transparent 42%)!important;
+  opacity:1!important;
+  pointer-events:none!important;
+}
+.card-grid-3x3 .stat-cell::after,
+#itemFeed .feed-stats em::after{
+  content:""!important;
+  position:absolute!important;
+  left:0!important;
+  right:0!important;
+  bottom:0!important;
+  height:3px!important;
+  background:linear-gradient(90deg,transparent,var(--vibe-line,transparent),transparent)!important;
+  opacity:var(--vibe-line-opacity,.75)!important;
+  pointer-events:none!important;
+  z-index:1!important;
+}
+.card-grid-3x3 .stat-cell strong,
+#itemFeed .feed-stats em strong{
+  position:relative!important;
+  z-index:2!important;
+  color:var(--vibe-number,#ddd6c7)!important;
+  font-weight:var(--vibe-weight,900)!important;
+  text-shadow:
+    0 0 var(--vibe-number-glow-size,0px) var(--vibe-number-glow,transparent),
+    0 1px 0 rgba(0,0,0,.88)!important;
+}
+.card-grid-3x3 .stat-cell .stat-icon,
+#itemFeed .feed-stats .stat-icon{
+  position:relative!important;
+  z-index:2!important;
+  opacity:var(--vibe-icon-opacity,.70)!important;
+  filter:brightness(var(--vibe-icon-brightness,.85)) saturate(var(--vibe-icon-saturation,.75)) drop-shadow(0 0 4px rgba(0,0,0,.75))!important;
+}
+.card-grid-3x3 .stat-cell .stat-icon-only{position:relative!important;z-index:2!important;}
+
+/* GRAND: exactly 30. This should immediately pull the eye. */
+.stat-quality-perfect{
+  --vibe-number:#fff3a6!important;
+  --vibe-border:rgba(255,216,70,.98)!important;
+  --vibe-bg-a:rgba(112,76,0,.96)!important;
+  --vibe-bg-b:rgba(198,134,0,.78)!important;
+  --vibe-bg-c:rgba(80,48,0,.92)!important;
+  --vibe-pop:rgba(255,241,151,.55)!important;
+  --vibe-edge:rgba(255,215,68,.30)!important;
+  --vibe-sheen:rgba(255,255,255,.22)!important;
+  --vibe-line:#ffe36d!important;
+  --vibe-line-opacity:1!important;
+  --vibe-inner:rgba(255,255,255,.20)!important;
+  --vibe-inset:rgba(255,255,255,.36)!important;
+  --vibe-glow:rgba(255,196,0,.70)!important;
+  --vibe-glow-size:24px!important;
+  --vibe-number-glow:rgba(255,221,79,.95)!important;
+  --vibe-number-glow-size:14px!important;
+  --vibe-weight:1000!important;
+  --vibe-icon-opacity:1!important;
+  --vibe-icon-brightness:1.25!important;
+  --vibe-icon-saturation:1.25!important;
+}
+
+/* ELITE: 28-29. Flashy, but not gold. */
+.stat-quality-near{
+  --vibe-number:#b9fbff!important;
+  --vibe-border:rgba(63,236,255,.90)!important;
+  --vibe-bg-a:rgba(0,74,93,.92)!important;
+  --vibe-bg-b:rgba(0,150,176,.60)!important;
+  --vibe-bg-c:rgba(0,42,62,.90)!important;
+  --vibe-pop:rgba(116,244,255,.38)!important;
+  --vibe-edge:rgba(63,236,255,.22)!important;
+  --vibe-sheen:rgba(220,252,255,.15)!important;
+  --vibe-line:#55e7ff!important;
+  --vibe-line-opacity:.95!important;
+  --vibe-inner:rgba(255,255,255,.13)!important;
+  --vibe-inset:rgba(255,255,255,.22)!important;
+  --vibe-glow:rgba(63,236,255,.42)!important;
+  --vibe-glow-size:18px!important;
+  --vibe-number-glow:rgba(63,236,255,.78)!important;
+  --vibe-number-glow-size:10px!important;
+  --vibe-weight:980!important;
+  --vibe-icon-opacity:.96!important;
+  --vibe-icon-brightness:1.14!important;
+  --vibe-icon-saturation:1.12!important;
+}
+
+/* HIGH: 24-27. Strong blue. */
+.stat-quality-great{
+  --vibe-number:#7cccff!important;
+  --vibe-border:rgba(50,158,255,.72)!important;
+  --vibe-bg-a:rgba(0,42,94,.88)!important;
+  --vibe-bg-b:rgba(24,92,165,.48)!important;
+  --vibe-bg-c:rgba(0,24,58,.88)!important;
+  --vibe-pop:rgba(50,158,255,.26)!important;
+  --vibe-edge:rgba(50,158,255,.18)!important;
+  --vibe-sheen:rgba(153,213,255,.10)!important;
+  --vibe-line:#329eff!important;
+  --vibe-line-opacity:.82!important;
+  --vibe-inner:rgba(255,255,255,.09)!important;
+  --vibe-inset:rgba(255,255,255,.15)!important;
+  --vibe-glow:rgba(50,158,255,.24)!important;
+  --vibe-glow-size:12px!important;
+  --vibe-number-glow:rgba(50,158,255,.45)!important;
+  --vibe-number-glow-size:7px!important;
+  --vibe-weight:940!important;
+  --vibe-icon-opacity:.86!important;
+  --vibe-icon-brightness:1.02!important;
+  --vibe-icon-saturation:1!important;
+}
+
+/* SOLID: 18-23. Green and useful. */
+.stat-quality-good{
+  --vibe-number:#8cffaa!important;
+  --vibe-border:rgba(70,226,117,.58)!important;
+  --vibe-bg-a:rgba(8,62,34,.86)!important;
+  --vibe-bg-b:rgba(28,122,61,.40)!important;
+  --vibe-bg-c:rgba(8,36,23,.88)!important;
+  --vibe-pop:rgba(70,226,117,.18)!important;
+  --vibe-edge:rgba(70,226,117,.14)!important;
+  --vibe-sheen:rgba(180,255,199,.07)!important;
+  --vibe-line:#54e27f!important;
+  --vibe-line-opacity:.68!important;
+  --vibe-inner:rgba(255,255,255,.06)!important;
+  --vibe-inset:rgba(255,255,255,.10)!important;
+  --vibe-glow:rgba(70,226,117,.15)!important;
+  --vibe-glow-size:8px!important;
+  --vibe-number-glow:rgba(70,226,117,.30)!important;
+  --vibe-number-glow-size:5px!important;
+  --vibe-weight:900!important;
+  --vibe-icon-opacity:.76!important;
+  --vibe-icon-brightness:.92!important;
+  --vibe-icon-saturation:.82!important;
+}
+
+/* MEH: 12-17. Purposefully bland. */
+.stat-quality-okay{
+  --vibe-number:#cfc5b6!important;
+  --vibe-border:rgba(189,177,157,.28)!important;
+  --vibe-bg-a:rgba(35,34,38,.86)!important;
+  --vibe-bg-b:rgba(68,63,54,.26)!important;
+  --vibe-bg-c:rgba(22,22,28,.88)!important;
+  --vibe-pop:rgba(189,177,157,.055)!important;
+  --vibe-edge:rgba(189,177,157,.06)!important;
+  --vibe-sheen:rgba(255,255,255,.035)!important;
+  --vibe-line:rgba(189,177,157,.42)!important;
+  --vibe-line-opacity:.35!important;
+  --vibe-inner:rgba(255,255,255,.035)!important;
+  --vibe-inset:rgba(255,255,255,.055)!important;
+  --vibe-glow:transparent!important;
+  --vibe-glow-size:0!important;
+  --vibe-number-glow:transparent!important;
+  --vibe-number-glow-size:0!important;
+  --vibe-weight:820!important;
+  --vibe-icon-opacity:.55!important;
+  --vibe-icon-brightness:.74!important;
+  --vibe-icon-saturation:.55!important;
+}
+
+/* BAD: 6-11. Orange, warning, not desirable. */
+.stat-quality-bad{
+  --vibe-number:#ffab73!important;
+  --vibe-border:rgba(255,131,54,.55)!important;
+  --vibe-bg-a:rgba(70,31,10,.90)!important;
+  --vibe-bg-b:rgba(126,54,18,.38)!important;
+  --vibe-bg-c:rgba(35,18,12,.90)!important;
+  --vibe-pop:rgba(255,131,54,.15)!important;
+  --vibe-edge:rgba(255,131,54,.12)!important;
+  --vibe-sheen:rgba(255,180,120,.055)!important;
+  --vibe-line:#ff914d!important;
+  --vibe-line-opacity:.60!important;
+  --vibe-inner:rgba(255,255,255,.03)!important;
+  --vibe-inset:rgba(255,255,255,.045)!important;
+  --vibe-glow:rgba(255,131,54,.14)!important;
+  --vibe-glow-size:7px!important;
+  --vibe-number-glow:rgba(255,131,54,.30)!important;
+  --vibe-number-glow-size:4px!important;
+  --vibe-weight:800!important;
+  --vibe-icon-opacity:.45!important;
+  --vibe-icon-brightness:.60!important;
+  --vibe-icon-saturation:.56!important;
+}
+
+/* EW: 0-5. Dark red/dull, clearly bad. */
+.stat-quality-poor{
+  --vibe-number:#ff6377!important;
+  --vibe-border:rgba(255,73,99,.52)!important;
+  --vibe-bg-a:rgba(61,11,22,.94)!important;
+  --vibe-bg-b:rgba(98,22,36,.36)!important;
+  --vibe-bg-c:rgba(20,8,14,.96)!important;
+  --vibe-pop:rgba(255,73,99,.11)!important;
+  --vibe-edge:rgba(255,73,99,.10)!important;
+  --vibe-sheen:rgba(255,124,140,.035)!important;
+  --vibe-line:#ff4f68!important;
+  --vibe-line-opacity:.55!important;
+  --vibe-inner:rgba(255,255,255,.02)!important;
+  --vibe-inset:rgba(255,255,255,.025)!important;
+  --vibe-glow:rgba(255,73,99,.10)!important;
+  --vibe-glow-size:6px!important;
+  --vibe-number-glow:rgba(255,73,99,.24)!important;
+  --vibe-number-glow-size:3px!important;
+  --vibe-weight:780!important;
+  --vibe-icon-opacity:.34!important;
+  --vibe-icon-brightness:.48!important;
+  --vibe-icon-saturation:.45!important;
+}
+
+.card-grid-3x3 .stat-cell strong{font-size:16px!important;letter-spacing:.01em!important;}
+.card-grid-3x3 .stat-cell.stat-quality-perfect strong{font-size:17px!important;}
+.card-grid-3x3 .stat-cell.stat-quality-poor strong{opacity:.92!important;}
+#itemFeed .feed-stats em{border-radius:5px!important;}
+#itemFeed .feed-stats em strong{font-size:9px!important;}
