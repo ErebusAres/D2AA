@@ -1,0 +1,113 @@
+/* v1.96 hard reset: full-box stat quality colors.
+   This intentionally overrides the earlier rail/gradient attempts. */
+
+/* Shared hard reset for grid + item feed stat boxes. */
+.armor-card .card-grid-3x3 > .stat-cell,
+#itemFeed .feed-stats > em{
+  border-left-width:1px!important;
+  border-left-style:solid!important;
+  border-radius:8px 3px 8px 3px!important;
+  isolation:isolate!important;
+  overflow:hidden!important;
+  text-shadow:none!important;
+}
+
+.armor-card .card-grid-3x3 > .stat-cell::before,
+#itemFeed .feed-stats > em::before{
+  content:""!important;
+  position:absolute!important;
+  inset:0!important;
+  width:auto!important;
+  height:auto!important;
+  z-index:0!important;
+  opacity:1!important;
+  pointer-events:none!important;
+  background:linear-gradient(180deg,rgba(255,255,255,.10),transparent 48%,rgba(0,0,0,.20))!important;
+}
+
+.armor-card .card-grid-3x3 > .stat-cell::after,
+#itemFeed .feed-stats > em::after{
+  content:""!important;
+  position:absolute!important;
+  inset:auto 0 0 0!important;
+  height:3px!important;
+  border-radius:0!important;
+  z-index:1!important;
+  pointer-events:none!important;
+  background:var(--fullbox-line,transparent)!important;
+  opacity:var(--fullbox-line-opacity,.8)!important;
+}
+
+.armor-card .card-grid-3x3 > .stat-cell strong,
+#itemFeed .feed-stats > em strong{
+  position:relative!important;
+  z-index:3!important;
+  color:var(--fullbox-number,#f3ead8)!important;
+  font-weight:var(--fullbox-weight,900)!important;
+  text-shadow:0 0 var(--fullbox-text-glow-size,0px) var(--fullbox-text-glow,transparent),0 1px 0 rgba(0,0,0,.92)!important;
+}
+
+.armor-card .card-grid-3x3 > .stat-cell .stat-icon,
+#itemFeed .feed-stats > em .stat-icon{
+  position:relative!important;
+  z-index:3!important;
+  opacity:var(--fullbox-icon-opacity,.7)!important;
+  filter:brightness(var(--fullbox-icon-brightness,.85)) saturate(var(--fullbox-icon-saturation,.8)) drop-shadow(0 1px 3px rgba(0,0,0,.85))!important;
+}
+
+/* GRID: make the whole larger cell loudly quality-coded. */
+.armor-card .card-grid-3x3 > .stat-cell.stat-quality-perfect{
+  --fullbox-number:#fff2a6!important;--fullbox-line:#ffe16a!important;--fullbox-line-opacity:1!important;--fullbox-weight:1000!important;--fullbox-text-glow:rgba(255,223,91,.95)!important;--fullbox-text-glow-size:13px!important;--fullbox-icon-opacity:1!important;--fullbox-icon-brightness:1.28!important;--fullbox-icon-saturation:1.25!important;
+  border-color:#ffd84d!important;
+  background:linear-gradient(135deg,#6a4700 0%,#b88400 42%,#4b3000 100%)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.35),inset 0 0 0 1px rgba(255,255,255,.16),0 0 22px rgba(255,198,0,.58)!important;
+}
+.armor-card .card-grid-3x3 > .stat-cell.stat-quality-near{
+  --fullbox-number:#c9fbff!important;--fullbox-line:#55e7ff!important;--fullbox-line-opacity:1!important;--fullbox-weight:980!important;--fullbox-text-glow:rgba(85,231,255,.80)!important;--fullbox-text-glow-size:10px!important;--fullbox-icon-opacity:.96!important;--fullbox-icon-brightness:1.16!important;--fullbox-icon-saturation:1.12!important;
+  border-color:#55e7ff!important;
+  background:linear-gradient(135deg,#004456 0%,#078aa2 45%,#002d3f 100%)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.22),inset 0 0 0 1px rgba(255,255,255,.10),0 0 16px rgba(85,231,255,.38)!important;
+}
+.armor-card .card-grid-3x3 > .stat-cell.stat-quality-great{
+  --fullbox-number:#85d0ff!important;--fullbox-line:#3aa7ff!important;--fullbox-line-opacity:.92!important;--fullbox-weight:940!important;--fullbox-text-glow:rgba(58,167,255,.52)!important;--fullbox-text-glow-size:7px!important;--fullbox-icon-opacity:.86!important;--fullbox-icon-brightness:1.05!important;--fullbox-icon-saturation:1!important;
+  border-color:#3a9cff!important;
+  background:linear-gradient(135deg,#062d63 0%,#15528d 44%,#061f48 100%)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.15),inset 0 0 0 1px rgba(255,255,255,.07),0 0 11px rgba(58,167,255,.22)!important;
+}
+.armor-card .card-grid-3x3 > .stat-cell.stat-quality-good{
+  --fullbox-number:#94ffb0!important;--fullbox-line:#54e27f!important;--fullbox-line-opacity:.78!important;--fullbox-weight:900!important;--fullbox-text-glow:rgba(84,226,127,.36)!important;--fullbox-text-glow-size:5px!important;--fullbox-icon-opacity:.76!important;--fullbox-icon-brightness:.96!important;--fullbox-icon-saturation:.86!important;
+  border-color:#54d77b!important;
+  background:linear-gradient(135deg,#103d24 0%,#1f703e 44%,#0c291a 100%)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.11),inset 0 0 0 1px rgba(255,255,255,.05),0 0 8px rgba(84,226,127,.16)!important;
+}
+.armor-card .card-grid-3x3 > .stat-cell.stat-quality-okay{
+  --fullbox-number:#cec3b3!important;--fullbox-line:rgba(190,178,157,.48)!important;--fullbox-line-opacity:.42!important;--fullbox-weight:820!important;--fullbox-icon-opacity:.55!important;--fullbox-icon-brightness:.72!important;--fullbox-icon-saturation:.55!important;
+  border-color:rgba(190,178,157,.28)!important;
+  background:linear-gradient(135deg,#24242b 0%,#343136 44%,#181923 100%)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.055),inset 0 0 0 1px rgba(255,255,255,.025)!important;
+}
+.armor-card .card-grid-3x3 > .stat-cell.stat-quality-bad{
+  --fullbox-number:#ffaf78!important;--fullbox-line:#ff914d!important;--fullbox-line-opacity:.72!important;--fullbox-weight:800!important;--fullbox-text-glow:rgba(255,145,77,.32)!important;--fullbox-text-glow-size:4px!important;--fullbox-icon-opacity:.46!important;--fullbox-icon-brightness:.62!important;--fullbox-icon-saturation:.56!important;
+  border-color:#b65b27!important;
+  background:linear-gradient(135deg,#44200e 0%,#78391c 44%,#23140f 100%)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.055),inset 0 0 0 1px rgba(255,255,255,.025),0 0 7px rgba(255,145,77,.12)!important;
+}
+.armor-card .card-grid-3x3 > .stat-cell.stat-quality-poor{
+  --fullbox-number:#ff6b7e!important;--fullbox-line:#ff4f68!important;--fullbox-line-opacity:.72!important;--fullbox-weight:780!important;--fullbox-text-glow:rgba(255,79,104,.25)!important;--fullbox-text-glow-size:3px!important;--fullbox-icon-opacity:.35!important;--fullbox-icon-brightness:.48!important;--fullbox-icon-saturation:.45!important;
+  border-color:#8f2638!important;
+  background:linear-gradient(135deg,#3d0d1a 0%,#5c1a2b 42%,#160911 100%)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.035),inset 0 0 0 1px rgba(255,255,255,.018),0 0 6px rgba(255,79,104,.10)!important;
+}
+
+/* Grid number should be the second strongest cue after the box color. */
+.armor-card .card-grid-3x3 > .stat-cell strong{font-size:16px!important;letter-spacing:.015em!important;}
+.armor-card .card-grid-3x3 > .stat-cell.stat-quality-perfect strong{font-size:17px!important;}
+
+/* FEED: same language, slightly quieter because the cards are small. */
+#itemFeed .feed-stats > em.stat-quality-perfect{--fullbox-number:#fff2a6!important;--fullbox-line:#ffe16a!important;--fullbox-text-glow:rgba(255,223,91,.78)!important;--fullbox-text-glow-size:7px!important;--fullbox-weight:1000!important;border-color:#ffd84d!important;background:linear-gradient(135deg,#6a4700,#9a7000 45%,#402800)!important;box-shadow:0 0 10px rgba(255,198,0,.30)!important;}
+#itemFeed .feed-stats > em.stat-quality-near{--fullbox-number:#c9fbff!important;--fullbox-line:#55e7ff!important;--fullbox-text-glow:rgba(85,231,255,.55)!important;--fullbox-text-glow-size:5px!important;--fullbox-weight:980!important;border-color:#55e7ff!important;background:linear-gradient(135deg,#004456,#067f96 45%,#002d3f)!important;}
+#itemFeed .feed-stats > em.stat-quality-great{--fullbox-number:#85d0ff!important;--fullbox-line:#3aa7ff!important;--fullbox-weight:940!important;border-color:#3a9cff!important;background:linear-gradient(135deg,#062d63,#164e80 45%,#061f48)!important;}
+#itemFeed .feed-stats > em.stat-quality-good{--fullbox-number:#94ffb0!important;--fullbox-line:#54e27f!important;--fullbox-weight:900!important;border-color:#54d77b!important;background:linear-gradient(135deg,#103d24,#1f633a 45%,#0c291a)!important;}
+#itemFeed .feed-stats > em.stat-quality-okay{--fullbox-number:#cec3b3!important;--fullbox-line:rgba(190,178,157,.48)!important;--fullbox-weight:820!important;border-color:rgba(190,178,157,.28)!important;background:linear-gradient(135deg,#24242b,#343136 45%,#181923)!important;}
+#itemFeed .feed-stats > em.stat-quality-bad{--fullbox-number:#ffaf78!important;--fullbox-line:#ff914d!important;--fullbox-weight:800!important;border-color:#b65b27!important;background:linear-gradient(135deg,#44200e,#70351a 45%,#23140f)!important;}
+#itemFeed .feed-stats > em.stat-quality-poor{--fullbox-number:#ff6b7e!important;--fullbox-line:#ff4f68!important;--fullbox-weight:780!important;border-color:#8f2638!important;background:linear-gradient(135deg,#3d0d1a,#541828 45%,#160911)!important;}
