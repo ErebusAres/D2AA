@@ -3,6 +3,7 @@ import { TAGS } from '../src-clean/constants.js';
 
 const TAG_BY_LABEL = new Map(TAGS.map((tag) => [String(tag.label || '').trim(), tag]));
 const TAG_BY_VALUE = new Map(TAGS.map((tag) => [String(tag.value || '').trim(), tag]));
+const ARCHETYPE_ICON_CACHE = new Map();
 let queued = false;
 
 function schedule() {
@@ -10,8 +11,10 @@ function schedule() {
   queued = true;
   requestAnimationFrame(() => {
     queued = false;
+    rebuildArchetypeIconCache();
     fixTagChips();
     fixFeedTiers();
+    fixArchetypeIcons();
     fixSetBonuses();
     cleanTooltipTitles();
   });
@@ -19,6 +22,15 @@ function schedule() {
 
 function rowById(id) {
   return state.rows.find((item) => String(item.Id) === String(id));
+}
+
+function rebuildArchetypeIconCache() {
+  ARCHETYPE_ICON_CACHE.clear();
+  for (const row of state.rows || []) {
+    const key = normalize(row.Archetype);
+    if (!key || !row.ArchetypeIcon) continue;
+    ARCHETYPE_ICON_CACHE.set(key, row.ArchetypeIcon);
+  }
 }
 
 function fixTagChips() {
@@ -51,14 +63,28 @@ function fixFeedTiers() {
   });
 }
 
+function fixArchetypeIcons() {
+  document.querySelectorAll('.armor-card[data-id]').forEach((card) => {
+    const row = rowById(card.dataset.id);
+    if (!row) return;
+    const iconUrl = row.ArchetypeIcon || ARCHETYPE_ICON_CACHE.get(normalize(row.Archetype));
+    if (!iconUrl) return;
+    const wrap = card.querySelector('.archetype-icon-wrap');
+    if (!wrap || wrap.querySelector('img')) return;
+    const oldFallback = Array.from(wrap.childNodes).find((node) => node.nodeType === Node.ELEMENT_NODE && !node.classList?.contains('d2-tooltip'));
+    if (oldFallback) oldFallback.remove();
+    wrap.insertAdjacentHTML('afterbegin', `<img class="archetype-img" src="${esc(iconUrl)}" alt="" loading="lazy">`);
+  });
+}
+
 function fixSetBonuses() {
   document.querySelectorAll('.armor-card[data-id]').forEach((card) => {
     const row = rowById(card.dataset.id);
     if (!row) return;
-    const bonuses = extractSetBonuses(row);
     const container = card.querySelector('.bonus-icons');
     if (!container) return;
-    const currentKey = bonuses.map((perk) => perk.hash || perk.name || perk.description || '').join('|');
+    const bonuses = extractSetBonuses(row);
+    const currentKey = bonuses.map((perk) => perk.hash || perk.name || perk.description || '').join('|') || 'none';
     if (container.dataset.setFixedKey === currentKey) return;
     container.querySelectorAll('.is-set-bonus[data-set-hash]').forEach((node) => node.remove());
     container.dataset.setFixedKey = currentKey;
@@ -69,14 +95,21 @@ function fixSetBonuses() {
 }
 
 function extractSetBonuses(row) {
+  if (normalize(row.Rarity) === 'exotic') return [];
   const out = [];
-  for (const value of [row.ArmorSetBonuses, row.SetBonuses]) out.push(...parsePerks(value));
+  for (const value of [row.ArmorSetBonuses, row.SetBonuses]) {
+    for (const perk of parsePerks(value)) {
+      if (isExoticOrArchetypePerk(perk, row)) continue;
+      if (looksLikeSetBonus([perk.name, perk.description, perk.label, perk.type, perk.category].filter(Boolean).join(' '))) out.push({ ...perk, kind: 'set', label: perk.label || setBonusLabel(`${perk.name || ''} ${perk.description || ''}`) });
+    }
+  }
   const plugs = [
     ...(Array.isArray(row.StatAudit?.activePlugs) ? row.StatAudit.activePlugs : []),
     ...(Array.isArray(row.SocketAudit?.activePlugs) ? row.SocketAudit.activePlugs : [])
   ];
   for (const plug of plugs) {
-    const text = [plug.name, plug.description, plug.type, plug.category, JSON.stringify(plug.stats || [])].filter(Boolean).join(' ');
+    if (isExoticOrArchetypePerk(plug, row)) continue;
+    const text = [plug.name, plug.description, plug.type, plug.category, plug.label, JSON.stringify(plug.stats || [])].filter(Boolean).join(' ');
     if (!looksLikeSetBonus(text)) continue;
     out.push({
       kind: 'set',
@@ -90,10 +123,21 @@ function extractSetBonuses(row) {
   return uniquePerks(out.filter((perk) => perk && (perk.name || perk.description)));
 }
 
+function isExoticOrArchetypePerk(perk, row) {
+  const text = normalize([perk?.name, perk?.description, perk?.label, perk?.type, perk?.category, perk?.kind].filter(Boolean).join(' '));
+  const name = normalize(perk?.name);
+  return normalize(row.Rarity) === 'exotic'
+    || text.includes('exotic')
+    || text.includes('intrinsic')
+    || text.includes('archetype')
+    || name === normalize(row.Name)
+    || name === normalize(row.Archetype);
+}
+
 function looksLikeSetBonus(text) {
-  const value = String(text || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ');
+  const value = normalize(text);
   const hasSet = value.includes(' set ') || value.startsWith('set ') || value.includes('armor set') || value.includes('setbonus');
-  const hasBonus = value.includes(' bonus ') || value.includes(' perk ') || value.includes(' trait ') || value.includes('pieces') || value.includes('piece');
+  const hasBonus = value.includes('bonus') || value.includes('perk') || value.includes('trait') || value.includes('pieces') || value.includes('piece');
   return (hasSet && hasBonus)
     || value.includes('set bonus')
     || value.includes('armor set bonus')
@@ -108,7 +152,7 @@ function looksLikeSetBonus(text) {
 }
 
 function setBonusLabel(text) {
-  const value = String(text || '').toLowerCase();
+  const value = normalize(text);
   if (/\b2\b/.test(value) || value.includes('two')) return '2-Piece Set Bonus';
   if (/\b4\b/.test(value) || value.includes('four')) return '4-Piece Set Bonus';
   return 'Armor Set Bonus';
@@ -151,6 +195,10 @@ function parsePerks(value) {
   if (!value) return [];
   if (Array.isArray(value)) return value;
   try { const parsed = JSON.parse(value); return Array.isArray(parsed) ? parsed : []; } catch { return []; }
+}
+
+function normalize(value) {
+  return String(value || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, ' ');
 }
 
 function num(value) {
