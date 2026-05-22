@@ -2,128 +2,45 @@ import { STAT_KEYS, STAT_LABELS, STAT_ICONS, RARITY_ICONS, CLASS_ICONS, SLOT_ICO
 import { actionLabel, canRunAction } from '../data/actions.js';
 import { isActiveFeedItem } from '../data/feed-state.js';
 
-const ARCHETYPE_STAT_BY_NAME = {
-  Paragon: 'Super',
-  Grenadier: 'Grenade',
-  Specialist: 'ClassAbility',
-  Brawler: 'Melee',
-  Bulwark: 'Health',
-  Gunner: 'Weapon'
-};
-
-const STAT_QUALITY_STYLE = {
-  perfect: { text: '#ffe58a', border: 'rgba(255,213,72,.62)', top: 'rgba(255,203,52,.18)', bottom: 'rgba(118,80,0,.12)', wash: 'rgba(255,225,110,.16)', glow: 'rgba(255,196,0,.18)', line: '#ffd84d', weight: 1000 },
-  near: { text: '#9ff5ff', border: 'rgba(70,219,245,.54)', top: 'rgba(70,219,245,.13)', bottom: 'rgba(0,83,103,.12)', wash: 'rgba(70,219,245,.12)', glow: 'rgba(70,219,245,.13)', line: '#55e7ff', weight: 955 },
-  great: { text: '#72a6ff', border: 'rgba(88,126,255,.58)', top: 'rgba(64,88,210,.135)', bottom: 'rgba(24,34,116,.11)', wash: 'rgba(88,126,255,.10)', glow: 'rgba(88,126,255,.08)', line: '#5f83ff', weight: 930 },
-  good: { text: '#8bf0a4', border: 'rgba(78,211,113,.38)', top: 'rgba(78,211,113,.10)', bottom: 'rgba(20,80,42,.12)', wash: 'rgba(78,211,113,.08)', glow: 'rgba(78,211,113,.08)', line: '#54d77b', weight: 880 },
-  okay: { text: '#c8beb0', border: 'rgba(190,178,157,.22)', top: 'rgba(190,178,157,.055)', bottom: 'rgba(40,39,45,.10)', wash: 'rgba(190,178,157,.035)', glow: 'transparent', line: 'rgba(190,178,157,.42)', weight: 820 },
-  bad: { text: '#ffa269', border: 'rgba(222,111,45,.34)', top: 'rgba(222,111,45,.09)', bottom: 'rgba(91,38,16,.12)', wash: 'rgba(222,111,45,.07)', glow: 'rgba(222,111,45,.08)', line: '#e8793f', weight: 800 },
-  poor: { text: '#ff7182', border: 'rgba(213,58,82,.38)', top: 'rgba(213,58,82,.105)', bottom: 'rgba(71,15,27,.16)', wash: 'rgba(213,58,82,.075)', glow: 'rgba(213,58,82,.08)', line: '#e0445b', weight: 790 }
+const ARCHETYPE_STAT_BY_NAME = { Paragon:'Super', Grenadier:'Grenade', Specialist:'ClassAbility', Brawler:'Melee', Bulwark:'Health', Gunner:'Weapon' };
+const Q = {
+  perfect:['Perfect','#ffe58a','rgba(255,213,72,.68)','rgba(255,203,52,.20)','rgba(118,80,0,.13)','rgba(255,196,0,.20)',1000],
+  amazing:['Amazing','#b9fbff','rgba(94,238,255,.60)','rgba(94,238,255,.16)','rgba(0,86,111,.12)','rgba(94,238,255,.16)',970],
+  excellent:['Excellent','#7fd8ff','rgba(79,188,255,.54)','rgba(79,188,255,.14)','rgba(16,70,130,.11)','rgba(79,188,255,.12)',950],
+  great:['Great','#78a7ff','rgba(88,126,255,.52)','rgba(64,88,210,.125)','rgba(24,34,116,.10)','rgba(88,126,255,.09)',925],
+  good:['Good','#80f0a0','rgba(78,211,113,.42)','rgba(78,211,113,.11)','rgba(20,80,42,.12)','rgba(78,211,113,.09)',890],
+  decent:['Decent','#b6d982','rgba(168,205,100,.34)','rgba(168,205,100,.085)','rgba(72,86,28,.10)','rgba(168,205,100,.06)',850],
+  ok:['OK','#c8beb0','rgba(190,178,157,.22)','rgba(190,178,157,.055)','rgba(40,39,45,.10)','transparent',820],
+  weak:['Kinda bad','#d9b15f','rgba(201,147,55,.30)','rgba(201,147,55,.075)','rgba(84,57,18,.10)','rgba(201,147,55,.055)',800],
+  bad:['Bad','#ffa269','rgba(222,111,45,.34)','rgba(222,111,45,.09)','rgba(91,38,16,.12)','rgba(222,111,45,.08)',790],
+  terrible:['Terrible','#ff7182','rgba(213,58,82,.38)','rgba(213,58,82,.105)','rgba(71,15,27,.16)','rgba(213,58,82,.08)',780],
+  dead:['Dead stat','#8b2838','rgba(145,35,55,.34)','rgba(145,35,55,.10)','rgba(12,7,11,.24)','rgba(145,35,55,.05)',760]
 };
 
 export function renderGrid(container, rows, onTag, onAction, onCompareGroup) {
   container.innerHTML = renderSlotSections(rows);
-  container.querySelectorAll('[data-tag-trigger]').forEach((button) => button.addEventListener('click', (event) => { event.stopPropagation(); onTag?.(button.dataset.id); }));
-  container.querySelectorAll('[data-action-id]').forEach((button) => button.addEventListener('click', (event) => { event.stopPropagation(); onAction?.(button.dataset.actionId, button); }));
-  container.querySelectorAll('[data-compare-group]').forEach((button) => button.addEventListener('click', (event) => { event.stopPropagation(); onCompareGroup?.(button.dataset.compareGroup); }));
+  container.querySelectorAll('[data-tag-trigger]').forEach((button)=>button.addEventListener('click',(event)=>{event.stopPropagation();onTag?.(button.dataset.id);}));
+  container.querySelectorAll('[data-action-id]').forEach((button)=>button.addEventListener('click',(event)=>{event.stopPropagation();onAction?.(button.dataset.actionId,button);}));
+  container.querySelectorAll('[data-compare-group]').forEach((button)=>button.addEventListener('click',(event)=>{event.stopPropagation();onCompareGroup?.(button.dataset.compareGroup);}));
 }
-
-function renderSlotSections(rows) {
-  if (!rows.length) return '';
-  const sections = groupBySlot(rows);
-  return sections.map(([slot, items]) => `<section class="armor-slot-section" data-slot-section="${html(slot)}">
-    <div class="slot-divider"><span class="slot-divider-icon">${maskIcon(SLOT_ICONS[slot], slot)}</span><strong>${html(slot)}</strong><em>${items.length}</em></div>
-    <div class="slot-card-grid">${items.map(renderCard).join('')}</div>
-  </section>`).join('');
-}
-
-function groupBySlot(rows) {
-  const buckets = new Map();
-  rows.forEach((row) => { const slot = row.Slot || row.Type || 'Other'; if (!buckets.has(slot)) buckets.set(slot, []); buckets.get(slot).push(row); });
-  const ordered = [];
-  SLOT_ORDER.forEach((slot) => { if (buckets.has(slot)) ordered.push([slot, buckets.get(slot)]); });
-  [...buckets.keys()].filter((slot) => !SLOT_ORDER.includes(slot)).sort().forEach((slot) => ordered.push([slot, buckets.get(slot)]));
-  return ordered;
-}
-
-function renderCard(row) {
-  const badge = lightBadgeText(row);
-  const groupLabel = row.Dupe_Group || row.Group || '';
-  const groupActionKey = row.GroupActionKey || `${row.GroupKey || ''}::${groupLabel}`;
-  const isNew = isActiveFeedItem(row);
-  const group = row.Is_Dupe ? `<button type="button" class="group-badge ${row.GroupColor || ''}" title="Compare duplicate group ${html(groupLabel)}" data-compare-group="${html(groupActionKey)}">${row.Is_Dupe_Exotic ? iconImg(RARITY_ICONS.Exotic, 'Exotic duplicate group', 'badge-icon') : ''}${html(groupLabel)}</button>` : '';
-  const tagControl = `<button class="card-tag-slot card-tag-badge ${row.Tag ? 'has-tag' : 'is-empty'} ${isNew ? 'is-new-context' : ''}" type="button" data-tag-trigger data-id="${html(row.Id)}" title="${html(tagTitle(row, isNew))}">${tagEmoji(row, isNew)}</button>`;
-  const action = actionLabel(row);
-  const loc = locationLabel(row);
-  return `<article class="armor-card ${safeClass(row.Rarity)} ${isNew ? 'is-new-found' : ''} ${row.Is_Dupe ? 'is-grouped is-dupe ' + row.GroupColor : ''}" data-card-id="${html(row.Id)}" data-group="${html(groupLabel)}">
-    ${badge ? `<button class="light-tag-badge light-only-badge" type="button" data-tag-trigger data-id="${html(row.Id)}">${badge}</button>` : ''}
-    ${tagControl}${group}
-    <div class="card-top card-top-v151"><div class="item-icon">${row.Icon ? `<img src="${html(row.Icon)}" alt="" loading="lazy">` : '<span>◇</span>'}</div><div class="identity-stack" aria-label="Item identity">${iconImg(CLASS_ICONS[row.Class], row.Class, 'identity-icon')}${maskIcon(SLOT_ICONS[row.Slot], row.Slot)}${iconImg(RARITY_ICONS[row.Rarity], row.Rarity, 'identity-icon')}</div><div class="item-title-block"><h3 title="${html(row.Name)}">${html(row.Name)}</h3><div class="item-location-row"><span class="location-pill" title="${html(loc)}">${LOCATION_EMOJIS[loc] || LOCATION_EMOJIS.Character || '🎒'} ${html(loc)}</span></div></div></div>
-    <div class="card-grid-3x3"><div><span>Total</span><strong>${row.Total || 0}</strong></div><div class="tier-cell"><span>Tier</span><strong class="diamonds" title="Tier ${html(row.Tier || 0)}">${diamonds(row.Tier, row.TierMax)}</strong></div><div class="arch-cell">${archetypeIcon(row)}</div>${STAT_KEYS.map((key) => statCell(row, key)).join('')}</div>
-    <div class="card-actions"><button type="button" data-action-id="${html(row.Id)}" ${canRunAction(row) ? '' : 'disabled'}>${html(action)}</button>${row.Is_Dupe ? `<button type="button" data-action-id="group:${html(groupActionKey)}">Pull group</button>` : ''}</div>
-  </article>`;
-}
-
-function archetypeIcon(row) {
-  const derived = deriveArchetype(row);
-  const name = normalizeArchetypeName(row.Archetype) || derived.name;
-  const meta = ARMOR_ARCHETYPES[name];
-  const stat = row.ArchetypeIcon ? '' : (meta?.stat || ARCHETYPE_STAT_BY_NAME[name] || derived.stat);
-  const label = name || derived.name || row.Archetype || 'Archetype';
-  const statLabel = stat ? STAT_LABELS[stat] : '';
-  const src = row.ArchetypeIcon || STAT_ICONS[stat] || '';
-  const title = `${label}${statLabel ? ` · ${statLabel}` : ''}${row.ArchetypeDescription ? ` — ${row.ArchetypeDescription}` : ''}`;
-  if (src) return `<img class="arch-image arch-${safeClass(label)}" src="${html(src)}" alt="${html(label)}" title="${html(title)}" aria-label="${html(title)}" loading="lazy">`;
-  return `<span class="arch-missing" title="${html(title)}">◇</span>`;
-}
-
-function deriveArchetype(row) {
-  let stat = 'Health';
-  let value = -1;
-  for (const key of STAT_KEYS) {
-    const n = Number(row[key] || 0);
-    if (n > value) { value = n; stat = key; }
-  }
-  const name = Object.entries(ARCHETYPE_STAT_BY_NAME).find(([, key]) => key === stat)?.[0] || 'Bulwark';
-  return { name, stat };
-}
-function normalizeArchetypeName(value) { return ARCHETYPE_ALIASES[String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, '')] || ''; }
-function statCell(row, key) {
-  const value = Number(row[key] || 0);
-  const quality = statQuality(value);
-  const palette = STAT_QUALITY_STYLE[quality] || STAT_QUALITY_STYLE.okay;
-  const style = qualityInlineStyle(palette);
-  const numberStyle = `color:${palette.text}!important;font-weight:${palette.weight}!important;`;
-  return `<div class="stat-cell stat-${key.toLowerCase()} stat-quality-${quality}" style="${style}" data-stat-quality="${quality}" title="${html(STAT_LABELS[key])}: ${value} · ${qualityLabel(quality)}"><span class="stat-icon-only"><img class="stat-icon" src="${html(STAT_ICONS[key])}" alt="${html(STAT_LABELS[key])}" loading="lazy"></span><strong style="${numberStyle}">${value}</strong></div>`;
-}
-function qualityInlineStyle(item) {
-  return [
-    `--stat-text:${item.text}`,
-    `--stat-border:${item.border}`,
-    `--stat-bg-top:${item.top}`,
-    `--stat-bg-bottom:${item.bottom}`,
-    `--stat-wash:${item.wash}`,
-    `--stat-glow:${item.glow}`,
-    `--stat-weight:${item.weight}`,
-    `--bal-number:${item.text}`,
-    `--bal-border:${item.border}`,
-    `--bal-top:${item.top}`,
-    `--bal-bottom:${item.bottom}`,
-    `--bal-pop:${item.wash}`,
-    `--bal-line:${item.line}`,
-    `color:${item.text}!important`,
-    `border-color:${item.border}!important`,
-    `background:radial-gradient(circle at 70% 12%,${item.wash},transparent 55%),linear-gradient(180deg,${item.top},${item.bottom}),#171824!important`
-  ].join(';');
-}
-function statQuality(value) { if (value >= 30) return 'perfect'; if (value >= 28) return 'near'; if (value >= 24) return 'great'; if (value >= 18) return 'good'; if (value >= 12) return 'okay'; if (value >= 6) return 'bad'; return 'poor'; }
-function qualityLabel(value) { return ({ perfect: 'Perfect', near: 'Near-perfect', great: 'Great', good: 'Good', okay: 'Okay', bad: 'Bad', poor: 'Poor' })[value] || value; }
-function lightBadgeText(row) { return row.Power || row.Light || ''; }
-function tagEmoji(row, isNew = false) { const tag = TAGS.find((item) => item.value === row.Tag && item.value); if (tag) return tag.emoji; return isNew ? '✨' : '＋'; }
-function tagTitle(row, isNew = false) { const tag = TAGS.find((item) => item.value === row.Tag && item.value); if (tag) return `Tag: ${tag.label}`; return isNew ? 'New item — assign tag' : 'Assign tag'; }
-function locationLabel(row) { if (row.Source !== 'Bungie') return 'DIM'; return row.IsInVault ? 'Vault' : row.IsEquipped ? 'Equipped' : 'Inventory'; }
-function iconImg(src, label, className = 'meta-icon') { return src ? `<img class="${html(className)}" src="${html(src)}" alt="${html(label || '')}" title="${html(label || '')}" loading="lazy">` : ''; }
-function maskIcon(src, label) { return src ? `<span class="meta-mask" style="--icon:url('${html(src)}')" title="${html(label || '')}" aria-label="${html(label || '')}"></span>` : ''; }
-function diamonds(tier, max = 5) { const m = Number(max || 5); const n = Math.max(0, Math.min(m, Number(tier || 0))); return '◆'.repeat(n); }
-function safeClass(value) { return String(value || '').toLowerCase().replace(/[^a-z0-9_-]+/g, '-'); }
-function html(value) { return String(value ?? '').replace(/[&<>"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[char])); }
+function renderSlotSections(rows){if(!rows.length)return'';return groupBySlot(rows).map(([slot,items])=>`<section class="armor-slot-section" data-slot-section="${html(slot)}"><div class="slot-divider"><span class="slot-divider-icon">${maskIcon(SLOT_ICONS[slot],slot)}</span><strong>${html(slot)}</strong><em>${items.length}</em></div><div class="slot-card-grid">${items.map(renderCard).join('')}</div></section>`).join('');}
+function groupBySlot(rows){const buckets=new Map();rows.forEach((row)=>{const slot=row.Slot||row.Type||'Other';if(!buckets.has(slot))buckets.set(slot,[]);buckets.get(slot).push(row);});const ordered=[];SLOT_ORDER.forEach((slot)=>{if(buckets.has(slot))ordered.push([slot,buckets.get(slot)]);});[...buckets.keys()].filter((slot)=>!SLOT_ORDER.includes(slot)).sort().forEach((slot)=>ordered.push([slot,buckets.get(slot)]));return ordered;}
+function renderCard(row){const badge=lightBadgeText(row);const groupLabel=row.Dupe_Group||row.Group||'';const groupActionKey=row.GroupActionKey||`${row.GroupKey||''}::${groupLabel}`;const isNew=isActiveFeedItem(row);const perfect=isPerfectRoll(row);const group=row.Is_Dupe?`<button type="button" class="group-badge ${row.GroupColor||''}" title="Compare duplicate group ${html(groupLabel)}" data-compare-group="${html(groupActionKey)}">${row.Is_Dupe_Exotic?iconImg(RARITY_ICONS.Exotic,'Exotic duplicate group','badge-icon'):''}${html(groupLabel)}</button>`:'';const tagControl=`<button class="card-tag-slot card-tag-badge ${row.Tag?'has-tag':'is-empty'} ${isNew?'is-new-context':''}" type="button" data-tag-trigger data-id="${html(row.Id)}" title="${html(tagTitle(row,isNew))}">${tagEmoji(row,isNew)}</button>`;const action=actionLabel(row);const loc=locationLabel(row);return `<article class="armor-card ${safeClass(row.Rarity)} ${perfect?'is-perfect-roll':''} ${isNew?'is-new-found':''} ${row.Is_Dupe?'is-grouped is-dupe '+row.GroupColor:''}" style="${perfect?perfectCardStyle():''}" data-card-id="${html(row.Id)}" data-group="${html(groupLabel)}">${badge?`<button class="light-tag-badge light-only-badge" type="button" data-tag-trigger data-id="${html(row.Id)}">${badge}</button>`:''}${tagControl}${group}${perfect?perfectRollBadge('grid'):''}<div class="card-top card-top-v151"><div class="item-icon">${row.Icon?`<img src="${html(row.Icon)}" alt="" loading="lazy">`:'<span>◇</span>'}</div><div class="identity-stack" aria-label="Item identity">${iconImg(CLASS_ICONS[row.Class],row.Class,'identity-icon')}${maskIcon(SLOT_ICONS[row.Slot],row.Slot)}${iconImg(RARITY_ICONS[row.Rarity],row.Rarity,'identity-icon')}</div><div class="item-title-block"><h3 title="${html(row.Name)}">${html(row.Name)}</h3><div class="item-location-row"><span class="location-pill" title="${html(loc)}">${LOCATION_EMOJIS[loc]||LOCATION_EMOJIS.Character||'🎒'} ${html(loc)}</span></div></div></div><div class="card-grid-3x3"><div><span>Total</span><strong>${row.Total||0}</strong></div><div class="tier-cell"><span>Tier</span><strong class="diamonds" title="Tier ${html(row.Tier||0)}">${diamonds(row.Tier,row.TierMax)}</strong></div><div class="arch-cell">${archetypeIcon(row)}</div>${STAT_KEYS.map((key)=>statCell(row,key)).join('')}</div><div class="card-actions"><button type="button" data-action-id="${html(row.Id)}" ${canRunAction(row)?'':'disabled'}>${html(action)}</button>${row.Is_Dupe?`<button type="button" data-action-id="group:${html(groupActionKey)}">Pull group</button>`:''}</div></article>`;}
+function archetypeIcon(row){const derived=deriveArchetype(row);const name=normalizeArchetypeName(row.Archetype)||derived.name;const meta=ARMOR_ARCHETYPES[name];const stat=row.ArchetypeIcon?'':(meta?.stat||ARCHETYPE_STAT_BY_NAME[name]||derived.stat);const label=name||derived.name||row.Archetype||'Archetype';const statLabel=stat?STAT_LABELS[stat]:'';const src=row.ArchetypeIcon||STAT_ICONS[stat]||'';const title=`${label}${statLabel?` · ${statLabel}`:''}${row.ArchetypeDescription?` — ${row.ArchetypeDescription}`:''}`;if(src)return`<img class="arch-image arch-${safeClass(label)}" src="${html(src)}" alt="${html(label)}" title="${html(title)}" aria-label="${html(title)}" loading="lazy">`;return`<span class="arch-missing" title="${html(title)}">◇</span>`;}
+function deriveArchetype(row){let stat='Health';let value=-1;for(const key of STAT_KEYS){const n=Number(row[key]||0);if(n>value){value=n;stat=key;}}const name=Object.entries(ARCHETYPE_STAT_BY_NAME).find(([,key])=>key===stat)?.[0]||'Bulwark';return{name,stat};}
+function normalizeArchetypeName(value){return ARCHETYPE_ALIASES[String(value||'').toLowerCase().replace(/[^a-z0-9]+/g,'')]||'';}
+function statCell(row,key){const value=Number(row[key]||0);const quality=statQuality(value);const p=Q[quality]||Q.ok;const style=statStyle(p);return`<div class="stat-cell stat-${key.toLowerCase()} stat-quality-${quality}" style="${style}" data-stat-quality="${quality}" title="${html(STAT_LABELS[key])}: ${value} · ${html(p[0])}"><span class="stat-icon-only"><img class="stat-icon" src="${html(STAT_ICONS[key])}" alt="${html(STAT_LABELS[key])}" loading="lazy"></span><strong style="color:${p[1]}!important;font-weight:${p[6]}!important;text-shadow:0 0 7px ${p[5]},0 1px 0 rgba(0,0,0,.85)!important;">${value}</strong></div>`;}
+function statStyle(p){return[`--stat-text:${p[1]}`,`--stat-border:${p[2]}`,`--stat-bg-top:${p[3]}`,`--stat-bg-bottom:${p[4]}`,`--stat-wash:${p[5]}`,`--stat-glow:${p[5]}`,`--stat-weight:${p[6]}`,`--bal-number:${p[1]}`,`--bal-border:${p[2]}`,`--bal-top:${p[3]}`,`--bal-bottom:${p[4]}`,`--bal-pop:${p[5]}`,`--bal-line:${p[2]}`,`color:${p[1]}!important`,`border-color:${p[2]}!important`,`background:radial-gradient(circle at 70% 12%,${p[5]},transparent 55%),linear-gradient(180deg,${p[3]},${p[4]}),#171824!important`,`box-shadow:inset 0 1px 0 rgba(255,255,255,.045),0 0 7px ${p[5]}!important`].join(';');}
+function statQuality(value){if(value>=30)return'perfect';if(value===29)return'amazing';if(value>=27)return'excellent';if(value>=24)return'great';if(value>=21)return'good';if(value>=18)return'decent';if(value>=15)return'ok';if(value>=11)return'weak';if(value>=6)return'bad';if(value>=1)return'terrible';return'dead';}
+function isPerfectRoll(row){const stats=STAT_KEYS.map((key)=>Number(row[key]||0)).sort((a,b)=>b-a);return stats[0]===30&&stats[1]===25&&stats[2]===20&&stats[3]===0&&stats[4]===0&&stats[5]===0;}
+function perfectCardStyle(){return'border-color:rgba(255,213,72,.58)!important;box-shadow:0 0 0 1px rgba(255,213,72,.20),0 0 22px rgba(255,196,0,.16),0 18px 38px rgba(0,0,0,.35)!important;';}
+function perfectRollBadge(scope){const pos=scope==='feed'?'right:32px;bottom:8px;':'left:10px;bottom:48px;';return`<span class="perfect-roll-badge" style="position:absolute;${pos}z-index:8;display:inline-flex;align-items:center;gap:4px;padding:3px 7px;border-radius:8px 2px 8px 2px;border:1px solid rgba(255,213,72,.62);background:rgba(16,12,4,.82);color:#ffe58a;font-size:9px;font-weight:1000;letter-spacing:.07em;text-transform:uppercase;box-shadow:0 0 14px rgba(255,196,0,.22);pointer-events:none;">◆ Perfect Roll</span>`;}
+function lightBadgeText(row){return row.Power||row.Light||'';}
+function tagEmoji(row,isNew=false){const tag=TAGS.find((item)=>item.value===row.Tag&&item.value);if(tag)return tag.emoji;return isNew?'✨':'＋';}
+function tagTitle(row,isNew=false){const tag=TAGS.find((item)=>item.value===row.Tag&&item.value);if(tag)return`Tag: ${tag.label}`;return isNew?'New item — assign tag':'Assign tag';}
+function locationLabel(row){if(row.Source!=='Bungie')return'DIM';return row.IsInVault?'Vault':row.IsEquipped?'Equipped':'Inventory';}
+function iconImg(src,label,className='meta-icon'){return src?`<img class="${html(className)}" src="${html(src)}" alt="${html(label||'')}" title="${html(label||'')}" loading="lazy">`:'';}
+function maskIcon(src,label){return src?`<span class="meta-mask" style="--icon:url('${html(src)}')" title="${html(label||'')}" aria-label="${html(label||'')}"></span>`:'';}
+function diamonds(tier,max=5){const m=Number(max||5);const n=Math.max(0,Math.min(m,Number(tier||0)));return'◆'.repeat(n);}
+function safeClass(value){return String(value||'').toLowerCase().replace(/[^a-z0-9_-]+/g,'-');}
+function html(value){return String(value??'').replace(/[&<>"]/g,(char)=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[char]));}
