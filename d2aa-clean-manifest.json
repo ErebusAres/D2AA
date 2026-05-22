@@ -1,0 +1,7 @@
+{
+  "app": "D2AA Clean",
+  "version": "1.91",
+  "expectedPage": "d2aa-clean.html",
+  "createdForDebug": "2026-05-21",
+  "note": "If this file shows v1.91 while d2aa-clean.html shows an older version, GitHub Pages is serving stale HTML or a different branch/path."
+}
