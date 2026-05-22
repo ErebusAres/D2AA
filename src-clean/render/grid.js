@@ -101,10 +101,43 @@ function normalizeArchetypeName(value) {
   return ARCHETYPE_ALIASES[String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, '')] || String(value || '').trim();
 }
 
+const STAT_QUALITY_STYLE = {
+  perfect: { text: '#ffe58a', border: 'rgba(255,213,72,.62)', top: 'rgba(255,203,52,.18)', bottom: 'rgba(118,80,0,.12)', wash: 'rgba(255,225,110,.16)', glow: 'rgba(255,196,0,.18)', line: '#ffd84d', weight: 1000 },
+  near: { text: '#9ff5ff', border: 'rgba(70,219,245,.54)', top: 'rgba(70,219,245,.13)', bottom: 'rgba(0,83,103,.12)', wash: 'rgba(70,219,245,.12)', glow: 'rgba(70,219,245,.13)', line: '#55e7ff', weight: 955 },
+  great: { text: '#72a6ff', border: 'rgba(88,126,255,.58)', top: 'rgba(64,88,210,.135)', bottom: 'rgba(24,34,116,.11)', wash: 'rgba(88,126,255,.10)', glow: 'rgba(88,126,255,.08)', line: '#5f83ff', weight: 930 },
+  good: { text: '#8bf0a4', border: 'rgba(78,211,113,.38)', top: 'rgba(78,211,113,.10)', bottom: 'rgba(20,80,42,.12)', wash: 'rgba(78,211,113,.08)', glow: 'rgba(78,211,113,.08)', line: '#54d77b', weight: 880 },
+  okay: { text: '#c8beb0', border: 'rgba(190,178,157,.22)', top: 'rgba(190,178,157,.055)', bottom: 'rgba(40,39,45,.10)', wash: 'rgba(190,178,157,.035)', glow: 'transparent', line: 'rgba(190,178,157,.42)', weight: 820 },
+  bad: { text: '#ffa269', border: 'rgba(222,111,45,.34)', top: 'rgba(222,111,45,.09)', bottom: 'rgba(91,38,16,.12)', wash: 'rgba(222,111,45,.07)', glow: 'rgba(222,111,45,.08)', line: '#e8793f', weight: 800 },
+  poor: { text: '#ff7182', border: 'rgba(213,58,82,.38)', top: 'rgba(213,58,82,.105)', bottom: 'rgba(71,15,27,.16)', wash: 'rgba(213,58,82,.075)', glow: 'rgba(213,58,82,.08)', line: '#e0445b', weight: 790 }
+};
+
 function statCell(row, key) {
   const value = Number(row[key] || 0);
   const quality = statQuality(value);
-  return `<div class="stat-cell stat-${key.toLowerCase()} stat-quality-${quality}" title="${html(STAT_LABELS[key])}: ${value} · ${qualityLabel(quality)}"><span class="stat-icon-only"><img class="stat-icon" src="${html(STAT_ICONS[key])}" alt="${html(STAT_LABELS[key])}" loading="lazy"></span><strong>${value}</strong></div>`;
+  const style = qualityInlineStyle(quality);
+  const numberStyle = `color:${STAT_QUALITY_STYLE[quality]?.text || '#f5f1df'}!important;font-weight:${STAT_QUALITY_STYLE[quality]?.weight || 900}!important;`;
+  return `<div class="stat-cell stat-${key.toLowerCase()} stat-quality-${quality}" style="${style}" data-stat-quality="${quality}" title="${html(STAT_LABELS[key])}: ${value} · ${qualityLabel(quality)}"><span class="stat-icon-only"><img class="stat-icon" src="${html(STAT_ICONS[key])}" alt="${html(STAT_LABELS[key])}" loading="lazy"></span><strong style="${numberStyle}">${value}</strong></div>`;
+}
+function qualityInlineStyle(quality) {
+  const item = STAT_QUALITY_STYLE[quality] || STAT_QUALITY_STYLE.okay;
+  return [
+    `--stat-text:${item.text}`,
+    `--stat-border:${item.border}`,
+    `--stat-bg-top:${item.top}`,
+    `--stat-bg-bottom:${item.bottom}`,
+    `--stat-wash:${item.wash}`,
+    `--stat-glow:${item.glow}`,
+    `--stat-weight:${item.weight}`,
+    `--bal-number:${item.text}`,
+    `--bal-border:${item.border}`,
+    `--bal-top:${item.top}`,
+    `--bal-bottom:${item.bottom}`,
+    `--bal-pop:${item.wash}`,
+    `--bal-line:${item.line}`,
+    `color:${item.text}!important`,
+    `border-color:${item.border}!important`,
+    `background:radial-gradient(circle at 70% 12%,${item.wash},transparent 55%),linear-gradient(180deg,${item.top},${item.bottom}),#171824!important`
+  ].join(';');
 }
 function statQuality(value) {
   if (value >= 30) return 'perfect';
