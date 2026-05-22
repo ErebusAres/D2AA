@@ -1,9 +1,13 @@
-import { state, setState, setRows, updateTag } from './state.js';
+import { state, setRows, updateTag } from './state.js';
 import { connectBungie, initializeBungieSync, scheduleSemiLiveRefresh, shouldRefreshOnFocus, syncBungieInventory } from './data/bungie-sync.js?v=clean64';
 import { isSignedIn } from './data/bungie-auth.js?v=clean62';
 import { syncDimTags, clearDimApiKey } from './data/dim-tags.js?v=1.6';
 
-const setStatus = (status) => setState({ status });
+const setStatus = (status) => {
+  state.status = status;
+  const el = document.getElementById('statusText');
+  if (el) el.textContent = status;
+};
 const hasRows = () => state.rows.length > 0;
 const ROW_CACHE_KEY = 'd2aa_clean_rows_v1';
 const LIVE_REFRESH_MS = 180000;
