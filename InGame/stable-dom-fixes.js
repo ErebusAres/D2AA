@@ -17,6 +17,7 @@ function schedule() {
     queued = false;
     rebuildArchetypeIconCache();
     fixTagChips();
+    fixStrictGrades();
     fixFeedTiers();
     fixFeedStatPopouts();
     fixArchetypeIcons();
@@ -49,6 +50,32 @@ function fixTagChips() {
     chip.title = found.label || found.value || 'Tag';
     chip.setAttribute('aria-label', found.label || found.value || 'Tag');
   });
+}
+
+function fixStrictGrades() {
+  document.querySelectorAll('.armor-card[data-id], .feed-card[data-id]').forEach((card) => {
+    const row = rowById(card.dataset.id);
+    if (!row) return;
+    const grade = strictGrade(row);
+    card.querySelectorAll('.grade-chip').forEach((chip) => {
+      for (const letter of ['S', 'A', 'B', 'C', 'D', 'F']) chip.classList.remove(`grade-${letter}`);
+      chip.classList.add(`grade-${grade.letter}`);
+      chip.textContent = grade.letter;
+      chip.title = `Rank ${grade.letter} · Base total ${grade.score}`;
+      chip.setAttribute('aria-label', `Rank ${grade.letter}, base total ${grade.score}`);
+    });
+  });
+}
+
+function strictGrade(row) {
+  const total = num(row.BaseTotal ?? row.Total);
+  const letter = total >= 75 ? 'S'
+    : total >= 73 ? 'A'
+    : total >= 70 ? 'B'
+    : total >= 66 ? 'C'
+    : total >= 62 ? 'D'
+    : 'F';
+  return { letter, score: total };
 }
 
 function fixFeedTiers() {
