@@ -1,6 +1,10 @@
 import { STAT_KEYS, STAT_LABELS, STAT_ICONS, RARITY_ICONS, CLASS_ICONS, SLOT_ICONS, LOCATION_EMOJIS, TAGS } from '../constants.js';
 import { ACTIVE_FEED_LIMIT, getActiveFeedRows } from '../data/feed-state.js';
 
+const Q = {
+  perfect:['Perfect','#ffe58a','rgba(255,213,72,.68)','rgba(255,203,52,.20)','rgba(118,80,0,.13)','rgba(255,196,0,.20)',1000], amazing:['Amazing','#b9fbff','rgba(94,238,255,.60)','rgba(94,238,255,.16)','rgba(0,86,111,.12)','rgba(94,238,255,.16)',970], excellent:['Excellent','#7fd8ff','rgba(79,188,255,.54)','rgba(79,188,255,.14)','rgba(16,70,130,.11)','rgba(79,188,255,.12)',950], great:['Great','#78a7ff','rgba(88,126,255,.52)','rgba(64,88,210,.125)','rgba(24,34,116,.10)','rgba(88,126,255,.09)',925], good:['Good','#80f0a0','rgba(78,211,113,.42)','rgba(78,211,113,.11)','rgba(20,80,42,.12)','rgba(78,211,113,.09)',890], decent:['Decent','#b6d982','rgba(168,205,100,.34)','rgba(168,205,100,.085)','rgba(72,86,28,.10)','rgba(168,205,100,.06)',850], ok:['OK','#c8beb0','rgba(190,178,157,.22)','rgba(190,178,157,.055)','rgba(40,39,45,.10)','transparent',820], weak:['Kinda bad','#d9b15f','rgba(201,147,55,.30)','rgba(201,147,55,.075)','rgba(84,57,18,.10)','rgba(201,147,55,.055)',800], bad:['Bad','#ffa269','rgba(222,111,45,.34)','rgba(222,111,45,.09)','rgba(91,38,16,.12)','rgba(222,111,45,.08)',790], terrible:['Terrible','#ff7182','rgba(213,58,82,.38)','rgba(213,58,82,.105)','rgba(71,15,27,.16)','rgba(213,58,82,.08)',780], dead:['Dead stat','#8b2838','rgba(145,35,55,.34)','rgba(145,35,55,.10)','rgba(12,7,11,.24)','rgba(145,35,55,.05)',760]
+};
+
 export function renderItemFeed(container, countEl, rows, onTag, onDismissNew, onCompareGroup) {
   const newlyFound = getActiveFeedRows(rows);
   countEl.textContent = String(newlyFound.length);
@@ -12,79 +16,21 @@ export function renderItemFeed(container, countEl, rows, onTag, onDismissNew, on
   container.querySelectorAll('[data-feed-compare-group]').forEach((button) => button.addEventListener('click', () => onCompareGroup?.(button.dataset.feedCompareGroup)));
 }
 
-function ensureFeedRefreshIndicator(countEl) {
-  const head = countEl?.closest?.('.feed-head');
-  if (!head || head.querySelector('.feed-refresh-indicator')) return;
-  const button = document.createElement('button');
-  button.type = 'button';
-  button.className = 'feed-refresh-indicator';
-  button.title = 'Live feed checks every minute while this page is active';
-  button.setAttribute('aria-label', 'Item feed live refresh status');
-  button.innerHTML = '<span aria-hidden="true">↻</span>';
-  countEl.before(button);
-}
-
-function renderEmptyFeed(loadedCount = 0) {
-  if (loadedCount > 0) return `<div class="feed-empty"><strong>No newly obtained armor.</strong><br><span>New drops stay here until dismissed, tagged, or outside the latest ${ACTIVE_FEED_LIMIT} new items.</span></div>`;
-  return `<div class="feed-empty"><strong>No armor loaded yet.</strong><br><span>Sync with Bungie or upload a DIM CSV to populate the item feed.</span></div>`;
-}
-
-function renderFeedCard(row) {
-  const groupLabel = row.Dupe_Group || row.Group || '';
-  const groupKey = row.GroupActionKey || '';
-  const loc = locationLabel(row);
-  const groupButton = row.Is_Dupe ? `<button type="button" class="feed-group-badge ${row.GroupColor || ''}" title="Compare duplicate group ${html(groupLabel)}" data-feed-compare-group="${html(groupKey)}">${html(groupLabel)}</button>` : '';
-  const dismiss = `<button type="button" class="feed-dismiss-new" data-id="${html(row.Id)}" data-dismiss-new title="Dismiss from feed" aria-label="Dismiss ${html(row.Name)} from item feed">×</button>`;
-  const identityRail = `<span class="feed-identity-rail" aria-label="${html(`${row.Class} ${row.Slot} ${row.Rarity} ${loc}`)}">${iconImg(CLASS_ICONS[row.Class], row.Class)}${maskIcon(SLOT_ICONS[row.Slot], row.Slot)}${iconImg(RARITY_ICONS[row.Rarity], row.Rarity)}${locationIcon(loc)}</span>`;
-  const tierRail = tierIndicator(row);
-  const tagButton = `<button class="card-tag-slot feed-card-tag ${row.Tag ? 'has-tag' : 'is-empty'}" type="button" data-tag-trigger data-id="${html(row.Id)}" title="${html(tagTitle(row))}">${tagEmoji(row)}</button>`;
-  const age = feedTimeLabel(row);
-  const foundText = age ? ` · Found ${age} ago` : '';
-  return `<article class="feed-card is-new is-new-found ${row.Is_Dupe ? `is-feed-grouped ${row.GroupColor || ''}` : ''}" data-feed-card-id="${html(row.Id)}" data-card-id="${html(row.Id)}" data-feed-group="${html(groupLabel)}" title="${html(`${row.Name}${foundText}`)}">
-    ${dismiss}${groupButton}${tagButton}
-    <div class="feed-media"><div class="feed-icon">${row.Icon ? `<img src="${html(row.Icon)}" alt="" loading="lazy">` : '<span>◇</span>'}${row.Power || row.Light ? `<b>${row.Power || row.Light}</b>` : ''}</div><div class="feed-rail-pack">${identityRail}${tierRail}</div></div>
-    <div class="feed-main"><div class="feed-title-line"><strong title="${html(row.Name)}">${html(row.Name)}</strong></div><div class="feed-stats">${STAT_KEYS.map((key) => statChip(row, key)).join('')}</div></div>
-  </article>`;
-}
-
-function tierIndicator(row) {
-  const tier = Math.max(0, Math.min(5, Number(row.Tier || 0)));
-  if (!tier) return '<span class="feed-tier-rail is-empty" title="No tier rating" aria-label="No tier rating"></span>';
-  return `<span class="feed-tier-rail" title="Tier ${tier}" aria-label="Tier ${tier}">${Array.from({ length: tier }, () => '<i class="is-filled"></i>').join('')}</span>`;
-}
-
-function feedTimeLabel(row) {
-  const value = Number(row.ActivityAt || row.FoundAt || Date.parse(row.LastChangedAt || '') || 0);
-  if (!value) return '';
-  const diffMs = Date.now() - value;
-  if (!Number.isFinite(diffMs) || diffMs < 0) return 'now';
-  const mins = Math.floor(diffMs / 60000);
-  if (mins < 1) return 'now';
-  if (mins < 60) return `${mins}m`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h`;
-  return `${Math.floor(hours / 24)}d`;
-}
-
-function statChip(row, key) {
-  const value = Number(row[key] || 0);
-  const quality = statQuality(value);
-  return `<em class="stat-quality-${quality}" title="${html(STAT_LABELS[key])}: ${value} · ${qualityLabel(quality)}"><img class="stat-icon" src="${html(STAT_ICONS[key])}" alt="${html(STAT_LABELS[key])}" loading="lazy"><strong>${value}</strong></em>`;
-}
-function statQuality(value) {
-  if (value >= 30) return 'perfect';
-  if (value >= 28) return 'near';
-  if (value >= 24) return 'great';
-  if (value >= 18) return 'good';
-  if (value >= 12) return 'okay';
-  if (value >= 6) return 'bad';
-  return 'poor';
-}
-function qualityLabel(value) { return ({ perfect: 'Perfect', near: 'Near-perfect', great: 'Great', good: 'Good', okay: 'Okay', bad: 'Bad', poor: 'Poor' })[value] || value; }
-function tagEmoji(row) { const tag = TAGS.find((item) => item.value === row.Tag && item.value); return tag ? tag.emoji : '＋'; }
-function tagTitle(row) { const tag = TAGS.find((item) => item.value === row.Tag && item.value); return tag ? `Tag: ${tag.label}` : 'Assign tag'; }
-function locationLabel(row) { if (row.Source !== 'Bungie') return 'DIM'; return row.IsInVault ? 'Vault' : row.IsEquipped ? 'Equipped' : 'Inventory'; }
-function locationIcon(loc) { const emoji = LOCATION_EMOJIS[loc] || ''; return emoji ? `<span class="feed-rail-location" title="${html(loc)}" aria-label="${html(loc)}">${emoji}</span>` : ''; }
-function iconImg(src, label) { return src ? `<img class="feed-rail-icon" src="${html(src)}" alt="${html(label || '')}" title="${html(label || '')}" loading="lazy">` : ''; }
-function maskIcon(src, label) { return src ? `<span class="feed-rail-mask" style="--icon:url('${html(src)}')" title="${html(label || '')}" aria-label="${html(label || '')}"></span>` : ''; }
-function html(value) { return String(value ?? '').replace(/[&<>"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[char])); }
+function ensureFeedRefreshIndicator(countEl){const head=countEl?.closest?.('.feed-head');if(!head||head.querySelector('.feed-refresh-indicator'))return;const button=document.createElement('button');button.type='button';button.className='feed-refresh-indicator';button.title='Live feed checks every minute while this page is active';button.setAttribute('aria-label','Item feed live refresh status');button.innerHTML='<span aria-hidden="true">↻</span>';countEl.before(button);}
+function renderEmptyFeed(loadedCount=0){if(loadedCount>0)return`<div class="feed-empty"><strong>No newly obtained armor.</strong><br><span>New drops stay here until dismissed, tagged, or outside the latest ${ACTIVE_FEED_LIMIT} new items.</span></div>`;return`<div class="feed-empty"><strong>No armor loaded yet.</strong><br><span>Sync with Bungie or upload a DIM CSV to populate the item feed.</span></div>`;}
+function renderFeedCard(row){const groupLabel=row.Dupe_Group||row.Group||'';const groupKey=row.GroupActionKey||'';const loc=locationLabel(row);const perfect=isPerfectRoll(row);const groupButton=row.Is_Dupe?`<button type="button" class="feed-group-badge ${row.GroupColor||''}" title="Compare duplicate group ${html(groupLabel)}" data-feed-compare-group="${html(groupKey)}">${html(groupLabel)}</button>`:'';const dismiss=`<button type="button" class="feed-dismiss-new" data-id="${html(row.Id)}" data-dismiss-new title="Dismiss from feed" aria-label="Dismiss ${html(row.Name)} from item feed">×</button>`;const identityRail=`<span class="feed-identity-rail" aria-label="${html(`${row.Class} ${row.Slot} ${row.Rarity} ${loc}`)}">${iconImg(CLASS_ICONS[row.Class],row.Class)}${maskIcon(SLOT_ICONS[row.Slot],row.Slot)}${iconImg(RARITY_ICONS[row.Rarity],row.Rarity)}${locationIcon(loc)}</span>`;const tierRail=tierIndicator(row);const tagButton=`<button class="card-tag-slot feed-card-tag ${row.Tag?'has-tag':'is-empty'}" type="button" data-tag-trigger data-id="${html(row.Id)}" title="${html(tagTitle(row))}">${tagEmoji(row)}</button>`;const age=feedTimeLabel(row);const foundText=age?` · Found ${age} ago`:'';return`<article class="feed-card is-new is-new-found ${perfect?'is-perfect-roll':''} ${row.Is_Dupe?`is-feed-grouped ${row.GroupColor||''}`:''}" style="${perfect?perfectCardStyle():''}" data-feed-card-id="${html(row.Id)}" data-card-id="${html(row.Id)}" data-feed-group="${html(groupLabel)}" title="${html(`${row.Name}${foundText}`)}">${dismiss}${groupButton}${tagButton}${perfect?perfectRollBadge():''}<div class="feed-media"><div class="feed-icon">${row.Icon?`<img src="${html(row.Icon)}" alt="" loading="lazy">`:'<span>◇</span>'}${row.Power||row.Light?`<b>${row.Power||row.Light}</b>`:''}</div><div class="feed-rail-pack">${identityRail}${tierRail}</div></div><div class="feed-main"><div class="feed-title-line"><strong title="${html(row.Name)}">${html(row.Name)}</strong></div><div class="feed-stats">${STAT_KEYS.map((key)=>statChip(row,key)).join('')}</div></div></article>`;}
+function tierIndicator(row){const tier=Math.max(0,Math.min(5,Number(row.Tier||0)));if(!tier)return'<span class="feed-tier-rail is-empty" title="No tier rating" aria-label="No tier rating"></span>';return`<span class="feed-tier-rail" title="Tier ${tier}" aria-label="Tier ${tier}">${Array.from({length:tier},()=>'<i class="is-filled"></i>').join('')}</span>`;}
+function feedTimeLabel(row){const value=Number(row.ActivityAt||row.FoundAt||Date.parse(row.LastChangedAt||'')||0);if(!value)return'';const diffMs=Date.now()-value;if(!Number.isFinite(diffMs)||diffMs<0)return'now';const mins=Math.floor(diffMs/60000);if(mins<1)return'now';if(mins<60)return`${mins}m`;const hours=Math.floor(mins/60);if(hours<24)return`${hours}h`;return`${Math.floor(hours/24)}d`;}
+function statChip(row,key){const value=Number(row[key]||0);const quality=statQuality(value);const p=Q[quality]||Q.ok;return`<em class="stat-quality-${quality}" style="${statStyle(p)}" title="${html(STAT_LABELS[key])}: ${value} · ${html(p[0])}"><img class="stat-icon" src="${html(STAT_ICONS[key])}" alt="${html(STAT_LABELS[key])}" loading="lazy"><strong style="color:${p[1]}!important;font-weight:${p[6]}!important;text-shadow:0 0 7px ${p[5]},0 1px 0 rgba(0,0,0,.85)!important;">${value}</strong></em>`;}
+function statStyle(p){return[`--stat-text:${p[1]}`,`--stat-border:${p[2]}`,`--stat-bg-top:${p[3]}`,`--stat-bg-bottom:${p[4]}`,`--stat-wash:${p[5]}`,`--stat-glow:${p[5]}`,`--stat-weight:${p[6]}`,`color:${p[1]}!important`,`border-color:${p[2]}!important`,`background:radial-gradient(circle at 70% 12%,${p[5]},transparent 55%),linear-gradient(180deg,${p[3]},${p[4]}),#171824!important`,`box-shadow:inset 0 1px 0 rgba(255,255,255,.045),0 0 7px ${p[5]}!important`].join(';');}
+function statQuality(value){if(value>=30)return'perfect';if(value===29)return'amazing';if(value>=27)return'excellent';if(value>=24)return'great';if(value>=21)return'good';if(value>=18)return'decent';if(value>=15)return'ok';if(value>=11)return'weak';if(value>=6)return'bad';if(value>=1)return'terrible';return'dead';}
+function isPerfectRoll(row){const stats=STAT_KEYS.map((key)=>Number(row[key]||0)).sort((a,b)=>b-a);return stats[0]===30&&stats[1]===25&&stats[2]===20&&stats[3]===0&&stats[4]===0&&stats[5]===0;}
+function perfectCardStyle(){return'border-color:rgba(255,213,72,.58)!important;box-shadow:0 0 0 1px rgba(255,213,72,.20),0 0 22px rgba(255,196,0,.16),0 18px 38px rgba(0,0,0,.35)!important;';}
+function perfectRollBadge(){return`<span class="perfect-roll-badge" style="position:absolute;right:32px;bottom:8px;z-index:8;display:inline-flex;align-items:center;gap:4px;padding:3px 7px;border-radius:8px 2px 8px 2px;border:1px solid rgba(255,213,72,.62);background:rgba(16,12,4,.82);color:#ffe58a;font-size:9px;font-weight:1000;letter-spacing:.07em;text-transform:uppercase;box-shadow:0 0 14px rgba(255,196,0,.22);pointer-events:none;">◆ Perfect</span>`;}
+function tagEmoji(row){const tag=TAGS.find((item)=>item.value===row.Tag&&item.value);return tag?tag.emoji:'＋';}
+function tagTitle(row){const tag=TAGS.find((item)=>item.value===row.Tag&&item.value);return tag?`Tag: ${tag.label}`:'Assign tag';}
+function locationLabel(row){if(row.Source!=='Bungie')return'DIM';return row.IsInVault?'Vault':row.IsEquipped?'Equipped':'Inventory';}
+function locationIcon(loc){const emoji=LOCATION_EMOJIS[loc]||'';return emoji?`<span class="feed-rail-location" title="${html(loc)}" aria-label="${html(loc)}">${emoji}</span>`:'';}
+function iconImg(src,label){return src?`<img class="feed-rail-icon" src="${html(src)}" alt="${html(label||'')}" title="${html(label||'')}" loading="lazy">`:'';}
+function maskIcon(src,label){return src?`<span class="feed-rail-mask" style="--icon:url('${html(src)}')" title="${html(label||'')}" aria-label="${html(label||'')}"></span>`:'';}
+function html(value){return String(value??'').replace(/[&<>"]/g,(char)=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[char]));}
