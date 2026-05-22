@@ -1,0 +1,55 @@
+/* v2.00 hard stat quality lock.
+   Loaded last. Quality class wins over stat-type/theme variables.
+   Only stat-quality-perfect may be gold. stat-quality-great is forced cool blue. */
+
+.armor-card .card-grid-3x3 > .stat-cell.stat-quality-great,
+#itemFeed .feed-stats > em.stat-quality-great{
+  --stat-text:#7faaff!important;
+  --stat-border:rgba(96,128,255,.52)!important;
+  --stat-bg-top:rgba(72,96,210,.135)!important;
+  --stat-bg-bottom:rgba(30,42,124,.085)!important;
+  --stat-wash:rgba(96,128,255,.115)!important;
+  --stat-glow:rgba(96,128,255,.18)!important;
+  --bal-number:#7faaff!important;
+  --bal-border:rgba(96,128,255,.52)!important;
+  --bal-top:rgba(72,96,210,.135)!important;
+  --bal-bottom:rgba(30,42,124,.085)!important;
+  --bal-pop:rgba(96,128,255,.115)!important;
+  --bal-side:rgba(96,128,255,.075)!important;
+  --bal-line:#6685ff!important;
+  color:#7faaff!important;
+  border-color:rgba(96,128,255,.52)!important;
+  background:
+    radial-gradient(circle at 70% 10%,rgba(96,128,255,.12),transparent 56%),
+    linear-gradient(180deg,rgba(72,96,210,.135),rgba(30,42,124,.085)),
+    #171824!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.045),inset 0 0 0 1px rgba(0,0,0,.20),0 0 7px rgba(96,128,255,.13)!important;
+}
+
+.armor-card .card-grid-3x3 > .stat-cell.stat-quality-great strong,
+#itemFeed .feed-stats > em.stat-quality-great strong{
+  color:#7faaff!important;
+  text-shadow:0 0 5px rgba(96,128,255,.30),0 1px 0 rgba(0,0,0,.86)!important;
+}
+
+.armor-card .card-grid-3x3 > .stat-cell.stat-quality-great::after,
+#itemFeed .feed-stats > em.stat-quality-great::after{
+  background:linear-gradient(90deg,transparent,#6685ff,transparent)!important;
+  opacity:.72!important;
+}
+
+/* Keep perfect distinct and warm. */
+.armor-card .card-grid-3x3 > .stat-cell.stat-quality-perfect,
+#itemFeed .feed-stats > em.stat-quality-perfect{
+  color:#ffe58a!important;
+  border-color:rgba(255,213,72,.62)!important;
+  background:
+    radial-gradient(circle at 70% 10%,rgba(255,225,110,.18),transparent 56%),
+    linear-gradient(180deg,rgba(255,203,52,.21),rgba(118,80,0,.15)),
+    #171824!important;
+}
+.armor-card .card-grid-3x3 > .stat-cell.stat-quality-perfect strong,
+#itemFeed .feed-stats > em.stat-quality-perfect strong{
+  color:#ffe58a!important;
+  text-shadow:0 0 7px rgba(255,218,84,.50),0 1px 0 rgba(0,0,0,.86)!important;
+}
