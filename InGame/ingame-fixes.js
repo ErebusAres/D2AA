@@ -3,6 +3,10 @@ import { state, subscribe, setState } from '../src-clean/state.js';
 const STAT_KEYS = ['Health', 'Melee', 'Grenade', 'Super', 'ClassAbility', 'Weapon'];
 let normalizing = false;
 let lastSignature = '';
+let fixQueued = false;
+let observerStarted = false;
+let searchDebounceTimer = 0;
+let lastSearchValue = '';
 
 function normalizeRowsIfNeeded(){
   if (normalizing || !state.rows?.length) return;
@@ -51,6 +55,15 @@ function repairBaseCountedAsOther(row){
   return true;
 }
 
+function scheduleFixes(){
+  if (fixQueued) return;
+  fixQueued = true;
+  requestAnimationFrame(() => {
+    fixQueued = false;
+    applyInGameFixes();
+  });
+}
+
 function applyInGameFixes(){
   normalizeRowsIfNeeded();
   const rows = new Map((state.rows || []).map((row) => [String(row.Id), row]));
@@ -64,6 +77,37 @@ function applyInGameFixes(){
     const rail = node.querySelector('.tier-rail');
     if (rail) rail.innerHTML = tierMarks(row).join('');
   });
+}
+
+function bindSearchDebounce(){
+  const input = document.getElementById('searchBox');
+  if (!input || input.dataset.d2aaDebounced === '1') return;
+
+  const clone = input.cloneNode(true);
+  clone.value = state.search || input.value || '';
+  clone.dataset.d2aaDebounced = '1';
+  input.replaceWith(clone);
+
+  clone.addEventListener('input', () => {
+    lastSearchValue = clone.value;
+    window.clearTimeout(searchDebounceTimer);
+    searchDebounceTimer = window.setTimeout(() => {
+      if (state.search !== lastSearchValue) setState({ search: lastSearchValue });
+    }, 180);
+  }, { passive: true });
+
+  clone.addEventListener('keydown', (event) => {
+    if (event.key !== 'Enter') return;
+    window.clearTimeout(searchDebounceTimer);
+    if (state.search !== clone.value) setState({ search: clone.value });
+  });
+}
+
+function startObserver(){
+  if (observerStarted) return;
+  observerStarted = true;
+  const root = document.getElementById('gridView') || document.body;
+  new MutationObserver(scheduleFixes).observe(root, { childList: true, subtree: true });
 }
 
 function strictMasterworked(row){
@@ -88,7 +132,7 @@ function resolvedTier(row){
   const source = String(row.TierSource || '').toLowerCase();
   const explicit = number(row.GearTier || row.Tier || 0);
   if (source === 'bungie' && explicit > 0) return clamp(explicit, 1, 5);
-  if (rarity === 'exotic') return clamp(explicit || 2, 1, 2);
+  if (rarity === 'exotic') return clamp(explicit || fallbackTier(row), 1, 5);
   return clamp(explicit || fallbackTier(row), 1, 5);
 }
 
@@ -103,6 +147,7 @@ function fallbackTier(row){
 function clamp(value, min, max){ return Math.max(min, Math.min(max, Number(value) || min)); }
 function number(value){ const n = Number(String(value ?? '').replace(/[^0-9.-]/g, '')); return Number.isFinite(n) ? n : 0; }
 
-subscribe(() => requestAnimationFrame(applyInGameFixes));
-new MutationObserver(() => requestAnimationFrame(applyInGameFixes)).observe(document.body, { childList: true, subtree: true });
-requestAnimationFrame(applyInGameFixes);
+bindSearchDebounce();
+startObserver();
+subscribe((_, detail = {}) => { if (!detail.statusOnly) scheduleFixes(); });
+scheduleFixes();
