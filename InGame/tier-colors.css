@@ -1,0 +1,6 @@
+/* Tier color is based on the item's overall tier, not the individual diamond position.
+   T1-T2 = white, T3-T4 = purple, T5 = gold. */
+.tier-rail .tier-mark.is-on{color:#f2f4f7}
+.tier-rail:has(.tier-3.is-on) .tier-mark.is-on,
+.tier-rail:has(.tier-4.is-on) .tier-mark.is-on{color:var(--tier-purple)}
+.tier-rail:has(.tier-5.is-on) .tier-mark.is-on{color:var(--gold)}
