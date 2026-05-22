@@ -1,6 +1,6 @@
-/* v1.97 balanced full-box stat quality.
+/* v1.99 balanced full-box stat quality.
    Goal: clear but not screaming. Whole box is tinted, number is vibrant.
-   30 is the ONLY gold category. 24-27 is blue, never gold. */
+   30 is the ONLY gold category. 24-27 is unmistakably cool blue. */
 
 .armor-card .card-grid-3x3 > .stat-cell,
 #itemFeed .feed-stats > em{
@@ -104,24 +104,24 @@
   --bal-icon-saturation:.95!important;
 }
 
-/* 24-27: BLUE, deliberately not yellow/gold. */
+/* 24-27: blue-violet so it cannot be mistaken for gold/theme yellow. */
 .stat-quality-great{
-  --bal-number:#77c8ff!important;
-  --bal-border:rgba(70,155,255,.46)!important;
-  --bal-top:rgba(70,155,255,.13)!important;
-  --bal-bottom:rgba(16,56,114,.15)!important;
-  --bal-pop:rgba(70,155,255,.12)!important;
-  --bal-side:rgba(70,155,255,.085)!important;
-  --bal-line:#469bff!important;
-  --bal-line-opacity:.68!important;
-  --bal-glow:rgba(70,155,255,.10)!important;
-  --bal-glow-size:6px!important;
-  --bal-text-glow:rgba(70,155,255,.25)!important;
-  --bal-text-glow-size:4px!important;
-  --bal-weight:920!important;
+  --bal-number:#7aa7ff!important;
+  --bal-border:rgba(96,128,255,.56)!important;
+  --bal-top:rgba(80,105,255,.16)!important;
+  --bal-bottom:rgba(24,35,116,.18)!important;
+  --bal-pop:rgba(96,128,255,.14)!important;
+  --bal-side:rgba(96,128,255,.10)!important;
+  --bal-line:#6685ff!important;
+  --bal-line-opacity:.74!important;
+  --bal-glow:rgba(96,128,255,.13)!important;
+  --bal-glow-size:7px!important;
+  --bal-text-glow:rgba(96,128,255,.32)!important;
+  --bal-text-glow-size:5px!important;
+  --bal-weight:930!important;
   --bal-icon-opacity:.72!important;
-  --bal-icon-brightness:.88!important;
-  --bal-icon-saturation:.82!important;
+  --bal-icon-brightness:.82!important;
+  --bal-icon-saturation:.76!important;
 }
 
 /* 18-23: green. */
