@@ -28,7 +28,7 @@ function cleanConfig(config) {
   const allowed = ['apiKey', 'clientId'];
   return Object.fromEntries(Object.entries(config || {}).filter(([key, value]) => allowed.includes(key) && String(value || '').trim()));
 }
-export function getBungieConfig() { return { ...PUBLIC_CONFIG, ...cleanConfig(readJson(BUNGIE_STORAGE.config)) }; }
+export function getBungieConfig() { return { ...PUBLIC_CONFIG, ...cleanConfig(readJson(BUNGIE_STORAGE.config)), redirectUri: getRedirectUri() }; }
 export function getToken() { return readJson(BUNGIE_STORAGE.token, {}); }
 export function tokenIsValid(token = getToken()) { return Boolean(token.access_token && token.expires_at && token.expires_at > Math.floor(Date.now() / 1000) + 60); }
 export function refreshTokenIsValid(token = getToken()) { return Boolean(token.refresh_token && (!token.refresh_expires_at || token.refresh_expires_at > Math.floor(Date.now() / 1000) + 60)); }
@@ -63,7 +63,7 @@ export function startLogin() {
   localStorage.setItem(BUNGIE_STORAGE.state, state);
   localStorage.setItem(BUNGIE_STORAGE.returnUrl, returnUrl);
   try { sessionStorage.setItem(BUNGIE_STORAGE.returnUrl, returnUrl); } catch (_) {}
-  const redirectUri = cleanReturnUrl(PUBLIC_CONFIG.redirectUri);
+  const redirectUri = cleanReturnUrl(cfg.redirectUri);
   const url = new URL(AUTH_URL);
   url.searchParams.set('client_id', cfg.clientId);
   url.searchParams.set('response_type', 'code');
@@ -74,7 +74,7 @@ export function startLogin() {
 
 export async function exchangeCode(code) {
   const cfg = getBungieConfig();
-  const redirectUri = cleanReturnUrl(PUBLIC_CONFIG.redirectUri);
+  const redirectUri = cleanReturnUrl(cfg.redirectUri);
   const body = new URLSearchParams();
   body.set('grant_type', 'authorization_code');
   body.set('code', code);
@@ -128,6 +128,12 @@ export async function handleOAuthRedirect() {
 
 export function clearToken() {
   localStorage.removeItem(BUNGIE_STORAGE.token);
+}
+
+function getRedirectUri() {
+  const override = String(window.D2AA_BUNGIE_REDIRECT_URI || '').trim();
+  if (override) return override;
+  return PUBLIC_CONFIG.redirectUri;
 }
 
 function cleanReturnUrl(value) {
