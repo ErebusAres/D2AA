@@ -6,10 +6,10 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
-<meta name="d2aa-version" content="ingame-0.26-feed-popout-anchored" />
+<meta name="d2aa-version" content="ingame-0.27-action-labels" />
 <title>D2AA In-Game Prototype</title>
 <script>
-window.D2AA_VERSION='ingame-0.26-feed-popout-anchored';
+window.D2AA_VERSION='ingame-0.27-action-labels';
 window.D2AA_BUNGIE_REDIRECT_URI='https://erebusares.github.io/D2AA/InGame/InGame.html';
 window.D2AA_DISABLE_DIM_CONTROLS=true;
 window.D2AA_ASSET_STAMP=Date.now().toString(36);
@@ -30,9 +30,9 @@ document.write(`<link rel="stylesheet" href="./ingame-overrides.css?t=${window.D
       <button type="button" data-class-filter="Titan">Titan <b>0</b></button>
     </nav>
     <label class="search-wrap" for="searchBox"><span>Search</span><input id="searchBox" type="search" placeholder="Armor name, slot, tag, group..." autocomplete="off" /></label>
-    <button type="button" id="refreshBtn" class="command-button">Refresh</button>
-    <button type="button" id="bungieLoginBtn" class="command-button command-button--gold"><span>◇</span><b>Connect Destiny Account</b><small>Bungie OAuth login</small></button>
-    <button type="button" id="bungieSyncBtn" class="command-button"><span>↓</span><b>Sync</b><small>Bungie armor</small></button>
+    <button type="button" id="refreshBtn" class="command-button" title="Manual live-feed check. Uses the same Bungie inventory refresh path, but is meant for checking whether new drops arrived."><span>↻</span><b>Check Now</b><small>Latest drops</small></button>
+    <button type="button" id="bungieLoginBtn" class="command-button command-button--gold" title="Sign in with Bungie"><span class="bungie-mark" aria-hidden="true">◇</span><b>Sign In</b><small>Bungie</small></button>
+    <button type="button" id="bungieSyncBtn" class="command-button" title="Manual Bungie armor sync"><span>↓</span><b>Sync Armor</b><small>Full inventory</small></button>
   </header>
 
   <aside class="side-panel" id="commandPanel" aria-label="Options panel">
@@ -58,7 +58,7 @@ document.write(`<link rel="stylesheet" href="./ingame-overrides.css?t=${window.D
     <section id="gridView" class="slot-board"></section>
     <section id="tableView" hidden></section>
     <table hidden><tbody id="tableBody"></tbody></table>
-    <div id="emptyState" class="empty-state"><h2>No armor loaded yet.</h2><p>Connect Destiny Account, then Sync. This prototype is Bungie-first and keeps the DIM CSV path hidden.</p></div>
+    <div id="emptyState" class="empty-state"><h2>No armor loaded yet.</h2><p>Sign in with Bungie, then Sync Armor. This prototype is Bungie-first and keeps the DIM CSV path hidden.</p></div>
   </main>
 
   <aside class="item-feed is-open" id="itemFeed">
