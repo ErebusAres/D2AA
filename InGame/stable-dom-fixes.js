@@ -130,15 +130,21 @@ function positionFeedPopout(wrap) {
   if (portal.hidden) return;
   const rect = wrap.getBoundingClientRect();
   const width = Math.min(330, Math.max(290, window.innerWidth - 24));
-  portal.style.width = `${width}px`;
+  portal.style.setProperty('width', `${width}px`, 'important');
   const height = portal.offsetHeight || 230;
   const gap = 12;
   const leftPreferred = rect.left - width - gap;
   const leftFallback = rect.right + gap;
-  const left = leftPreferred >= 8 ? leftPreferred : Math.min(window.innerWidth - width - 8, leftFallback);
+  const useLeftSide = leftPreferred >= 8;
+  const left = useLeftSide ? leftPreferred : Math.min(window.innerWidth - width - 8, leftFallback);
   const top = Math.max(8, Math.min(window.innerHeight - height - 8, rect.top + rect.height / 2 - height / 2));
-  portal.style.left = `${Math.max(8, left)}px`;
-  portal.style.top = `${top}px`;
+  portal.classList.toggle('is-left-of-icon', useLeftSide);
+  portal.classList.toggle('is-right-of-icon', !useLeftSide);
+  portal.style.setProperty('left', `${Math.max(8, left)}px`, 'important');
+  portal.style.setProperty('top', `${top}px`, 'important');
+  portal.style.setProperty('right', 'auto', 'important');
+  portal.style.setProperty('bottom', 'auto', 'important');
+  portal.style.setProperty('transform', 'none', 'important');
 }
 
 function renderFeedPopout(row) {
