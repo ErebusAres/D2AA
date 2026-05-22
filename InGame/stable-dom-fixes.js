@@ -6,6 +6,9 @@ const TAG_BY_VALUE = new Map(TAGS.map((tag) => [String(tag.value || '').trim(), 
 const ARCHETYPE_ICON_CACHE = new Map();
 const BONUS_ORDER = ['masterwork', 'mod', 'artifice', 'other'];
 let queued = false;
+let feedPopoutPortal = null;
+let activeFeedWrap = null;
+let hideFeedPopoutTimer = null;
 
 function schedule() {
   if (queued) return;
@@ -67,22 +70,75 @@ function fixFeedTiers() {
 }
 
 function fixFeedStatPopouts() {
+  ensureFeedPopoutPortal();
   document.querySelectorAll('.feed-card[data-id]').forEach((card) => {
     const row = rowById(card.dataset.id);
     const wrap = card.querySelector('.feed-icon-wrap');
     if (!row || !wrap) return;
     wrap.tabIndex = 0;
+    wrap.dataset.feedPopoutId = String(row.Id);
+    wrap.dataset.tooltipKey = feedTooltipKey(row);
     wrap.setAttribute('aria-label', `${displayName(row)} details`);
-    const key = feedTooltipKey(row);
-    const existing = wrap.querySelector(':scope > .feed-stat-popout');
-    if (existing && existing.dataset.tooltipKey === key) return;
-    existing?.remove();
-    const popout = document.createElement('span');
-    popout.className = 'feed-stat-popout';
-    popout.dataset.tooltipKey = key;
-    popout.innerHTML = renderFeedPopout(row);
-    wrap.appendChild(popout);
+    wrap.querySelector(':scope > .feed-stat-popout')?.remove();
+    if (wrap.dataset.popoutBound === '1') return;
+    wrap.dataset.popoutBound = '1';
+    wrap.addEventListener('pointerenter', () => showFeedPopout(wrap));
+    wrap.addEventListener('pointerleave', queueHideFeedPopout);
+    wrap.addEventListener('focus', () => showFeedPopout(wrap));
+    wrap.addEventListener('blur', queueHideFeedPopout);
   });
+}
+
+function ensureFeedPopoutPortal() {
+  if (feedPopoutPortal && document.body.contains(feedPopoutPortal)) return feedPopoutPortal;
+  feedPopoutPortal = document.createElement('div');
+  feedPopoutPortal.className = 'feed-stat-popout feed-stat-popout-portal';
+  feedPopoutPortal.hidden = true;
+  feedPopoutPortal.addEventListener('pointerenter', () => clearTimeout(hideFeedPopoutTimer));
+  feedPopoutPortal.addEventListener('pointerleave', queueHideFeedPopout);
+  document.body.appendChild(feedPopoutPortal);
+  window.addEventListener('scroll', () => activeFeedWrap && positionFeedPopout(activeFeedWrap), true);
+  window.addEventListener('resize', () => activeFeedWrap && positionFeedPopout(activeFeedWrap));
+  return feedPopoutPortal;
+}
+
+function showFeedPopout(wrap) {
+  const row = rowById(wrap.dataset.feedPopoutId);
+  if (!row) return;
+  const portal = ensureFeedPopoutPortal();
+  clearTimeout(hideFeedPopoutTimer);
+  activeFeedWrap = wrap;
+  portal.dataset.tooltipKey = wrap.dataset.tooltipKey || feedTooltipKey(row);
+  portal.innerHTML = renderFeedPopout(row);
+  portal.hidden = false;
+  portal.classList.add('is-visible');
+  positionFeedPopout(wrap);
+}
+
+function queueHideFeedPopout() {
+  clearTimeout(hideFeedPopoutTimer);
+  hideFeedPopoutTimer = setTimeout(() => {
+    if (!feedPopoutPortal) return;
+    feedPopoutPortal.classList.remove('is-visible');
+    feedPopoutPortal.hidden = true;
+    activeFeedWrap = null;
+  }, 80);
+}
+
+function positionFeedPopout(wrap) {
+  const portal = ensureFeedPopoutPortal();
+  if (portal.hidden) return;
+  const rect = wrap.getBoundingClientRect();
+  const width = Math.min(330, Math.max(290, window.innerWidth - 24));
+  portal.style.width = `${width}px`;
+  const height = portal.offsetHeight || 230;
+  const gap = 12;
+  const leftPreferred = rect.left - width - gap;
+  const leftFallback = rect.right + gap;
+  const left = leftPreferred >= 8 ? leftPreferred : Math.min(window.innerWidth - width - 8, leftFallback);
+  const top = Math.max(8, Math.min(window.innerHeight - height - 8, rect.top + rect.height / 2 - height / 2));
+  portal.style.left = `${Math.max(8, left)}px`;
+  portal.style.top = `${top}px`;
 }
 
 function renderFeedPopout(row) {
