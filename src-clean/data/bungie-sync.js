@@ -281,7 +281,9 @@ function isSubtractableArmorBonusPlug(plugDef) {
   const category = normalizeName(plugDef?.plug?.plugCategoryIdentifier);
   const hasStats = Array.isArray(plugDef?.investmentStats) && plugDef.investmentStats.some((s) => Number(s.value || 0) > 0);
   if (!hasStats) return false;
-  return type.includes('armor mod') || category.includes('armor mods') || category.includes('enhancement') || category.includes('masterwork') || category.includes('stat') || (name.includes('mod') && (desc.includes('stat') || desc.includes('bonus') || desc.includes('increase'))) || name.includes('masterwork') || desc.includes('masterwork') || name.includes('artifice') || desc.includes('artifice');
+  const isKnownStatBonus = type.includes('armor mod') || category.includes('armor mods') || category.includes('masterwork') || name.includes('masterwork') || desc.includes('masterwork') || name.includes('artifice') || desc.includes('artifice') || category.includes('artifice');
+  const isGenericStatMod = name.includes('mod') && (desc.includes('stat') || desc.includes('bonus') || desc.includes('increase'));
+  return isKnownStatBonus || isGenericStatMod;
 }
 function socketBonusBreakdown(activePlugDefs, statColumnMap) {
   const breakdown = emptyBreakdown();
@@ -305,6 +307,9 @@ function statsForItem(def, statComponent, bonusBreakdown, statColumnMap) {
   }
   const socketTotals = emptyArmorStats();
   for (const type of BONUS_TYPES) for (const key of STAT_KEYS) socketTotals[key] += Number(bonusBreakdown?.[type]?.[key] || 0);
+  const suspicious = totalOf(socketTotals) > 30 || STAT_KEYS.some((key) => socketTotals[key] > current[key]);
+  const safeBreakdown = suspicious ? emptyBreakdown() : bonusBreakdown;
+  if (suspicious) for (const key of STAT_KEYS) socketTotals[key] = 0;
   const base = emptyArmorStats();
   for (const key of STAT_KEYS) base[key] = Math.max(0, current[key] - Number(socketTotals[key] || 0));
   const row = { ...base };
@@ -312,12 +317,12 @@ function statsForItem(def, statComponent, bonusBreakdown, statColumnMap) {
   row.BaseTotal = row.Total;
   row.CurrentTotal = totalOf(current);
   row.StatBonusTotal = Math.max(0, row.CurrentTotal - row.BaseTotal);
-  row.StatSource = Object.keys(statComponent?.stats || {}).length ? 'BungieInstanceMinusActiveSocketBonuses' : 'DefinitionFallbackMinusActiveSocketBonuses';
+  row.StatSource = suspicious ? 'BungieInstanceBonusGuarded' : Object.keys(statComponent?.stats || {}).length ? 'BungieInstanceMinusActiveSocketBonuses' : 'DefinitionFallbackMinusActiveSocketBonuses';
   for (const key of STAT_KEYS) {
     row[`Base${key}`] = base[key];
     row[`Current${key}`] = current[key];
     row[`StatBonus${key}`] = Number(socketTotals[key] || 0);
-    for (const type of BONUS_TYPES) row[`${title(type)}Bonus${key}`] = Number(bonusBreakdown?.[type]?.[key] || 0);
+    for (const type of BONUS_TYPES) row[`${title(type)}Bonus${key}`] = Number(safeBreakdown?.[type]?.[key] || 0);
   }
   for (const type of BONUS_TYPES) row[`${title(type)}BonusTotal`] = STAT_KEYS.reduce((sum, key) => sum + Number(row[`${title(type)}Bonus${key}`] || 0), 0);
   return row;
