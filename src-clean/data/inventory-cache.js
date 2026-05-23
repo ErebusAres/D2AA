@@ -9,7 +9,7 @@ const IDB_ROWS_KEY = 'bungieRows';
 const IDB_META_KEY = 'bungieMeta';
 const SEEN_LEDGER_KEY = 'd2aa_clean_seen_item_ids_v1';
 const SEEN_LEDGER_LIMIT = 2500;
-const CACHE_SCHEMA_VERSION = 14;
+const CACHE_SCHEMA_VERSION = 15;
 const BAD_STAT_SOURCE = 'D2AARepair_BaseWasMisclassifiedAsOtherBonus';
 const OLD_OVERSIZED_KEYS = ['d2aa_clean_rows_v1', 'd2aa_clean_bungie_rows_v1'];
 
