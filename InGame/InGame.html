@@ -6,10 +6,10 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
-<meta name="d2aa-version" content="ingame-0.29-white-bungie-icon" />
+<meta name="d2aa-version" content="ingame-0.30-sort-display-controls" />
 <title>D2AA In-Game Prototype</title>
 <script>
-window.D2AA_VERSION='ingame-0.29-white-bungie-icon';
+window.D2AA_VERSION='ingame-0.30-sort-display-controls';
 window.D2AA_BUNGIE_REDIRECT_URI='https://erebusares.github.io/D2AA/InGame/InGame.html';
 window.D2AA_DISABLE_DIM_CONTROLS=true;
 window.D2AA_ASSET_STAMP=Date.now().toString(36);
@@ -47,8 +47,17 @@ document.write(`<link rel="stylesheet" href="./ingame-overrides.css?t=${window.D
       <label>Class <select id="classFilter"><option value="Warlock">Warlock</option><option value="Hunter">Hunter</option><option value="Titan">Titan</option></select></label>
       <label>Slot <select id="slotFilter"><option value="all">All slots</option></select></label>
       <label>Rarity <select id="rarityFilter"><option value="all">All rarity</option></select></label>
-      <label>Sort <select id="sortBy"><option value="default">Default analyzer order</option><option value="totalDesc">Base total high to low</option><option value="rankDesc">Grade high to low</option><option value="nameAsc">Name A to Z</option><option value="slotAsc">Slot order</option></select></label>
+      <label>Sort <select id="sortBy"><option value="default">Default analyzer order</option><option value="totalDesc">Best Base Total</option><option value="currentTotalDesc">Best Current Total</option><option value="powerDesc">Highest Power</option><option value="tierDesc">Highest Tier</option><option value="newestDesc">Newest</option><option value="groupedFirst">Grouped First</option><option value="untaggedFirst">Untagged First</option><option value="nameAsc">Name A to Z</option><option value="slotAsc">Slot order</option></select></label>
       <label>Duplicate tolerance <input id="duplicateTolerance" type="range" min="0" max="20" value="5" /></label><strong id="duplicateToleranceOut">±5</strong>
+    </section>
+    <section class="panel-card">
+      <h2>Display</h2>
+      <label><input id="showEquipped" type="checkbox" checked /> Show equipped</label>
+      <label><input id="showVault" type="checkbox" checked /> Show vaulted</label>
+      <label><input id="showInventory" type="checkbox" checked /> Show inventory</label>
+      <label><input id="showLocked" type="checkbox" checked /> Show locked</label>
+      <label><input id="onlyNewItems" type="checkbox" /> Only new items</label>
+      <label><input id="onlyGroupedItems" type="checkbox" /> Only grouped items</label>
     </section>
   </aside>
 
