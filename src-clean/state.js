@@ -192,21 +192,61 @@ export function slimRowForStorage(row) {
   }
   for (const type of BONUS_TYPES) slim[`${type}BonusTotal`] = row[`${type}BonusTotal`];
 
-  slim.ArmorSetBonuses = cloneJsonSafe(row.ArmorSetBonuses || row.SetBonuses || []);
-  slim.SetBonuses = cloneJsonSafe(row.SetBonuses || row.ArmorSetBonuses || []);
-  slim.ArmorBonuses = cloneJsonSafe(row.ArmorBonuses || row.ArmorPerks || []);
-  slim.ArmorPerks = cloneJsonSafe(row.ArmorPerks || row.ArmorBonuses || []);
-  slim.StatAudit = cloneJsonSafe(row.StatAudit || null);
-  slim.SocketAudit = cloneJsonSafe(row.SocketAudit || null);
-  slim.DefinitionAudit = cloneJsonSafe(row.DefinitionAudit || null);
-  slim.EnhancedDefinitions = cloneJsonSafe(row.EnhancedDefinitions || null);
+  slim.ArmorSetBonuses = compactPerks(row.ArmorSetBonuses || row.SetBonuses || []);
+  slim.SetBonuses = compactPerks(row.SetBonuses || row.ArmorSetBonuses || []);
+  slim.ArmorBonuses = compactPerks(row.ArmorBonuses || row.ArmorPerks || []);
+  slim.ArmorPerks = compactPerks(row.ArmorPerks || row.ArmorBonuses || []);
+  slim.StatAudit = compactAudit(row.StatAudit || null);
+
+  delete slim.SocketAudit;
+  delete slim.DefinitionAudit;
+  delete slim.EnhancedDefinitions;
+  delete slim.ScreenshotUrl;
   return slim;
 }
 
-function cloneJsonSafe(value) {
-  if (value == null) return value;
-  try { return JSON.parse(JSON.stringify(value)); }
-  catch (_) { return value; }
+function compactAudit(audit) {
+  if (!audit || typeof audit !== 'object') return audit || null;
+  return {
+    activePlugs: compactPlugs(audit.activePlugs),
+    bonusBreakdown: audit.bonusBreakdown || {}
+  };
+}
+
+function compactPlugs(plugs) {
+  return (Array.isArray(plugs) ? plugs : [])
+    .map((plug) => ({
+      hash: plug?.hash || '',
+      name: plug?.name || plug?.displayProperties?.name || '',
+      description: plug?.description || plug?.displayProperties?.description || '',
+      icon: plug?.icon || '',
+      type: plug?.type || plug?.itemTypeDisplayName || '',
+      category: plug?.category || plug?.plug?.plugCategoryIdentifier || '',
+      stats: compactStats(plug?.stats || plug?.investmentStats || [])
+    }))
+    .filter((plug) => plug.stats.length || /set|bonus|mod|masterwork|artifice|piece|wearing|trait|intrinsic|archetype/i.test(`${plug.name} ${plug.description} ${plug.type} ${plug.category}`))
+    .slice(0, 24);
+}
+
+function compactStats(stats) {
+  return (Array.isArray(stats) ? stats : [])
+    .map((stat) => ({ statTypeHash: stat?.statTypeHash, value: number(stat?.value ?? stat?.statValue) }))
+    .filter((stat) => stat.statTypeHash && stat.value)
+    .slice(0, 8);
+}
+
+function compactPerks(perks) {
+  return (Array.isArray(perks) ? perks : [])
+    .map((perk) => ({
+      name: perk?.name || '',
+      description: perk?.description || '',
+      icon: perk?.icon || '',
+      hash: perk?.hash || '',
+      kind: perk?.kind || '',
+      label: perk?.label || ''
+    }))
+    .filter((perk) => perk.name || perk.description || perk.hash)
+    .slice(0, 8);
 }
 
 function persistSettings() {
