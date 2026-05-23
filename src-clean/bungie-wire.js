@@ -1,6 +1,6 @@
 import { state, setRows, updateTag } from './state.js';
-import { connectBungie, initializeBungieSync, scheduleSemiLiveRefresh, shouldRefreshOnFocus, syncBungieInventory } from './data/bungie-sync.js?v=clean64';
-import { isSignedIn } from './data/bungie-auth.js?v=clean62';
+import { connectBungie, initializeBungieSync, scheduleSemiLiveRefresh, shouldRefreshOnFocus, syncBungieInventory } from './data/bungie-sync.js?v=ingame023';
+import { isSignedIn } from './data/bungie-auth.js?v=ingame023';
 import { syncDimTags, clearDimApiKey } from './data/dim-tags.js?v=1.6';
 
 const setStatus = (status) => {
