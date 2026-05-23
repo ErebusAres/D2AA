@@ -86,6 +86,14 @@ export function resetNewItemBaseline() {
   localStorage.removeItem(SEEN_LEDGER_KEY);
 }
 
+export function formatCacheTime(meta) {
+  const savedAt = meta?.savedAt || meta?.updatedAt || meta?.time || '';
+  if (!savedAt) return 'unknown time';
+  const date = new Date(savedAt);
+  if (!Number.isFinite(date.getTime())) return 'unknown time';
+  return date.toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+}
+
 function isInvalidCache(rows, meta) {
   if (Number(meta?.version || 0) < CACHE_SCHEMA_VERSION) return true;
   return rows.some((row) => row?.StatSource === BAD_STAT_SOURCE || looksLikeCorruptedStats(row));
