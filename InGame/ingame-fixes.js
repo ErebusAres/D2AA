@@ -1,4 +1,4 @@
-import { state, subscribe, setState } from '../src-clean/state.js';
+import { state, subscribe, setState, clearCache } from '../src-clean/state.js';
 import { saveBungieInventory } from '../src-clean/data/inventory-cache.js';
 
 const STAT_KEYS = ['Health', 'Melee', 'Grenade', 'Super', 'ClassAbility', 'Weapon'];
@@ -13,17 +13,28 @@ let compactCacheTimer = 0;
 
 function normalizeRowsIfNeeded(){
   if (normalizing || !state.rows?.length) return;
+
+  // perf6/perf7 briefly wrote a bad UI-side stat repair into cache. Do not try to
+  // guess armor totals in the UI layer; Bungie sync is the source of truth.
+  // Clear those known-bad rows so the next Sync rebuilds correct base/current/bonus data.
+  if (state.rows.some((row) => row.StatSource === 'D2AARepair_BaseWasMisclassifiedAsOtherBonus')) {
+    normalizing = true;
+    clearCache();
+    setState({ status: 'Cleared corrupted stat cache from the bad repair pass. Click Sync to rebuild from Bungie.' });
+    normalizing = false;
+    return;
+  }
+
   let changed = false;
   const rows = state.rows.map((row) => {
     const next = { ...row };
-    if (repairBaseCountedAsOther(next)) changed = true;
     if (compactBulkyRowData(next)) changed = true;
     const strictMw = strictMasterworked(next);
     if (next.IsMasterworked !== strictMw) { next.IsMasterworked = strictMw; changed = true; }
     return next;
   });
   if (!changed) return;
-  const sig = rows.map((r) => `${r.Id}:${r.BaseTotal}:${r.CurrentTotal}:${r.OtherBonusTotal}:${r.StatBonusTotal}:${r.IsMasterworked}:${auditSignature(r)}`).join('|');
+  const sig = rows.map((r) => `${r.Id}:${r.BaseTotal}:${r.CurrentTotal}:${r.MasterworkBonusTotal}:${r.ModBonusTotal}:${r.ArtificeBonusTotal}:${r.OtherBonusTotal}:${r.StatBonusTotal}:${r.IsMasterworked}:${auditSignature(r)}`).join('|');
   if (sig === lastSignature) return;
   lastSignature = sig;
   normalizing = true;
@@ -32,42 +43,7 @@ function normalizeRowsIfNeeded(){
   normalizing = false;
 }
 
-function repairBaseCountedAsOther(row){
-  const baseTotal = sumBaseStats(row) || number(row.BaseTotal ?? row.Total);
-  const currentTotal = sumCurrentStats(row) || number(row.CurrentTotal);
-  const otherTotal = number(row.OtherBonusTotal) || STAT_KEYS.reduce((sum, key) => sum + number(row[`OtherBonus${key}`]), 0);
-  const nonOtherBonusTotal = number(row.MasterworkBonusTotal) + number(row.ModBonusTotal) + number(row.ArtificeBonusTotal);
-  const otherLooksLikeBase = otherTotal >= 45 && Math.abs(otherTotal - baseTotal) <= 3;
-  const baseMissing = number(row.BaseTotal ?? row.Total) === 0 && otherTotal > 0;
-  if (!baseMissing && !otherLooksLikeBase) return false;
-
-  let repairedBaseTotal = 0;
-  for (const key of STAT_KEYS) {
-    const mw = number(row[`MasterworkBonus${key}`]);
-    const mod = number(row[`ModBonus${key}`]);
-    const artifice = number(row[`ArtificeBonus${key}`]);
-    const current = number(row[`Current${key}`]);
-    const existingBase = number(row[`Base${key}`] ?? row[key]);
-    const mistakenOther = number(row[`OtherBonus${key}`]);
-    const base = existingBase || mistakenOther || Math.max(0, current - mw - mod - artifice);
-    row[`Base${key}`] = base;
-    row[key] = base;
-    row[`OtherBonus${key}`] = 0;
-    row[`StatBonus${key}`] = mw + mod + artifice;
-    row[`Current${key}`] = current || base + row[`StatBonus${key}`];
-    repairedBaseTotal += base;
-  }
-  row.BaseTotal = repairedBaseTotal || baseTotal || otherTotal;
-  row.Total = row.BaseTotal;
-  row.OtherBonusTotal = 0;
-  row.StatBonusTotal = nonOtherBonusTotal;
-  row.CurrentTotal = currentTotal || row.BaseTotal + row.StatBonusTotal;
-  row.StatSource = 'D2AARepair_BaseWasMisclassifiedAsOtherBonus';
-  return true;
-}
-
 function sumBaseStats(row){ return STAT_KEYS.reduce((sum, key) => sum + number(row[`Base${key}`] ?? row[key]), 0); }
-function sumCurrentStats(row){ return STAT_KEYS.reduce((sum, key) => sum + number(row[`Current${key}`]), 0); }
 
 function compactBulkyRowData(row){
   if (compacting) return false;
