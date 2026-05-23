@@ -9,16 +9,28 @@ const IDB_ROWS_KEY = 'bungieRows';
 const IDB_META_KEY = 'bungieMeta';
 const SEEN_LEDGER_KEY = 'd2aa_clean_seen_item_ids_v1';
 const SEEN_LEDGER_LIMIT = 2500;
+const CACHE_SCHEMA_VERSION = 14;
+const BAD_STAT_SOURCE = 'D2AARepair_BaseWasMisclassifiedAsOtherBonus';
 const OLD_OVERSIZED_KEYS = ['d2aa_clean_rows_v1', 'd2aa_clean_bungie_rows_v1'];
 
 export async function getCachedBungieInventory() {
   const idbRows = await idbGet(IDB_ROWS_KEY).catch(() => null);
   const idbMeta = await idbGet(IDB_META_KEY).catch(() => null);
-  if (Array.isArray(idbRows) && idbRows.length) return { rows: idbRows, meta: idbMeta, hasRows: true };
+  if (Array.isArray(idbRows) && idbRows.length) {
+    if (isInvalidCache(idbRows, idbMeta)) {
+      await clearBungieInventoryCache();
+      return { rows: [], meta: { invalidated: true, reason: 'bad-stat-cache', previous: idbMeta || null }, hasRows: false };
+    }
+    return { rows: idbRows, meta: idbMeta, hasRows: true };
+  }
 
   const rows = readJson(STORAGE_KEYS.bungieRows, []);
   const meta = readJson(STORAGE_KEYS.bungieMeta, null);
   if (Array.isArray(rows) && rows.length) {
+    if (isInvalidCache(rows, meta)) {
+      await clearBungieInventoryCache();
+      return { rows: [], meta: { invalidated: true, reason: 'bad-stat-cache', previous: meta || null }, hasRows: false };
+    }
     await idbSet(IDB_ROWS_KEY, rows).catch(() => {});
     await idbSet(IDB_META_KEY, meta).catch(() => {});
     try { localStorage.removeItem(STORAGE_KEYS.bungieRows); } catch (_) {}
@@ -41,7 +53,7 @@ export async function saveBungieInventory(rows, reason = 'sync') {
   const slimRows = cleanRows.map(slimRowForStorage);
   writeSeenLedger(slimRows, seenLedger, handled, savedAt);
   const changes = summarizeChanges(slimRows, previousById);
-  const meta = { savedAt, count: slimRows.length, reason, version: 13, store: 'indexeddb', activeFeedLimit: ACTIVE_FEED_LIMIT, ...changes };
+  const meta = { savedAt, count: slimRows.length, reason, version: CACHE_SCHEMA_VERSION, store: 'indexeddb', activeFeedLimit: ACTIVE_FEED_LIMIT, ...changes };
   try {
     await idbSet(IDB_ROWS_KEY, slimRows);
     await idbSet(IDB_META_KEY, meta);
@@ -73,6 +85,26 @@ export async function clearBungieInventoryCache() {
 export function resetNewItemBaseline() {
   localStorage.removeItem(SEEN_LEDGER_KEY);
 }
+
+function isInvalidCache(rows, meta) {
+  if (Number(meta?.version || 0) < CACHE_SCHEMA_VERSION) return true;
+  return rows.some((row) => row?.StatSource === BAD_STAT_SOURCE || looksLikeCorruptedStats(row));
+}
+
+function looksLikeCorruptedStats(row) {
+  const baseTotal = number(row?.BaseTotal ?? row?.Total);
+  const currentTotal = number(row?.CurrentTotal);
+  const bonusTotal = number(row?.StatBonusTotal);
+  const statBase = ['Health','Melee','Grenade','Super','ClassAbility','Weapon'].reduce((sum, key) => sum + number(row?.[`Base${key}`] ?? row?.[key]), 0);
+  const statCurrent = ['Health','Melee','Grenade','Super','ClassAbility','Weapon'].reduce((sum, key) => sum + number(row?.[`Current${key}`]), 0);
+  if (baseTotal === 0 && bonusTotal >= 45) return true;
+  if (baseTotal && statBase && Math.abs(baseTotal - statBase) > 2) return true;
+  if (currentTotal && statCurrent && Math.abs(currentTotal - statCurrent) > 2) return true;
+  if (baseTotal && currentTotal && bonusTotal && Math.abs((currentTotal - baseTotal) - bonusTotal) > 2) return true;
+  return false;
+}
+
+function number(value) { const n = Number(String(value ?? '').replace(/[^0-9.-]/g, '')); return Number.isFinite(n) ? n : 0; }
 
 function openDb() {
   return new Promise((resolve, reject) => {
@@ -258,11 +290,8 @@ function compareInstanceIdsDesc(a, b) {
   return right.localeCompare(left);
 }
 function digitsOnly(value) { return String(value || '').replace(/\D+/g, '').replace(/^0+/, ''); }
-function locationSignature(row = {}) { return [row.IsInVault ? 'vault' : row.IsEquipped ? 'equipped' : 'inventory', row.OwnerCharacterId || '', row.BucketHash || ''].join('|'); }
-function itemSignature(row = {}) { return ['Health','Melee','Grenade','Super','ClassAbility','Weapon','Total','Power','GearTier','Tier'].map((key) => `${key}:${row[key] ?? ''}`).join('|'); }
 
-export function formatCacheTime(meta) {
-  if (!meta?.savedAt) return 'unknown time';
-  try { return new Date(meta.savedAt).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }); }
-  catch (_) { return 'unknown time'; }
+function itemSignature(row) {
+  return [row.Name, row.BaseTotal, row.CurrentTotal, row.StatBonusTotal, row.Power, row.Tier, row.GearTier, row.IsMasterworked, row.IsLocked].join('|');
 }
+function locationSignature(row) { return [row.IsEquipped ? 'equipped' : row.IsInVault ? 'vault' : 'inventory', row.CharacterId || '', row.BucketHash || ''].join('|'); }
