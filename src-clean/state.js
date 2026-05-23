@@ -12,12 +12,14 @@ const ARCHETYPE_STATS = [
 ];
 const STAT_KEYS = ['Health', 'Melee', 'Grenade', 'Super', 'ClassAbility', 'Weapon'];
 const BONUS_TYPES = ['Masterwork', 'Mod', 'Artifice', 'Other'];
+const DEFAULT_DISPLAY = { showEquipped: true, showVault: true, showInventory: true, showLocked: true, onlyNewItems: false, onlyGroupedItems: false };
 
 export const state = {
   rows: [],
   view: 'grid',
   search: '',
   filters: { class: 'all', slot: 'all', rarity: 'all' },
+  display: { ...DEFAULT_DISPLAY },
   sortBy: 'default',
   duplicateTolerance: 5,
   theme: 'calus',
@@ -69,12 +71,19 @@ export function dismissRecent(id) {
 export function getFilteredRows() {
   const q = state.search.trim().toLowerCase();
   const activeClass = normalizeClassFilter(state.filters.class);
+  const display = { ...DEFAULT_DISPLAY, ...(state.display || {}) };
   const rows = state.rows.filter((row) => {
     if (activeClass !== 'all' && !rowMatchesClass(row, activeClass)) return false;
     if (state.filters.slot !== 'all' && row.Slot !== state.filters.slot) return false;
     if (state.filters.rarity !== 'all' && row.Rarity !== state.filters.rarity) return false;
+    if (!display.showEquipped && row.IsEquipped) return false;
+    if (!display.showVault && row.IsInVault) return false;
+    if (!display.showInventory && !row.IsEquipped && !row.IsInVault) return false;
+    if (!display.showLocked && row.IsLocked) return false;
+    if (display.onlyNewItems && !row.RecentlyFound && row.RecentStatus !== 'new') return false;
+    if (display.onlyGroupedItems && !row.Is_Dupe && !row.Group) return false;
     if (!q) return true;
-    return [row.Name, row.Id, row.Slot, row.Type, row.Class, row.Equippable, row.Rarity, row.Archetype].some((value) => String(value || '').toLowerCase().includes(q));
+    return [row.Name, row.Id, row.Slot, row.Type, row.Class, row.Equippable, row.Rarity, row.Archetype, row.Tag, row.Group, row.Dupe_Group, row.SortGroup].some((value) => String(value || '').toLowerCase().includes(q));
   });
   return sortRows(rows, state.sortBy);
 }
@@ -250,7 +259,7 @@ function compactPerks(perks) {
 }
 
 function persistSettings() {
-  writeJson(STORAGE_KEYS.settings, { view: state.view, theme: state.theme, filters: state.filters, sortBy: state.sortBy, duplicateTolerance: state.duplicateTolerance });
+  writeJson(STORAGE_KEYS.settings, { view: state.view, theme: state.theme, filters: state.filters, display: state.display, sortBy: state.sortBy, duplicateTolerance: state.duplicateTolerance });
 }
 
 export function loadSettings() {
@@ -261,7 +270,8 @@ export function loadSettings() {
     theme: settings.theme || state.theme,
     sortBy: savedSort || state.sortBy,
     duplicateTolerance: Number.isFinite(Number(settings.duplicateTolerance)) ? Number(settings.duplicateTolerance) : state.duplicateTolerance,
-    filters: { ...state.filters, ...(settings.filters || {}) }
+    filters: { ...state.filters, ...(settings.filters || {}) },
+    display: { ...DEFAULT_DISPLAY, ...(settings.display || {}) }
   });
   state.filters.class = normalizeClassFilter(state.filters.class);
 }
