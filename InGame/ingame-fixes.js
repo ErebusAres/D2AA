@@ -1,4 +1,5 @@
 import { state, subscribe, setState } from '../src-clean/state.js';
+import { saveBungieInventory } from '../src-clean/data/inventory-cache.js';
 
 const STAT_KEYS = ['Health', 'Melee', 'Grenade', 'Super', 'ClassAbility', 'Weapon'];
 let normalizing = false;
@@ -7,6 +8,8 @@ let fixQueued = false;
 let observerStarted = false;
 let searchDebounceTimer = 0;
 let lastSearchValue = '';
+let compacting = false;
+let compactCacheTimer = 0;
 
 function normalizeRowsIfNeeded(){
   if (normalizing || !state.rows?.length) return;
@@ -14,16 +17,18 @@ function normalizeRowsIfNeeded(){
   const rows = state.rows.map((row) => {
     const next = { ...row };
     if (repairBaseCountedAsOther(next)) changed = true;
+    if (compactBulkyRowData(next)) changed = true;
     const strictMw = strictMasterworked(next);
     if (next.IsMasterworked !== strictMw) { next.IsMasterworked = strictMw; changed = true; }
     return next;
   });
   if (!changed) return;
-  const sig = rows.map((r) => `${r.Id}:${r.BaseTotal}:${r.CurrentTotal}:${r.OtherBonusTotal}:${r.IsMasterworked}`).join('|');
+  const sig = rows.map((r) => `${r.Id}:${r.BaseTotal}:${r.CurrentTotal}:${r.OtherBonusTotal}:${r.IsMasterworked}:${auditSignature(r)}`).join('|');
   if (sig === lastSignature) return;
   lastSignature = sig;
   normalizing = true;
   setState({ rows, status: state.status });
+  scheduleCompactCacheSave(rows);
   normalizing = false;
 }
 
@@ -53,6 +58,96 @@ function repairBaseCountedAsOther(row){
   row.CurrentTotal = row.BaseTotal + row.StatBonusTotal;
   row.StatSource = 'D2AARepair_BaseWasMisclassifiedAsOtherBonus';
   return true;
+}
+
+function compactBulkyRowData(row){
+  if (compacting) return false;
+  let changed = false;
+
+  if (row.StatAudit && typeof row.StatAudit === 'object') {
+    const before = roughSize(row.StatAudit);
+    const compactAudit = {
+      activePlugs: compactAuditPlugs(row.StatAudit.activePlugs),
+      bonusBreakdown: row.StatAudit.bonusBreakdown || {}
+    };
+    const after = roughSize(compactAudit);
+    if (before > after + 64 || row.StatAudit.allPlugs || row.StatAudit.itemStats || row.StatAudit.definitionStats) {
+      row.StatAudit = compactAudit;
+      changed = true;
+    }
+  }
+
+  for (const key of ['ArmorSetBonuses','SetBonuses','ArmorBonuses','ArmorPerks']) {
+    if (!Array.isArray(row[key])) continue;
+    const compact = row[key].map(compactPerk).filter(Boolean);
+    if (roughSize(row[key]) > roughSize(compact) + 16) {
+      row[key] = compact;
+      changed = true;
+    }
+  }
+
+  if (typeof row.ScreenshotUrl === 'string' && row.ScreenshotUrl.length > 180) {
+    row.ScreenshotUrl = '';
+    changed = true;
+  }
+
+  return changed;
+}
+
+function compactAuditPlugs(plugs){
+  return (plugs || []).map(compactPlug).filter((plug) => {
+    const text = `${plug.name || ''} ${plug.description || ''} ${plug.type || ''} ${plug.category || ''}`;
+    return plug.stats?.length || /set|bonus|mod|masterwork|artifice|piece|wearing|trait|intrinsic|archetype/i.test(text);
+  }).slice(0, 24);
+}
+
+function compactPlug(plug){
+  if (!plug) return null;
+  return {
+    hash: plug.hash || '',
+    name: plug.name || plug.displayProperties?.name || '',
+    description: plug.description || plug.displayProperties?.description || '',
+    icon: plug.icon || '',
+    type: plug.type || plug.itemTypeDisplayName || '',
+    category: plug.category || plug.plug?.plugCategoryIdentifier || '',
+    stats: compactStats(plug.stats || plug.investmentStats)
+  };
+}
+
+function compactPerk(perk){
+  if (!perk) return null;
+  return {
+    name: perk.name || '',
+    description: perk.description || '',
+    icon: perk.icon || '',
+    hash: perk.hash || '',
+    kind: perk.kind || '',
+    label: perk.label || ''
+  };
+}
+
+function compactStats(stats){
+  return (stats || []).filter((stat) => number(stat.value || stat.statValue) !== 0).map((stat) => ({
+    statTypeHash: stat.statTypeHash,
+    value: number(stat.value || stat.statValue)
+  })).slice(0, 8);
+}
+
+function scheduleCompactCacheSave(rows){
+  window.clearTimeout(compactCacheTimer);
+  compactCacheTimer = window.setTimeout(() => {
+    saveBungieInventory(rows, 'compact-ingame-cache').catch((error) => console.warn('D2AA compact cache save failed', error));
+  }, 900);
+}
+
+function auditSignature(row){
+  const audit = row.StatAudit;
+  if (!audit) return 'none';
+  return `${audit.activePlugs?.length || 0}:${audit.allPlugs?.length || 0}:${audit.itemStats ? 1 : 0}:${audit.definitionStats ? 1 : 0}`;
+}
+
+function roughSize(value){
+  try { return JSON.stringify(value || '').length; } catch { return 0; }
 }
 
 function scheduleFixes(){
@@ -113,8 +208,9 @@ function startObserver(){
 function strictMasterworked(row){
   const mwTotal = number(row.MasterworkBonusTotal) || STAT_KEYS.reduce((sum, key) => sum + number(row[`MasterworkBonus${key}`]), 0);
   if (mwTotal >= 10) return true;
-  const audit = JSON.stringify(row.StatAudit || '').toLowerCase();
-  return mwTotal > 0 && audit.includes('masterwork');
+  const audit = row.StatAudit;
+  const activeText = Array.isArray(audit?.activePlugs) ? audit.activePlugs.map((plug) => `${plug.name || ''} ${plug.category || ''}`).join(' ').toLowerCase() : '';
+  return mwTotal > 0 && activeText.includes('masterwork');
 }
 
 function tierMarks(row){
