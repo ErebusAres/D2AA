@@ -23,7 +23,7 @@ function normalizeRowsIfNeeded(){
     return next;
   });
   if (!changed) return;
-  const sig = rows.map((r) => `${r.Id}:${r.BaseTotal}:${r.CurrentTotal}:${r.OtherBonusTotal}:${r.IsMasterworked}:${auditSignature(r)}`).join('|');
+  const sig = rows.map((r) => `${r.Id}:${r.BaseTotal}:${r.CurrentTotal}:${r.OtherBonusTotal}:${r.StatBonusTotal}:${r.IsMasterworked}:${auditSignature(r)}`).join('|');
   if (sig === lastSignature) return;
   lastSignature = sig;
   normalizing = true;
@@ -33,32 +33,41 @@ function normalizeRowsIfNeeded(){
 }
 
 function repairBaseCountedAsOther(row){
-  const baseTotal = number(row.BaseTotal ?? row.Total);
-  const otherTotal = number(row.OtherBonusTotal);
-  const currentTotal = number(row.CurrentTotal);
+  const baseTotal = sumBaseStats(row) || number(row.BaseTotal ?? row.Total);
+  const currentTotal = sumCurrentStats(row) || number(row.CurrentTotal);
+  const otherTotal = number(row.OtherBonusTotal) || STAT_KEYS.reduce((sum, key) => sum + number(row[`OtherBonus${key}`]), 0);
   const nonOtherBonusTotal = number(row.MasterworkBonusTotal) + number(row.ModBonusTotal) + number(row.ArtificeBonusTotal);
-  const looksLikeBaseWasClassifiedAsBonus = baseTotal === 0 && otherTotal > 0 && currentTotal >= otherTotal;
-  if (!looksLikeBaseWasClassifiedAsBonus) return false;
+  const otherLooksLikeBase = otherTotal >= 45 && Math.abs(otherTotal - baseTotal) <= 3;
+  const baseMissing = number(row.BaseTotal ?? row.Total) === 0 && otherTotal > 0;
+  if (!baseMissing && !otherLooksLikeBase) return false;
 
   let repairedBaseTotal = 0;
   for (const key of STAT_KEYS) {
-    const other = number(row[`OtherBonus${key}`]);
+    const mw = number(row[`MasterworkBonus${key}`]);
+    const mod = number(row[`ModBonus${key}`]);
+    const artifice = number(row[`ArtificeBonus${key}`]);
     const current = number(row[`Current${key}`]);
-    const base = other || Math.max(0, current - number(row[`MasterworkBonus${key}`]) - number(row[`ModBonus${key}`]) - number(row[`ArtificeBonus${key}`]));
+    const existingBase = number(row[`Base${key}`] ?? row[key]);
+    const mistakenOther = number(row[`OtherBonus${key}`]);
+    const base = existingBase || mistakenOther || Math.max(0, current - mw - mod - artifice);
     row[`Base${key}`] = base;
     row[key] = base;
     row[`OtherBonus${key}`] = 0;
-    row[`StatBonus${key}`] = number(row[`MasterworkBonus${key}`]) + number(row[`ModBonus${key}`]) + number(row[`ArtificeBonus${key}`]);
+    row[`StatBonus${key}`] = mw + mod + artifice;
+    row[`Current${key}`] = current || base + row[`StatBonus${key}`];
     repairedBaseTotal += base;
   }
-  row.BaseTotal = repairedBaseTotal || otherTotal;
+  row.BaseTotal = repairedBaseTotal || baseTotal || otherTotal;
   row.Total = row.BaseTotal;
   row.OtherBonusTotal = 0;
   row.StatBonusTotal = nonOtherBonusTotal;
-  row.CurrentTotal = row.BaseTotal + row.StatBonusTotal;
+  row.CurrentTotal = currentTotal || row.BaseTotal + row.StatBonusTotal;
   row.StatSource = 'D2AARepair_BaseWasMisclassifiedAsOtherBonus';
   return true;
 }
+
+function sumBaseStats(row){ return STAT_KEYS.reduce((sum, key) => sum + number(row[`Base${key}`] ?? row[key]), 0); }
+function sumCurrentStats(row){ return STAT_KEYS.reduce((sum, key) => sum + number(row[`Current${key}`]), 0); }
 
 function compactBulkyRowData(row){
   if (compacting) return false;
@@ -169,8 +178,9 @@ function applyInGameFixes(){
     node.classList.toggle('is-masterworked', isMasterworked);
     if (isMasterworked) node.dataset.masterworked = 'true';
     else delete node.dataset.masterworked;
-    const rail = node.querySelector('.tier-rail');
-    if (rail) rail.innerHTML = tierMarks(row).join('');
+    const rails = [...node.querySelectorAll('.tier-rail')];
+    rails.slice(1).forEach((rail) => rail.remove());
+    if (rails[0]) rails[0].innerHTML = tierMarks(row).join('');
   });
 }
 
@@ -233,7 +243,7 @@ function resolvedTier(row){
 }
 
 function fallbackTier(row){
-  const total = number(row.BaseTotal || row.Total || 0);
+  const total = number(row.BaseTotal || row.Total || sumBaseStats(row) || 0);
   if (total >= 73) return 5;
   if (total >= 65) return 4;
   if (total >= 59) return 3;
