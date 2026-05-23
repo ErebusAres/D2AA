@@ -2,9 +2,16 @@ import { SLOT_ORDER } from '../constants.js';
 
 export function sortRows(rows, sortBy = 'default') {
   const out = rows.slice();
-  if (sortBy === 'totalDesc') return out.sort((a, b) => num(b.Total) - num(a.Total) || defaultAnalyzerSort(a, b));
-  if (sortBy === 'rankDesc') return out.sort((a, b) => rankScore(b) - rankScore(a) || num(b.Total) - num(a.Total) || defaultAnalyzerSort(a, b));
+  if (sortBy === 'totalDesc') return out.sort((a, b) => baseTotal(b) - baseTotal(a) || defaultAnalyzerSort(a, b));
+  if (sortBy === 'currentTotalDesc') return out.sort((a, b) => currentTotal(b) - currentTotal(a) || baseTotal(b) - baseTotal(a) || defaultAnalyzerSort(a, b));
+  if (sortBy === 'powerDesc') return out.sort((a, b) => num(b.Power || b.Light) - num(a.Power || a.Light) || defaultAnalyzerSort(a, b));
+  if (sortBy === 'tierDesc') return out.sort((a, b) => num(b.Tier || b.GearTier) - num(a.Tier || a.GearTier) || defaultAnalyzerSort(a, b));
+  if (sortBy === 'newestDesc') return out.sort((a, b) => num(b.FoundAt || b.AcquiredAt || b._index) - num(a.FoundAt || a.AcquiredAt || a._index) || defaultAnalyzerSort(a, b));
+  if (sortBy === 'groupedFirst') return out.sort((a, b) => Number(Boolean(b.Is_Dupe || b.Group)) - Number(Boolean(a.Is_Dupe || a.Group)) || defaultAnalyzerSort(a, b));
+  if (sortBy === 'untaggedFirst') return out.sort((a, b) => Number(Boolean(a.Tag)) - Number(Boolean(b.Tag)) || defaultAnalyzerSort(a, b));
+  if (sortBy === 'rankDesc') return out.sort((a, b) => rankScore(b) - rankScore(a) || baseTotal(b) - baseTotal(a) || defaultAnalyzerSort(a, b));
   if (sortBy === 'nameAsc') return out.sort((a, b) => String(a.Name).localeCompare(String(b.Name)) || defaultAnalyzerSort(a, b));
+  if (sortBy === 'slotAsc') return out.sort((a, b) => slotNumber(a) - slotNumber(b) || defaultAnalyzerSort(a, b));
   return out.sort(defaultAnalyzerSort);
 }
 
@@ -23,7 +30,7 @@ export function defaultAnalyzerSort(a, b) {
   if (aGroup !== bGroup) return aGroup.localeCompare(bGroup, undefined, { numeric: true });
   const rank = rankScore(b) - rankScore(a);
   if (rank) return rank;
-  const total = num(b.Total) - num(a.Total);
+  const total = baseTotal(b) - baseTotal(a);
   if (total) return total;
   const power = num(b.Power || b.Light) - num(a.Power || a.Light);
   if (power) return power;
@@ -47,7 +54,7 @@ function rarityOrder(rarity) {
   return 3;
 }
 function rankScore(row) {
-  const total = num(row.Total);
+  const total = baseTotal(row);
   if (row.Rarity === 'Exotic') {
     if (total >= 63) return 5;
     if (total >= 62) return 4;
@@ -63,5 +70,7 @@ function rankScore(row) {
   if (total >= 71) return 1;
   return 0;
 }
+function baseTotal(row) { return num(row.BaseTotal ?? row.Total); }
+function currentTotal(row) { return num(row.CurrentTotal ?? row.Total); }
 function norm(value) { return String(value || '').trim().toLowerCase(); }
 function num(value) { return Number(value || 0) || 0; }
