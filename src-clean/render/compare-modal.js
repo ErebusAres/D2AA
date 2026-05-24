@@ -8,6 +8,7 @@ let onPullItem = null;
 let keydownBound = false;
 
 const BONUS_ORDER = ['masterwork', 'mod', 'artifice', 'other'];
+const BONUS_LABELS = { masterwork: 'Masterwork', mod: 'Armor Mod', artifice: 'Artifice', other: 'Bonus' };
 
 export function openCompareModal(rows, options = {}) {
   currentRows = Array.isArray(rows) ? rows.slice().sort(compareBaseFirst) : [];
@@ -111,14 +112,14 @@ function renderCardStyleStat(row, key) {
   const base = statBase(row, key);
   const current = statCurrent(row, key);
   const parts = bonusParts(row, key);
-  return `<div class="stat-row" title="${html(STAT_LABELS[key])}: base ${base}${parts.length ? `, ${parts.map((p) => `+${p.value} ${p.type}`).join(', ')}` : ''}. Current: ${current}."><img src="${html(STAT_ICONS[key])}" alt="${html(STAT_LABELS[key])}" loading="lazy"><div class="bar"><span class="bar-base" style="width:${Math.min(100, base)}%"></span>${renderBonusSegments(base, parts)}</div><b>${pad(current)}</b></div>`;
+  return `<div class="stat-row" title="${html(STAT_LABELS[key])}: base ${base}${parts.length ? `, ${parts.map((p) => `+${p.value} ${BONUS_LABELS[p.type] || p.type}`).join(', ')}` : ''}. Current: ${current}."><img src="${html(STAT_ICONS[key])}" alt="${html(STAT_LABELS[key])}" loading="lazy"><div class="bar"><span class="bar-base" style="width:${Math.min(100, base)}%"></span>${renderBonusSegments(base, parts)}</div><b>${pad(current)}</b></div>`;
 }
 
 function renderBonusSegments(base, parts) {
   let left = Math.min(100, base);
   return parts.map((part) => {
     const width = Math.max(0, Math.min(100 - left, part.value));
-    const out = `<span class="bar-bonus bonus-${part.type}" title="+${part.value} ${html(part.type)}" style="left:${left}%;width:${width}%"></span>`;
+    const out = `<span class="bar-bonus bonus-${part.type}" title="+${part.value} ${html(BONUS_LABELS[part.type] || part.type)}" style="left:${left}%;width:${width}%"></span>`;
     left += width;
     return out;
   }).join('');
@@ -129,8 +130,8 @@ function renderCardStyleTotal(row) {
   const parts = totalBonusParts(row);
   const bonusTotal = parts.reduce((sum, p) => sum + num(p.value), 0);
   const absolute = currentTotal(row) || base + bonusTotal;
-  const calc = `<span class="base-total">${base}</span>${parts.map((p) => `<span class="bonus-total bonus-${p.type}" title="${html(p.type)} bonus">+${p.value}</span>`).join('')}`;
-  return `<div class="stat-total" title="Total calculation: base ${base}${parts.length ? `, ${parts.map((p) => `+${p.value} ${p.type}`).join(', ')}` : ''}. Absolute total: ${absolute}." style="grid-template-columns:1fr auto;gap:8px;align-items:end;"><div class="total-left" style="grid-column:1/2;display:grid;gap:3px;min-width:0;"><span class="total-label" style="grid-column:auto;">Total</span><div class="total-value" style="grid-column:auto;justify-self:start;font-size:14px;line-height:1;">${calc}</div></div><b class="absolute-total" style="grid-column:2/3;font-variant-numeric:tabular-nums;text-align:right;font-size:19px;line-height:1;color:#fff;min-width:34px;">${absolute}</b></div>`;
+  const calc = `<span class="base-total">${base}</span>${parts.map((p) => `<span class="bonus-total bonus-${p.type}" title="${html(BONUS_LABELS[p.type] || p.type)} bonus">+${p.value}</span>`).join('')}`;
+  return `<div class="stat-total" title="Total calculation: base ${base}${parts.length ? `, ${parts.map((p) => `+${p.value} ${BONUS_LABELS[p.type] || p.type}`).join(', ')}` : ''}. Absolute total: ${absolute}." style="grid-template-columns:1fr auto;gap:8px;align-items:end;"><div class="total-left" style="grid-column:1/2;display:grid;gap:3px;min-width:0;"><span class="total-label" style="grid-column:auto;">Total</span><div class="total-value" style="grid-column:auto;justify-self:start;font-size:14px;line-height:1;">${calc}</div></div><b class="absolute-total" style="grid-column:2/3;font-variant-numeric:tabular-nums;text-align:right;font-size:19px;line-height:1;color:#fff;min-width:34px;">${absolute}</b></div>`;
 }
 
 function bestRow(rows) { return rows.slice().sort(compareBaseFirst)[0]; }
@@ -155,29 +156,103 @@ function archetypeIcon(row) {
   return row.ArchetypeIcon ? `<span class="archetype-icon-wrap"><img class="archetype-img" src="${html(row.ArchetypeIcon)}" alt="" loading="lazy"></span>` : '<span>◇</span>';
 }
 function bonusParts(row, key) {
-  const fallback = num(row[`StatBonus${key}`]);
-  const parts = BONUS_ORDER.map((type) => ({ type, value: num(row[`${cap(type)}Bonus${key}`]) })).filter((p) => p.value > 0);
+  const explicitFallback = statField(row, key, ['StatBonus', 'Bonus']);
+  const inferredFallback = Math.max(0, statCurrent(row, key) - statBase(row, key));
+  const fallback = Math.max(explicitFallback, inferredFallback);
+  const parts = BONUS_ORDER.map((type) => ({ type, value: statTypeBonus(row, key, type) })).filter((p) => p.value > 0);
   const known = parts.reduce((total, part) => total + part.value, 0);
   if (fallback > known) parts.push({ type: 'other', value: fallback - known });
-  if (!parts.length && fallback > 0) parts.push({ type: 'other', value: fallback });
-  return parts;
+  return collapseParts(parts);
 }
 function totalBonusParts(row) {
-  const fallback = num(row.StatBonusTotal ?? Math.max(0, currentTotal(row) - baseTotal(row)));
-  const parts = BONUS_ORDER.map((type) => ({ type, value: num(row[`${cap(type)}BonusTotal`]) || STAT_KEYS.reduce((sum, key) => sum + num(row[`${cap(type)}Bonus${key}`]), 0) })).filter((part) => part.value > 0);
+  const explicitFallback = num(row.StatBonusTotal ?? row.BonusTotal);
+  const inferredFallback = Math.max(0, currentTotal(row) - baseTotal(row));
+  const fallback = Math.max(explicitFallback, inferredFallback);
+  const parts = BONUS_ORDER.map((type) => {
+    const total = num(row[`${cap(type)}BonusTotal`] ?? row[`${type}BonusTotal`]);
+    return { type, value: total || STAT_KEYS.reduce((sum, key) => sum + statTypeBonus(row, key, type), 0) };
+  }).filter((part) => part.value > 0);
   const known = parts.reduce((sum, part) => sum + part.value, 0);
   if (fallback > known) parts.push({ type: 'other', value: fallback - known });
-  if (!parts.length && fallback > 0) parts.push({ type: 'other', value: fallback });
-  return parts;
+  return collapseParts(parts);
 }
-function statBase(row, key) { return num(row[`Base${key}`] ?? row[key]); }
-function statCurrent(row, key) { return num(row[`Current${key}`] ?? row[key]); }
+function statBase(row, key) { return statField(row, key, ['Base']) || num(row[key]); }
+function statCurrent(row, key) { return statField(row, key, ['Current']) || num(row[key]) + statField(row, key, ['StatBonus', 'Bonus']); }
 function baseTotal(row) { return num(row.BaseTotal ?? row.Total); }
-function currentTotal(row) { return num(row.CurrentTotal ?? baseTotal(row) + num(row.StatBonusTotal)); }
+function currentTotal(row) {
+  const explicit = num(row.CurrentTotal ?? row.AbsoluteTotal);
+  if (explicit) return explicit;
+  return baseTotal(row) + num(row.StatBonusTotal ?? row.BonusTotal ?? totalBonusParts(row).reduce((sum, part) => sum + num(part.value), 0));
+}
+function statTypeBonus(row, key, type) {
+  const proper = cap(type);
+  return Math.max(
+    num(row[`${proper}Bonus${key}`]),
+    num(row[`${proper}${key}Bonus`]),
+    num(row[`${type}Bonus${key}`]),
+    num(row[`${type}${key}Bonus`]),
+    auditBonus(row, key, type)
+  );
+}
+function statField(row, key, prefixes) {
+  const names = statNameAliases(key);
+  let best = 0;
+  for (const prefix of prefixes) {
+    for (const name of names) {
+      best = Math.max(best, num(row[`${prefix}${name}`]), num(row[`${prefix}_${name}`]), num(row[`${prefix.toLowerCase()}${name}`]));
+    }
+  }
+  return best;
+}
+function auditBonus(row, key, type) {
+  const buckets = [row.StatAudit?.bonusBreakdown, row.SocketAudit?.bonusBreakdown, row.BonusBreakdown, row.StatBonusBreakdown].filter(Boolean);
+  const names = statNameAliases(key).map((name) => normalizeKey(name));
+  const typeNames = [type, cap(type), `${type}Bonus`, `${cap(type)}Bonus`].map(normalizeKey);
+  let best = 0;
+  for (const bucket of buckets) {
+    best = Math.max(best, lookupBonus(bucket, names, typeNames));
+  }
+  return best;
+}
+function lookupBonus(value, statNames, typeNames) {
+  if (!value || typeof value !== 'object') return 0;
+  let best = 0;
+  for (const [key, child] of Object.entries(value)) {
+    const normalized = normalizeKey(key);
+    if (statNames.includes(normalized)) {
+      if (typeof child === 'number' || typeof child === 'string') best = Math.max(best, num(child));
+      if (child && typeof child === 'object') {
+        for (const [subKey, subValue] of Object.entries(child)) {
+          if (typeNames.includes(normalizeKey(subKey))) best = Math.max(best, num(subValue));
+        }
+      }
+    }
+    if (typeNames.includes(normalized) && child && typeof child === 'object') {
+      for (const [subKey, subValue] of Object.entries(child)) {
+        if (statNames.includes(normalizeKey(subKey))) best = Math.max(best, num(subValue));
+      }
+    }
+  }
+  return best;
+}
+function statNameAliases(key) {
+  if (key === 'Weapon') return ['Weapon', 'Class'];
+  if (key === 'ClassAbility') return ['ClassAbility', 'Weapons'];
+  return [key];
+}
+function collapseParts(parts) {
+  const byType = new Map();
+  for (const part of parts) {
+    const value = num(part.value);
+    if (value > 0) byType.set(part.type, (byType.get(part.type) || 0) + value);
+  }
+  return BONUS_ORDER.map((type) => ({ type, value: byType.get(type) || 0 })).filter((part) => part.value > 0);
+}
 function displayName(row) { const name = String(row.Name || '').trim(); return name && !name.includes('|') ? name : String(row.Type || row.Slot || 'Unknown Armor'); }
 function iconUrl(row) { return row.IconUrl || row.Icon || ''; }
 function cap(value) { return String(value).replace(/^./, (char) => char.toUpperCase()); }
 function pad(value) { return String(num(value)).padStart(2, ' '); }
+function normalizeKey(value) { return String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, ''); }
 function num(value) {
   const parsed = Number(String(value ?? '').replace(/[^0-9.-]/g, ''));
   return Number.isFinite(parsed) ? parsed : 0;
