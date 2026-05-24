@@ -5,6 +5,7 @@ let currentRows = [];
 let onTagChange = null;
 let onPullGroup = null;
 let onPullItem = null;
+let keydownBound = false;
 
 const BONUS_ORDER = ['masterwork', 'mod', 'artifice', 'other'];
 
@@ -15,26 +16,35 @@ export function openCompareModal(rows, options = {}) {
   onPullItem = options.onPullItem || null;
   ensureModal();
   modal.innerHTML = renderModal(currentRows);
-  document.body.classList.add('compare-open');
   modal.hidden = false;
+  modal.setAttribute('aria-hidden', 'false');
+  modal.style.display = 'grid';
+  document.body.classList.add('compare-open');
   bindModal();
 }
 
 export function closeCompareModal() {
   if (!modal) return;
   modal.hidden = true;
+  modal.setAttribute('aria-hidden', 'true');
+  modal.style.display = 'none';
   modal.innerHTML = '';
   document.body.classList.remove('compare-open');
+  document.removeEventListener('keydown', escClose);
+  keydownBound = false;
 }
 
 function ensureModal() {
   modal = document.getElementById('compareOverlay');
-  if (modal) return;
-  modal = document.createElement('div');
-  modal.id = 'compareOverlay';
-  modal.className = 'compare-overlay';
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'compareOverlay';
+    modal.className = 'compare-overlay';
+    document.body.appendChild(modal);
+  }
   modal.hidden = true;
-  document.body.appendChild(modal);
+  modal.setAttribute('aria-hidden', 'true');
+  modal.style.display = 'none';
 }
 
 function bindModal() {
@@ -56,11 +66,13 @@ function bindModal() {
       bindModal();
     });
   });
-  document.addEventListener('keydown', escClose, { once: true });
+  if (!keydownBound) {
+    document.addEventListener('keydown', escClose);
+    keydownBound = true;
+  }
 }
 function escClose(event) {
   if (event.key === 'Escape') closeCompareModal();
-  else if (!modal?.hidden) document.addEventListener('keydown', escClose, { once: true });
 }
 
 function renderModal(rows) {
@@ -70,7 +82,7 @@ function renderModal(rows) {
   <section class="compare-panel" role="dialog" aria-modal="true" aria-label="Compare duplicate group ${html(label)}">
     <header class="compare-head"><div><p>Duplicate Comparison</p><h2>${html(label)}</h2><span>${rows.length} items · ${html(rows[0]?.Slot || 'Armor')}</span></div><div class="compare-head-actions"><button type="button" data-pull-group>Pull Group</button><button type="button" class="compare-close" data-close-compare>×</button></div></header>
     <div class="compare-summary">${renderSummary(rows, bestId)}</div>
-    <div class="compare-grid">${rows.map((row) => renderCompareCard(row, bestId)).join('')}</div>
+    <div class="compare-grid" style="--compare-count:${Math.max(1, rows.length)}">${rows.map((row) => renderCompareCard(row, bestId)).join('')}</div>
   </section>`;
 }
 
