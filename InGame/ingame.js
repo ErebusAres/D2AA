@@ -4,7 +4,7 @@ import { applyDuplicateGroups } from '../src-clean/data/duplicate-groups.js?v=1.
 import { runItemAction, runGroupPull } from '../src-clean/data/actions.js';
 import { saveBungieInventory } from '../src-clean/data/inventory-cache.js';
 import { getActiveFeedRows } from '../src-clean/data/feed-state.js';
-import { openCompareModal } from '../src-clean/render/compare-modal.js';
+import { openCompareModal } from '../src-clean/render/compare-modal.js?v=compare-card-bonuses-3';
 
 const els = {};
 let lastGroupedRows = [];
