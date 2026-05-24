@@ -92,9 +92,17 @@ function renderSummary(rows, bestId) {
 
 function renderCompareCard(row, bestId) {
   const location = row.IsInVault ? 'Vault' : row.IsEquipped ? 'Equipped' : 'Inventory';
+  const name = displayName(row);
   return `<article class="compare-card ${String(row.Id) === String(bestId) ? 'is-best' : ''}">
-    <div class="compare-item-head"><div class="compare-icon">${iconUrl(row) ? `<img src="${html(iconUrl(row))}" alt="" loading="lazy">` : '◇'}${row.Power || row.Light ? `<b>${row.Power || row.Light}</b>` : ''}</div><div><h3>${html(row.Name)}</h3><p>${html(row.Class)} • ${html(row.Slot)} • ${html(row.Rarity)} • ${html(location)}${row.IsLocked ? ' • Locked' : ''}</p></div><strong class="compare-score" title="Base total used for comparison"><span>BASE</span>${baseTotal(row)}</strong></div>
-    <div class="stat-bars compare-stat-bars">${STAT_KEYS.map((key) => renderCardStyleStat(row, key)).join('')}${renderCardStyleTotal(row)}<div class="stat-total compare-tier"><span class="total-label">Tier</span><b>${diamonds(row.Tier, row.TierMax)}</b></div></div>
+    <div class="compare-item-head">
+      <div class="compare-icon">${iconUrl(row) ? `<img src="${html(iconUrl(row))}" alt="" loading="lazy">` : '◇'}<div class="tier-rail compare-tier-rail">${tierMarks(row).join('')}</div>${row.Power || row.Light ? `<b>${row.Power || row.Light}</b>` : ''}</div>
+      <div><h3 title="${html(name)}">${html(name)}</h3><p>${html(row.Class)} • ${html(row.Slot)} • ${html(row.Rarity)} • ${html(location)}${row.IsLocked ? ' • Locked' : ''}</p></div>
+      <strong class="compare-score" title="Base total used for comparison"><span>BASE</span>${baseTotal(row)}</strong>
+    </div>
+    <div class="card-body compare-card-body">
+      <aside class="card-side compare-card-side"><div class="archetype compare-archetype">${archetypeIcon(row)}<b>${html(row.Archetype || '—')}</b></div></aside>
+      <div class="stat-bars">${STAT_KEYS.map((key) => renderCardStyleStat(row, key)).join('')}${renderCardStyleTotal(row)}</div>
+    </div>
     <div class="compare-tags" aria-label="Assign item tag"><div class="compare-tag-set">${TAGS.filter((tag) => tag.picker !== false).map((tag) => `<button type="button" class="${row.Tag === tag.value ? 'is-active' : ''}" data-id="${html(row.Id)}" data-compare-tag="${html(tag.value)}" title="${html(tag.label)}">${tag.emoji}</button>`).join('')}</div>${onPullItem ? `<button type="button" class="compare-pull-button" data-pull-item="${html(row.Id)}">${row.IsInVault ? 'Pull' : 'Push'}</button>` : ''}</div>
   </article>`;
 }
@@ -122,22 +130,29 @@ function renderCardStyleTotal(row) {
   const bonusTotal = parts.reduce((sum, p) => sum + num(p.value), 0);
   const absolute = currentTotal(row) || base + bonusTotal;
   const calc = `<span class="base-total">${base}</span>${parts.map((p) => `<span class="bonus-total bonus-${p.type}" title="${html(p.type)} bonus">+${p.value}</span>`).join('')}`;
-  return `<div class="stat-total compare-total-card" title="Total calculation: base ${base}${parts.length ? `, ${parts.map((p) => `+${p.value} ${p.type}`).join(', ')}` : ''}. Absolute total: ${absolute}."><div class="total-left"><span class="total-label">Total</span><div class="total-value">${calc}</div></div><b class="absolute-total">${absolute}</b></div>`;
+  return `<div class="stat-total" title="Total calculation: base ${base}${parts.length ? `, ${parts.map((p) => `+${p.value} ${p.type}`).join(', ')}` : ''}. Absolute total: ${absolute}." style="grid-template-columns:1fr auto;gap:8px;align-items:end;"><div class="total-left" style="grid-column:1/2;display:grid;gap:3px;min-width:0;"><span class="total-label" style="grid-column:auto;">Total</span><div class="total-value" style="grid-column:auto;justify-self:start;font-size:14px;line-height:1;">${calc}</div></div><b class="absolute-total" style="grid-column:2/3;font-variant-numeric:tabular-nums;text-align:right;font-size:19px;line-height:1;color:#fff;min-width:34px;">${absolute}</b></div>`;
 }
 
 function bestRow(rows) { return rows.slice().sort(compareBaseFirst)[0]; }
 function compareBaseFirst(a, b) {
   return baseTotal(b) - baseTotal(a)
     || topThreeBase(b) - topThreeBase(a)
-    || num(b.Tier || 0) - num(a.Tier || 0)
+    || num(b.Tier || b.GearTier || 0) - num(a.Tier || a.GearTier || 0)
     || num(b.Power || b.Light) - num(a.Power || a.Light)
     || String(a.Name || '').localeCompare(String(b.Name || ''));
 }
 function topThreeBase(row) { return STAT_KEYS.map((key) => statBase(row, key)).sort((a, b) => b - a).slice(0, 3).reduce((sum, value) => sum + value, 0); }
-function diamonds(tier, max = 5) {
-  const m = Number(max || 5);
-  const n = Math.max(0, Math.min(m, Number(tier || 0)));
-  return Array.from({ length: n }, () => '<span class="compare-tier-diamond">◆</span>').join('');
+function tierMarks(row) {
+  const max = 5;
+  const tier = Math.max(0, Math.min(max, num(row.Tier || row.GearTier || 0)));
+  const color = tier >= 5 ? 'gold' : tier >= 3 ? 'purple' : 'white';
+  return Array.from({ length: max }, (_, i) => {
+    const level = max - i;
+    return `<span class="tier-mark tier-color-${color} ${level <= tier ? 'is-on' : ''}">◆</span>`;
+  });
+}
+function archetypeIcon(row) {
+  return row.ArchetypeIcon ? `<span class="archetype-icon-wrap"><img class="archetype-img" src="${html(row.ArchetypeIcon)}" alt="" loading="lazy"></span>` : '<span>◇</span>';
 }
 function bonusParts(row, key) {
   const fallback = num(row[`StatBonus${key}`]);
@@ -159,6 +174,7 @@ function statBase(row, key) { return num(row[`Base${key}`] ?? row[key]); }
 function statCurrent(row, key) { return num(row[`Current${key}`] ?? row[key]); }
 function baseTotal(row) { return num(row.BaseTotal ?? row.Total); }
 function currentTotal(row) { return num(row.CurrentTotal ?? baseTotal(row) + num(row.StatBonusTotal)); }
+function displayName(row) { const name = String(row.Name || '').trim(); return name && !name.includes('|') ? name : String(row.Type || row.Slot || 'Unknown Armor'); }
 function iconUrl(row) { return row.IconUrl || row.Icon || ''; }
 function cap(value) { return String(value).replace(/^./, (char) => char.toUpperCase()); }
 function pad(value) { return String(num(value)).padStart(2, ' '); }
