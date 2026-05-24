@@ -2,6 +2,7 @@ import { state, subscribe, setState, clearCache } from '../src-clean/state.js';
 import { saveBungieInventory } from '../src-clean/data/inventory-cache.js';
 
 const STAT_KEYS = ['Health', 'Melee', 'Grenade', 'Super', 'ClassAbility', 'Weapon'];
+const BONUS_TYPES = ['Masterwork', 'Mod', 'Artifice', 'Other'];
 let normalizing = false;
 let lastSignature = '';
 let fixQueued = false;
@@ -14,9 +15,6 @@ let compactCacheTimer = 0;
 function normalizeRowsIfNeeded(){
   if (normalizing || !state.rows?.length) return;
 
-  // perf6/perf7 briefly wrote a bad UI-side stat repair into cache. Do not try to
-  // guess armor totals in the UI layer; Bungie sync is the source of truth.
-  // Clear those known-bad rows so the next Sync rebuilds correct base/current/bonus data.
   if (state.rows.some((row) => row.StatSource === 'D2AARepair_BaseWasMisclassifiedAsOtherBonus')) {
     normalizing = true;
     clearCache();
@@ -31,6 +29,7 @@ function normalizeRowsIfNeeded(){
     if (compactBulkyRowData(next)) changed = true;
     const strictMw = strictMasterworked(next);
     if (next.IsMasterworked !== strictMw) { next.IsMasterworked = strictMw; changed = true; }
+    if (normalizeStatsForDisplay(next)) changed = true;
     return next;
   });
   if (!changed) return;
@@ -43,6 +42,89 @@ function normalizeRowsIfNeeded(){
   normalizing = false;
 }
 
+function normalizeStatsForDisplay(row){
+  let changed = false;
+  const models = STAT_KEYS.map((key) => buildDisplayStatModel(row, key));
+  const explicitBonus = number(row.StatBonusTotal);
+  const knownBonus = sumModelsBonus(models);
+  let desiredBonus = explicitBonus || knownBonus;
+  if (knownBonus !== desiredBonus) allocateRemainder(models, desiredBonus - knownBonus, 'Other');
+  let baseTotal = sumModelsBase(models);
+  if (baseTotal > 75) allocateRemainder(models, baseTotal - 75, 'Other');
+
+  const nextBaseTotal = sumModelsBase(models);
+  const nextCurrentTotal = sumModelsCurrent(models);
+  const nextBonusTotal = nextCurrentTotal - nextBaseTotal;
+
+  for (const model of models) {
+    const key = model.key;
+    for (const type of BONUS_TYPES) {
+      const field = `${type}Bonus${key}`;
+      const old = number(row[field]);
+      const next = model.bonuses[type] || 0;
+      if (old !== next) { row[field] = next; changed = true; }
+    }
+    if (number(row[`Base${key}`]) !== model.base) { row[`Base${key}`] = model.base; changed = true; }
+    if (number(row[`Current${key}`]) !== model.current) { row[`Current${key}`] = model.current; changed = true; }
+    if (number(row[`StatBonus${key}`]) !== model.current - model.base) { row[`StatBonus${key}`] = model.current - model.base; changed = true; }
+  }
+
+  for (const type of BONUS_TYPES) {
+    const field = `${type}BonusTotal`;
+    const total = models.reduce((sum, model) => sum + (model.bonuses[type] || 0), 0);
+    if (number(row[field]) !== total) { row[field] = total; changed = true; }
+  }
+  if (number(row.BaseTotal) !== nextBaseTotal) { row.BaseTotal = nextBaseTotal; changed = true; }
+  if (number(row.CurrentTotal) !== nextCurrentTotal) { row.CurrentTotal = nextCurrentTotal; changed = true; }
+  if (number(row.StatBonusTotal) !== nextBonusTotal) { row.StatBonusTotal = nextBonusTotal; changed = true; }
+  if (nextBaseTotal > 75) console.warn('D2AA stat normalization still over 75', row.Name, nextBaseTotal, row);
+  return changed;
+}
+
+function buildDisplayStatModel(row, key){
+  const current = number(row[`Current${key}`] ?? row[key]);
+  const bonuses = {};
+  for (const type of BONUS_TYPES) bonuses[type] = signedBonus(row, type, key);
+  let bonusTotal = Object.values(bonuses).reduce((sum, value) => sum + value, 0);
+  const explicitBase = number(row[`Base${key}`]);
+  const useExplicitBase = hasValidExplicitBase(row);
+  let base = useExplicitBase ? explicitBase : Math.max(0, current - bonusTotal);
+  const statBonus = number(row[`StatBonus${key}`]);
+  if (statBonus && statBonus !== bonusTotal) {
+    bonuses.Other += statBonus - bonusTotal;
+    bonusTotal = statBonus;
+    base = Math.max(0, current - bonusTotal);
+  }
+  return { key, current, base, bonuses };
+}
+
+function allocateRemainder(models, amount, type){
+  let remaining = Math.abs(number(amount));
+  const sign = number(amount) < 0 ? -1 : 1;
+  if (!remaining) return;
+  const ordered = [...models].sort((a, b) => (b.current - b.base) - (a.current - a.base) || b.base - a.base);
+  for (const model of ordered) {
+    if (remaining <= 0) break;
+    const room = sign > 0 ? Math.max(0, model.base) : Math.max(0, model.current);
+    if (!room) continue;
+    const delta = Math.min(room, remaining);
+    model.bonuses[type] += sign * delta;
+    if (sign > 0) model.base -= delta;
+    else model.base += delta;
+    remaining -= delta;
+  }
+}
+
+function signedBonus(row, type, key){
+  const direct = row[`${type}Bonus${key}`];
+  if (direct !== undefined && direct !== null && String(direct).trim() !== '') return number(direct);
+  return number(row.StatAudit?.bonusBreakdown?.[type.toLowerCase()]?.[key] ?? row.SocketAudit?.bonusBreakdown?.[type.toLowerCase()]?.[key]);
+}
+
+function sumModelsBase(models){ return models.reduce((sum, model) => sum + model.base, 0); }
+function sumModelsCurrent(models){ return models.reduce((sum, model) => sum + model.current, 0); }
+function sumModelsBonus(models){ return models.reduce((sum, model) => sum + Object.values(model.bonuses).reduce((s, v) => s + v, 0), 0); }
+function hasValidExplicitBase(row){ const total = STAT_KEYS.reduce((sum, key) => sum + number(row[`Base${key}`]), 0); return total > 0 && total <= 75; }
 function sumBaseStats(row){ return STAT_KEYS.reduce((sum, key) => sum + number(row[`Base${key}`] ?? row[key]), 0); }
 
 function compactBulkyRowData(row){
