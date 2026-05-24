@@ -3,6 +3,8 @@ import { saveBungieInventory } from '../src-clean/data/inventory-cache.js';
 
 const STAT_KEYS = ['Health', 'Melee', 'Grenade', 'Super', 'ClassAbility', 'Weapon'];
 const BONUS_TYPES = ['Masterwork', 'Mod', 'Artifice', 'Other'];
+const CURRENT_EXOTIC_TIER_MAX = 2;
+const FUTURE_EXOTIC_TIER_MAX = 5;
 let normalizing = false;
 let lastSignature = '';
 let fixQueued = false;
@@ -30,10 +32,11 @@ function normalizeRowsIfNeeded(){
     const strictMw = strictMasterworked(next);
     if (next.IsMasterworked !== strictMw) { next.IsMasterworked = strictMw; changed = true; }
     if (normalizeStatsForDisplay(next)) changed = true;
+    if (normalizeTierForDisplay(next)) changed = true;
     return next;
   });
   if (!changed) return;
-  const sig = rows.map((r) => `${r.Id}:${r.BaseTotal}:${r.CurrentTotal}:${r.MasterworkBonusTotal}:${r.ModBonusTotal}:${r.ArtificeBonusTotal}:${r.OtherBonusTotal}:${r.StatBonusTotal}:${r.IsMasterworked}:${auditSignature(r)}`).join('|');
+  const sig = rows.map((r) => `${r.Id}:${r.BaseTotal}:${r.CurrentTotal}:${r.MasterworkBonusTotal}:${r.ModBonusTotal}:${r.ArtificeBonusTotal}:${r.OtherBonusTotal}:${r.StatBonusTotal}:${r.IsMasterworked}:${r.DisplayTier}:${r.DisplayTierMax}:${auditSignature(r)}`).join('|');
   if (sig === lastSignature) return;
   lastSignature = sig;
   normalizing = true;
@@ -236,6 +239,8 @@ function applyInGameFixes(){
     node.classList.toggle('is-masterworked', isMasterworked);
     if (isMasterworked) node.dataset.masterworked = 'true';
     else delete node.dataset.masterworked;
+    node.dataset.tier = String(resolvedTier(row));
+    node.dataset.tierMax = String(tierMaxForRow(row));
     const rails = [...node.querySelectorAll('.tier-rail')];
     rails.slice(1).forEach((rail) => rail.remove());
     if (rails[0]) rails[0].innerHTML = tierMarks(row).join('');
@@ -281,6 +286,19 @@ function strictMasterworked(row){
   return mwTotal > 0 && activeText.includes('masterwork');
 }
 
+function normalizeTierForDisplay(row){
+  const tier = resolvedTier(row);
+  const max = tierMaxForRow(row);
+  let changed = false;
+  if (number(row.DisplayTier) !== tier) { row.DisplayTier = tier; changed = true; }
+  if (number(row.DisplayTierMax) !== max) { row.DisplayTierMax = max; changed = true; }
+  if (isExoticRow(row) && number(row.GearTier) > CURRENT_EXOTIC_TIER_MAX) {
+    row.TierNote = `Exotic tier display is capped at ${CURRENT_EXOTIC_TIER_MAX} until the ${FUTURE_EXOTIC_TIER_MAX}-tier exotic update.`;
+    changed = true;
+  }
+  return changed;
+}
+
 function tierMarks(row){
   const max = 5;
   const tier = resolvedTier(row);
@@ -292,12 +310,22 @@ function tierMarks(row){
 }
 
 function resolvedTier(row){
-  const rarity = String(row.Rarity || '').toLowerCase();
+  const explicit = number(row.DisplayTier || row.GearTier || row.Tier || 0);
+  if (isExoticRow(row)) return clamp(explicit || fallbackExoticTier(row), 1, CURRENT_EXOTIC_TIER_MAX);
   const source = String(row.TierSource || '').toLowerCase();
-  const explicit = number(row.GearTier || row.Tier || 0);
   if (source === 'bungie' && explicit > 0) return clamp(explicit, 1, 5);
-  if (rarity === 'exotic') return clamp(explicit || fallbackTier(row), 1, 5);
   return clamp(explicit || fallbackTier(row), 1, 5);
+}
+
+function tierMaxForRow(row){
+  return isExoticRow(row) ? CURRENT_EXOTIC_TIER_MAX : 5;
+}
+
+function fallbackExoticTier(row){
+  const explicit = number(row.GearTier || row.Tier || 0);
+  if (explicit > 0) return explicit;
+  const total = number(row.BaseTotal || row.Total || sumBaseStats(row) || 0);
+  return total >= 70 ? 2 : 1;
 }
 
 function fallbackTier(row){
@@ -308,6 +336,7 @@ function fallbackTier(row){
   if (total >= 54) return 2;
   return 1;
 }
+function isExoticRow(row){ return String(row.Rarity || '').toLowerCase() === 'exotic'; }
 function clamp(value, min, max){ return Math.max(min, Math.min(max, Number(value) || min)); }
 function number(value){ const n = Number(String(value ?? '').replace(/[^0-9.-]/g, '')); return Number.isFinite(n) ? n : 0; }
 
