@@ -39,10 +39,7 @@ export function scheduleSemiLiveRefresh({ setStatus, setRows, hasRows, delay = 9
   clearTimeout(semiLiveTimer);
   if (!isSignedIn()) return;
   semiLiveTimer = setTimeout(async () => {
-    if (document.hidden) {
-      scheduleSemiLiveRefresh({ setStatus, setRows, hasRows, delay: 30000 });
-      return;
-    }
+    if (document.hidden) return scheduleSemiLiveRefresh({ setStatus, setRows, hasRows, delay: 30000 });
     await syncBungieInventory({ setStatus, setRows, reason: 'semi-live-refresh', background: true });
     scheduleSemiLiveRefresh({ setStatus, setRows, hasRows });
   }, delay);
@@ -72,9 +69,7 @@ export async function syncBungieInventory({ setStatus, setRows, reason = 'manual
     const message = error?.message || String(error);
     setStatus(message);
     return { error: true, message, reason, background };
-  } finally {
-    syncRunning = false;
-  }
+  } finally { syncRunning = false; }
 }
 
 export function connectBungie() { startLogin(); }
@@ -126,7 +121,6 @@ async function buildArmorRows(profile, membership, setStatus, background) {
     scanned++;
     const def = itemDefs[toUint32(item.itemHash)];
     if (!isArmorDef(def)) continue;
-
     const socketComponent = socketComponents[instanceId];
     const activePlugDefs = activePlugHashesForInstance(socketComponent).map((hash) => plugDefs[hash]).filter(Boolean);
     const allDefs = allPlugHashes(def, socketComponent, plugSetDefs).map((hash) => plugDefs[hash]).filter(Boolean);
@@ -147,7 +141,6 @@ async function buildArmorRows(profile, membership, setStatus, background) {
     const gearTier = gearTierForItem(instanceComponent, rarity, statRow.BaseTotal);
     const stateValue = Number(stateComponents[instanceId]?.state ?? item.state ?? 0);
     const icon = ornament?.icon || bungieIconUrl(def.displayProperties?.icon);
-
     rows.push({
       Name: def.displayProperties?.name || 'Unknown Armor', Id: instanceId, Type: type, Slot: slot, Rarity: rarity, Class: equippable, Equippable: equippable, Tier: gearTier, GearTier: gearTier, TierSource: instanceComponent?.gearTier ? 'Bungie' : 'Fallback', TierMax: 5,
       Power: power, Light: power, Archetype: archetype.name, ArchetypeIcon: archetype.icon, ArchetypeDescription: archetype.description, ArchetypeHash: archetype.hash, ArchetypeTrait: archetype.trait,
@@ -156,21 +149,12 @@ async function buildArmorRows(profile, membership, setStatus, background) {
       IsMasterworked: isMasterworked(instanceComponent, activePlugDefs, statRow), IsLocked: Boolean(stateValue & ITEM_STATE_LOCKED), StatAudit: statAudit(def, statComponents[instanceId], activePlugDefs, allDefs, bonusBreakdown),
       ...statRow, Source: 'Bungie', FoundAt: Date.now(), ItemHash: item.itemHash, BucketHash: def.inventory?.bucketTypeHash || item.bucketHash || 0, MembershipType: membership.membershipType, OwnerCharacterId: item.d2aaOwner === 'vault' ? '' : item.d2aaOwner, TargetCharacterId: targetCharacterId, IsInVault: item.location === 2 || item.bucketHash === VAULT_BUCKET_HASH || item.d2aaOwner === 'vault', IsEquipped: Boolean(item.d2aaEquipped)
     });
-    if (!background && scanned % 100 === 0) {
-      setStatus(`Building armor rows: ${scanned}/${allItems.length} scanned, ${rows.length} armor found`);
-      await new Promise((resolve) => setTimeout(resolve, 0));
-    }
+    if (!background && scanned % 100 === 0) { setStatus(`Building armor rows: ${scanned}/${allItems.length} scanned, ${rows.length} armor found`); await new Promise((resolve) => setTimeout(resolve, 0)); }
   }
   return rows.sort((a, b) => b.FoundAt - a.FoundAt || a.Name.localeCompare(b.Name));
 }
 
-function collectItems(profile) {
-  const out = [];
-  if (profile.profileInventory?.data?.items) out.push(...profile.profileInventory.data.items.map((item) => ({ ...item, d2aaOwner: 'vault' })));
-  for (const [characterId, container] of Object.entries(profile.characterInventories?.data || {})) if (container.items) out.push(...container.items.map((item) => ({ ...item, d2aaOwner: characterId })));
-  for (const [characterId, container] of Object.entries(profile.characterEquipment?.data || {})) if (container.items) out.push(...container.items.map((item) => ({ ...item, d2aaOwner: characterId, d2aaEquipped: true })));
-  return out;
-}
+function collectItems(profile) { const out = []; if (profile.profileInventory?.data?.items) out.push(...profile.profileInventory.data.items.map((item) => ({ ...item, d2aaOwner: 'vault' }))); for (const [characterId, container] of Object.entries(profile.characterInventories?.data || {})) if (container.items) out.push(...container.items.map((item) => ({ ...item, d2aaOwner: characterId }))); for (const [characterId, container] of Object.entries(profile.characterEquipment?.data || {})) if (container.items) out.push(...container.items.map((item) => ({ ...item, d2aaOwner: characterId, d2aaEquipped: true }))); return out; }
 function emptyArmorStats() { return Object.fromEntries(STAT_KEYS.map((key) => [key, 0])); }
 function emptyBreakdown() { return Object.fromEntries(BONUS_TYPES.map((type) => [type, emptyArmorStats()])); }
 function totalOf(row) { return STAT_KEYS.reduce((sum, key) => sum + Number(row[key] || 0), 0); }
@@ -179,161 +163,24 @@ function getLightLevel(instanceComponent, item) { return Number(instanceComponen
 function normalizeName(name) { return String(name || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, ' '); }
 function title(value) { return String(value || '').replace(/^./, (c) => c.toUpperCase()); }
 function unique(values) { return [...new Set(values)]; }
-
-function columnFromStatName(name) {
-  const n = normalizeName(name);
-  if (!n) return null;
-  if (n.includes('health') || n.includes('resilience')) return 'Health';
-  if (n.includes('melee') || n.includes('strength')) return 'Melee';
-  if (n.includes('grenade') || n.includes('discipline')) return 'Grenade';
-  if (n.includes('super') || n.includes('intellect')) return 'Super';
-  if (n.includes('class') || n.includes('mobility')) return 'ClassAbility';
-  if (n.includes('weapon') || n.includes('recovery')) return 'Weapon';
-  return null;
-}
-async function resolveStatColumn(hash) {
-  const signed = toSigned32(hash);
-  const unsigned = toUint32(hash);
-  if (HASH_TO_COLUMN[signed]) return HASH_TO_COLUMN[signed];
-  if (HASH_TO_COLUMN[unsigned]) return HASH_TO_COLUMN[unsigned];
-  if (STAT_CACHE.has(unsigned)) return STAT_CACHE.get(unsigned);
-  const def = await getDef('DestinyStatDefinition', unsigned).catch(() => null);
-  const col = columnFromStatName(def?.displayProperties?.name || def?.statName || '');
-  STAT_CACHE.set(unsigned, col || null);
-  if (col) { HASH_TO_COLUMN[unsigned] = col; HASH_TO_COLUMN[signed] = col; }
-  return col;
-}
-async function buildStatColumnMap(allHashes, setStatus, background) {
-  const hashes = unique(allHashes.map(toUint32).filter(Boolean));
-  const map = { ...HASH_TO_COLUMN };
-  const unknown = hashes.filter((h) => !map[h] && !map[toSigned32(h)]);
-  if (unknown.length) await mapLimit(unknown, 8, async (hash) => {
-    const col = await resolveStatColumn(hash);
-    if (col) { map[hash] = col; map[toSigned32(hash)] = col; }
-    return col;
-  }, (done, total) => { if (!background) setStatus(`Resolving stat definitions: ${done}/${total}`); });
-  return map;
-}
-
-function activePlugHashesForInstance(socketComponent) {
-  const hashes = [];
-  for (const socket of socketComponent?.sockets || []) {
-    const plugHash = socket.plugHash || socket.plugItemHash;
-    if (plugHash) hashes.push(toUint32(plugHash));
-  }
-  return unique(hashes);
-}
-function reusablePlugHashesForInstance(socketComponent) {
-  const hashes = [];
-  for (const socket of socketComponent?.sockets || []) {
-    for (const hash of socket.reusablePlugHashes || []) if (hash) hashes.push(toUint32(hash));
-    for (const item of socket.reusablePlugItems || []) if (item.plugItemHash) hashes.push(toUint32(item.plugItemHash));
-  }
-  return hashes;
-}
-function plugSetHashesForItem(def, socketComponent) {
-  const hashes = [];
-  for (const entry of def?.sockets?.socketEntries || []) {
-    if (entry.reusablePlugSetHash) hashes.push(toUint32(entry.reusablePlugSetHash));
-    if (entry.randomizedPlugSetHash) hashes.push(toUint32(entry.randomizedPlugSetHash));
-    if (entry.randomizedPlugSet?.hash) hashes.push(toUint32(entry.randomizedPlugSet.hash));
-  }
-  for (const socket of socketComponent?.sockets || []) {
-    if (socket.reusablePlugSetHash) hashes.push(toUint32(socket.reusablePlugSetHash));
-    if (socket.randomizedPlugSetHash) hashes.push(toUint32(socket.randomizedPlugSetHash));
-  }
-  return hashes;
-}
-function plugHashesForPlugSet(plugSetDef) {
-  const hashes = [];
-  for (const item of plugSetDef?.reusablePlugItems || []) if (item.plugItemHash) hashes.push(toUint32(item.plugItemHash));
-  for (const item of plugSetDef?.randomizedPlugItems || []) if (item.plugItemHash) hashes.push(toUint32(item.plugItemHash));
-  return hashes;
-}
-function plugHashesForDefinition(def, plugSetDefs = {}) {
-  const hashes = [];
-  for (const entry of def?.sockets?.socketEntries || []) {
-    if (entry.singleInitialItemHash) hashes.push(toUint32(entry.singleInitialItemHash));
-    for (const item of entry.reusablePlugItems || []) if (item.plugItemHash) hashes.push(toUint32(item.plugItemHash));
-    for (const item of entry.randomizedPlugSet?.reusablePlugItems || []) if (item.plugItemHash) hashes.push(toUint32(item.plugItemHash));
-    for (const hash of [entry.reusablePlugSetHash, entry.randomizedPlugSetHash, entry.randomizedPlugSet?.hash].filter(Boolean)) hashes.push(...plugHashesForPlugSet(plugSetDefs[toUint32(hash)]));
-  }
-  return hashes;
-}
-function allPlugHashes(def, socketComponent, plugSetDefs = {}) {
-  return unique([...activePlugHashesForInstance(socketComponent), ...reusablePlugHashesForInstance(socketComponent), ...plugHashesForDefinition(def, plugSetDefs)].filter(Boolean));
-}
-
-function bonusTypeForPlug(plugDef) {
-  const name = normalizeName(plugDef?.displayProperties?.name);
-  const desc = normalizeName(plugDef?.displayProperties?.description);
-  const type = normalizeName(plugDef?.itemTypeDisplayName);
-  const category = normalizeName(plugDef?.plug?.plugCategoryIdentifier);
-  if (category.includes('masterwork') || name.includes('masterwork') || desc.includes('masterwork')) return 'masterwork';
-  if (name.includes('artifice') || desc.includes('artifice') || category.includes('artifice')) return 'artifice';
-  if (type.includes('armor mod') || category.includes('armor mods') || name.includes('mod')) return 'mod';
-  return 'other';
-}
-function isSubtractableArmorBonusPlug(plugDef) {
-  const name = normalizeName(plugDef?.displayProperties?.name);
-  const desc = normalizeName(plugDef?.displayProperties?.description);
-  const type = normalizeName(plugDef?.itemTypeDisplayName);
-  const category = normalizeName(plugDef?.plug?.plugCategoryIdentifier);
-  const hasStats = Array.isArray(plugDef?.investmentStats) && plugDef.investmentStats.some((s) => Number(s.value || 0) > 0);
-  if (!hasStats) return false;
-  const isKnownStatBonus = type.includes('armor mod') || category.includes('armor mods') || category.includes('masterwork') || name.includes('masterwork') || desc.includes('masterwork') || name.includes('artifice') || desc.includes('artifice') || category.includes('artifice');
-  const isGenericStatMod = name.includes('mod') && (desc.includes('stat') || desc.includes('bonus') || desc.includes('increase'));
-  return isKnownStatBonus || isGenericStatMod;
-}
-function socketBonusBreakdown(activePlugDefs, statColumnMap) {
-  const breakdown = emptyBreakdown();
-  for (const plugDef of activePlugDefs || []) {
-    if (!isSubtractableArmorBonusPlug(plugDef)) continue;
-    const type = bonusTypeForPlug(plugDef);
-    for (const stat of plugDef?.investmentStats || []) {
-      const column = statColumnMap[toUint32(stat.statTypeHash)] || statColumnMap[toSigned32(stat.statTypeHash)];
-      const value = Number(stat.value || 0);
-      if (column && value > 0) breakdown[type][column] += value;
-    }
-  }
-  return breakdown;
-}
-function statsForItem(def, statComponent, bonusBreakdown, statColumnMap) {
-  const current = emptyArmorStats();
-  const source = Object.keys(statComponent?.stats || {}).length ? statComponent.stats : (def.stats?.stats || {});
-  for (const [hash, stat] of Object.entries(source || {})) {
-    const column = statColumnMap[toUint32(hash)] || statColumnMap[toSigned32(hash)] || HASH_TO_COLUMN[toUint32(hash)] || HASH_TO_COLUMN[toSigned32(hash)];
-    if (column) current[column] = getStatNumericValue(stat);
-  }
-  const socketTotals = emptyArmorStats();
-  for (const type of BONUS_TYPES) for (const key of STAT_KEYS) socketTotals[key] += Number(bonusBreakdown?.[type]?.[key] || 0);
-  const suspicious = totalOf(socketTotals) > 30 || STAT_KEYS.some((key) => socketTotals[key] > current[key]);
-  const safeBreakdown = suspicious ? emptyBreakdown() : bonusBreakdown;
-  if (suspicious) for (const key of STAT_KEYS) socketTotals[key] = 0;
-  const base = emptyArmorStats();
-  for (const key of STAT_KEYS) base[key] = Math.max(0, current[key] - Number(socketTotals[key] || 0));
-  const row = { ...base };
-  row.Total = totalOf(base);
-  row.BaseTotal = row.Total;
-  row.CurrentTotal = totalOf(current);
-  row.StatBonusTotal = Math.max(0, row.CurrentTotal - row.BaseTotal);
-  row.StatSource = suspicious ? 'BungieInstanceBonusGuarded' : Object.keys(statComponent?.stats || {}).length ? 'BungieInstanceMinusActiveSocketBonuses' : 'DefinitionFallbackMinusActiveSocketBonuses';
-  for (const key of STAT_KEYS) {
-    row[`Base${key}`] = base[key];
-    row[`Current${key}`] = current[key];
-    row[`StatBonus${key}`] = Number(socketTotals[key] || 0);
-    for (const type of BONUS_TYPES) row[`${title(type)}Bonus${key}`] = Number(safeBreakdown?.[type]?.[key] || 0);
-  }
-  for (const type of BONUS_TYPES) row[`${title(type)}BonusTotal`] = STAT_KEYS.reduce((sum, key) => sum + Number(row[`${title(type)}Bonus${key}`] || 0), 0);
-  return row;
-}
-function statAudit(def, statComponent, activePlugDefs, allPlugDefs, bonusBreakdown) {
-  return { itemStats: statComponent?.stats || {}, definitionStats: def?.stats?.stats || {}, activePlugs: serializeAuditPlugs(activePlugDefs), allPlugs: serializeAuditPlugs(allPlugDefs), bonusBreakdown };
-}
-function serializeAuditPlugs(plugDefs) {
-  return (plugDefs || []).map((plug) => ({ hash: plug.hash, name: plug.displayProperties?.name, description: plug.displayProperties?.description, icon: bungieIconUrl(plug.displayProperties?.icon), type: plug.itemTypeDisplayName, category: plug.plug?.plugCategoryIdentifier, stats: plug.investmentStats || [] })).filter((plug) => plug.stats.length || /set|bonus|mod|masterwork|artifice|piece|wearing|trait|intrinsic/i.test(`${plug.name} ${plug.description} ${plug.type} ${plug.category}`));
-}
-
+function columnFromStatName(name) { const n = normalizeName(name); if (!n) return null; if (n.includes('health') || n.includes('resilience')) return 'Health'; if (n.includes('melee') || n.includes('strength')) return 'Melee'; if (n.includes('grenade') || n.includes('discipline')) return 'Grenade'; if (n.includes('super') || n.includes('intellect')) return 'Super'; if (n.includes('class') || n.includes('mobility')) return 'ClassAbility'; if (n.includes('weapon') || n.includes('recovery')) return 'Weapon'; return null; }
+function columnFromPlugText(plugDef) { return columnFromStatName(`${plugDef?.displayProperties?.name || ''} ${plugDef?.displayProperties?.description || ''} ${plugDef?.itemTypeDisplayName || ''} ${plugDef?.plug?.plugCategoryIdentifier || ''}`); }
+async function resolveStatColumn(hash) { const signed = toSigned32(hash); const unsigned = toUint32(hash); if (HASH_TO_COLUMN[signed]) return HASH_TO_COLUMN[signed]; if (HASH_TO_COLUMN[unsigned]) return HASH_TO_COLUMN[unsigned]; if (STAT_CACHE.has(unsigned)) return STAT_CACHE.get(unsigned); const def = await getDef('DestinyStatDefinition', unsigned).catch(() => null); const col = columnFromStatName(def?.displayProperties?.name || def?.statName || ''); STAT_CACHE.set(unsigned, col || null); if (col) { HASH_TO_COLUMN[unsigned] = col; HASH_TO_COLUMN[signed] = col; } return col; }
+async function buildStatColumnMap(allHashes, setStatus, background) { const hashes = unique(allHashes.map(toUint32).filter(Boolean)); const map = { ...HASH_TO_COLUMN }; const unknown = hashes.filter((h) => !map[h] && !map[toSigned32(h)]); if (unknown.length) await mapLimit(unknown, 8, async (hash) => { const col = await resolveStatColumn(hash); if (col) { map[hash] = col; map[toSigned32(hash)] = col; } return col; }, (done, total) => { if (!background) setStatus(`Resolving stat definitions: ${done}/${total}`); }); return map; }
+function activePlugHashesForInstance(socketComponent) { const hashes = []; for (const socket of socketComponent?.sockets || []) { const plugHash = socket.plugHash || socket.plugItemHash; if (plugHash) hashes.push(toUint32(plugHash)); } return unique(hashes); }
+function reusablePlugHashesForInstance(socketComponent) { const hashes = []; for (const socket of socketComponent?.sockets || []) { for (const hash of socket.reusablePlugHashes || []) if (hash) hashes.push(toUint32(hash)); for (const item of socket.reusablePlugItems || []) if (item.plugItemHash) hashes.push(toUint32(item.plugItemHash)); } return hashes; }
+function plugSetHashesForItem(def, socketComponent) { const hashes = []; for (const entry of def?.sockets?.socketEntries || []) { if (entry.reusablePlugSetHash) hashes.push(toUint32(entry.reusablePlugSetHash)); if (entry.randomizedPlugSetHash) hashes.push(toUint32(entry.randomizedPlugSetHash)); if (entry.randomizedPlugSet?.hash) hashes.push(toUint32(entry.randomizedPlugSet.hash)); } for (const socket of socketComponent?.sockets || []) { if (socket.reusablePlugSetHash) hashes.push(toUint32(socket.reusablePlugSetHash)); if (socket.randomizedPlugSetHash) hashes.push(toUint32(socket.randomizedPlugSetHash)); } return hashes; }
+function plugHashesForPlugSet(plugSetDef) { const hashes = []; for (const item of plugSetDef?.reusablePlugItems || []) if (item.plugItemHash) hashes.push(toUint32(item.plugItemHash)); for (const item of plugSetDef?.randomizedPlugItems || []) if (item.plugItemHash) hashes.push(toUint32(item.plugItemHash)); return hashes; }
+function plugHashesForDefinition(def, plugSetDefs = {}) { const hashes = []; for (const entry of def?.sockets?.socketEntries || []) { if (entry.singleInitialItemHash) hashes.push(toUint32(entry.singleInitialItemHash)); for (const item of entry.reusablePlugItems || []) if (item.plugItemHash) hashes.push(toUint32(item.plugItemHash)); for (const item of entry.randomizedPlugSet?.reusablePlugItems || []) if (item.plugItemHash) hashes.push(toUint32(item.plugItemHash)); for (const hash of [entry.reusablePlugSetHash, entry.randomizedPlugSetHash, entry.randomizedPlugSet?.hash].filter(Boolean)) hashes.push(...plugHashesForPlugSet(plugSetDefs[toUint32(hash)])); } return hashes; }
+function allPlugHashes(def, socketComponent, plugSetDefs = {}) { return unique([...activePlugHashesForInstance(socketComponent), ...reusablePlugHashesForInstance(socketComponent), ...plugHashesForDefinition(def, plugSetDefs)].filter(Boolean)); }
+function bonusTypeForPlug(plugDef) { const name = normalizeName(plugDef?.displayProperties?.name); const desc = normalizeName(plugDef?.displayProperties?.description); const type = normalizeName(plugDef?.itemTypeDisplayName); const category = normalizeName(plugDef?.plug?.plugCategoryIdentifier); if (category.includes('masterwork') || name.includes('masterwork') || desc.includes('masterwork')) return 'masterwork'; if (name.includes('artifice') || desc.includes('artifice') || category.includes('artifice')) return 'artifice'; if (type.includes('armor mod') || category.includes('armor mods') || name.includes('mod')) return 'mod'; return 'other'; }
+function isSubtractableArmorBonusPlug(plugDef) { const name = normalizeName(plugDef?.displayProperties?.name); const desc = normalizeName(plugDef?.displayProperties?.description); const type = normalizeName(plugDef?.itemTypeDisplayName); const category = normalizeName(plugDef?.plug?.plugCategoryIdentifier); const hasStats = Array.isArray(plugDef?.investmentStats) && plugDef.investmentStats.some((s) => Number(s.value || 0) > 0); if (!hasStats) return false; const isKnownStatBonus = type.includes('armor mod') || category.includes('armor mods') || category.includes('masterwork') || name.includes('masterwork') || desc.includes('masterwork') || name.includes('artifice') || desc.includes('artifice') || category.includes('artifice'); const isGenericStatMod = name.includes('mod') && (desc.includes('stat') || desc.includes('bonus') || desc.includes('increase')); return isKnownStatBonus || isGenericStatMod; }
+function rawPositiveStatsForPlug(plugDef, statColumnMap) { const raw = emptyArmorStats(); for (const stat of plugDef?.investmentStats || []) { const column = statColumnMap[toUint32(stat.statTypeHash)] || statColumnMap[toSigned32(stat.statTypeHash)]; const value = Number(stat.value || 0); if (column && value > 0) raw[column] += value; } return raw; }
+function masterworkBonusForPlug(plugDef, statColumnMap) { const raw = rawPositiveStatsForPlug(plugDef, statColumnMap); const rawTotal = totalOf(raw); if (!rawTotal || rawTotal <= 10) return raw; const target = columnFromPlugText(plugDef); const fixed = emptyArmorStats(); if (target) fixed[target] = 10; return fixed; }
+function socketBonusBreakdown(activePlugDefs, statColumnMap) { const breakdown = emptyBreakdown(); for (const plugDef of activePlugDefs || []) { if (!isSubtractableArmorBonusPlug(plugDef)) continue; const type = bonusTypeForPlug(plugDef); if (type === 'masterwork') { const mw = masterworkBonusForPlug(plugDef, statColumnMap); for (const key of STAT_KEYS) breakdown.masterwork[key] += Number(mw[key] || 0); continue; } const raw = rawPositiveStatsForPlug(plugDef, statColumnMap); for (const key of STAT_KEYS) breakdown[type][key] += Number(raw[key] || 0); } if (totalOf(breakdown.masterwork) > 10) { const target = STAT_KEYS.reduce((best, key) => breakdown.masterwork[key] > breakdown.masterwork[best] ? key : best, STAT_KEYS[0]); const fixed = emptyArmorStats(); fixed[target] = 10; breakdown.masterwork = fixed; } return breakdown; }
+function statsForItem(def, statComponent, bonusBreakdown, statColumnMap) { const current = emptyArmorStats(); const source = Object.keys(statComponent?.stats || {}).length ? statComponent.stats : (def.stats?.stats || {}); for (const [hash, stat] of Object.entries(source || {})) { const column = statColumnMap[toUint32(hash)] || statColumnMap[toSigned32(hash)] || HASH_TO_COLUMN[toUint32(hash)] || HASH_TO_COLUMN[toSigned32(hash)]; if (column) current[column] = getStatNumericValue(stat); } const socketTotals = emptyArmorStats(); for (const type of BONUS_TYPES) for (const key of STAT_KEYS) socketTotals[key] += Number(bonusBreakdown?.[type]?.[key] || 0); const suspicious = totalOf(socketTotals) > 35 || STAT_KEYS.some((key) => socketTotals[key] > current[key]); const safeBreakdown = suspicious ? emptyBreakdown() : bonusBreakdown; if (suspicious) for (const key of STAT_KEYS) socketTotals[key] = 0; const base = emptyArmorStats(); for (const key of STAT_KEYS) base[key] = Math.max(0, current[key] - Number(socketTotals[key] || 0)); const row = { ...base }; row.Total = totalOf(base); row.BaseTotal = row.Total; row.CurrentTotal = totalOf(current); row.StatBonusTotal = Math.max(0, row.CurrentTotal - row.BaseTotal); row.StatSource = suspicious ? 'BungieInstanceBonusGuarded' : Object.keys(statComponent?.stats || {}).length ? 'BungieInstanceMinusActiveSocketBonuses' : 'DefinitionFallbackMinusActiveSocketBonuses'; for (const key of STAT_KEYS) { row[`Base${key}`] = base[key]; row[`Current${key}`] = current[key]; row[`StatBonus${key}`] = Number(socketTotals[key] || 0); for (const type of BONUS_TYPES) row[`${title(type)}Bonus${key}`] = Number(safeBreakdown?.[type]?.[key] || 0); } for (const type of BONUS_TYPES) row[`${title(type)}BonusTotal`] = STAT_KEYS.reduce((sum, key) => sum + Number(row[`${title(type)}Bonus${key}`] || 0), 0); return row; }
+function statAudit(def, statComponent, activePlugDefs, allPlugDefs, bonusBreakdown) { return { itemStats: statComponent?.stats || {}, definitionStats: def?.stats?.stats || {}, activePlugs: serializeAuditPlugs(activePlugDefs), allPlugs: serializeAuditPlugs(allPlugDefs), bonusBreakdown }; }
+function serializeAuditPlugs(plugDefs) { return (plugDefs || []).map((plug) => ({ hash: plug.hash, name: plug.displayProperties?.name, description: plug.displayProperties?.description, icon: bungieIconUrl(plug.displayProperties?.icon), type: plug.itemTypeDisplayName, category: plug.plug?.plugCategoryIdentifier, stats: plug.investmentStats || [] })).filter((plug) => plug.stats.length || /set|bonus|mod|masterwork|artifice|piece|wearing|trait|intrinsic/i.test(`${plug.name} ${plug.description} ${plug.type} ${plug.category}`)); }
 function isArmorDef(def) { if (!def) return false; const type = normalizeName(def.itemTypeDisplayName); const name = normalizeName(def.displayProperties?.name); return def.itemType === 2 || type.includes('armor') || ['helmet', 'gauntlets', 'chest armor', 'leg armor', 'class item'].some((part) => type.includes(part) || name.includes(part)); }
 function slotForItem(def) { const bucket = Number(def.inventory?.bucketTypeHash || 0); const type = normalizeName(def.itemTypeDisplayName || def.displayProperties?.name); if (bucket === 3448274439 || type.includes('helmet')) return 'Helmet'; if (bucket === 3551918588 || type.includes('gauntlet') || type.includes('glove')) return 'Gauntlets'; if (bucket === 14239492 || type.includes('chest')) return 'Chest Armor'; if (bucket === 20886954 || type.includes('leg')) return 'Leg Armor'; if (bucket === 1585787867 || type.includes('class item') || type.includes('bond') || type.includes('cloak') || type.includes('mark')) return 'Class Item'; return def.itemTypeDisplayName || 'Armor'; }
 function rarityForItem(def) { const tier = Number(def.inventory?.tierType || 0); if (tier === 6) return 'Exotic'; if (tier === 5) return 'Legendary'; if (tier === 4) return 'Rare'; return def.inventory?.tierTypeName || 'Legendary'; }
