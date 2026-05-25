@@ -36,7 +36,7 @@ function normalizeRowsIfNeeded(){
     return next;
   });
   if (!changed) return;
-  const sig = rows.map((r) => `${r.Id}:${r.BaseTotal}:${r.CurrentTotal}:${r.MasterworkBonusTotal}:${r.ModBonusTotal}:${r.ArtificeBonusTotal}:${r.OtherBonusTotal}:${r.StatBonusTotal}:${r.IsMasterworked}:${r.DisplayTier}:${r.DisplayTierMax}:${auditSignature(r)}`).join('|');
+  const sig = rows.map((r) => `${r.Id}:${r.BaseTotal}:${r.CurrentTotal}:${r.MasterworkBonusTotal}:${r.ModBonusTotal}:${r.ArtificeBonusTotal}:${r.OtherBonusTotal}:${r.StatBonusTotal}:${r.IsMasterworked}:${r.Tier}:${r.GearTier}:${r.DisplayTier}:${r.DisplayTierMax}:${auditSignature(r)}`).join('|');
   if (sig === lastSignature) return;
   lastSignature = sig;
   normalizing = true;
@@ -287,14 +287,21 @@ function strictMasterworked(row){
 }
 
 function normalizeTierForDisplay(row){
+  const rawTier = number(row.RawGearTier || row.GearTier || row.Tier || row.DisplayTier || 0);
   const tier = resolvedTier(row);
   const max = tierMaxForRow(row);
   let changed = false;
   if (number(row.DisplayTier) !== tier) { row.DisplayTier = tier; changed = true; }
   if (number(row.DisplayTierMax) !== max) { row.DisplayTierMax = max; changed = true; }
-  if (isExoticRow(row) && number(row.GearTier) > CURRENT_EXOTIC_TIER_MAX) {
-    row.TierNote = `Exotic tier display is capped at ${CURRENT_EXOTIC_TIER_MAX} until the ${FUTURE_EXOTIC_TIER_MAX}-tier exotic update.`;
-    changed = true;
+
+  if (isExoticRow(row)) {
+    if (rawTier && number(row.RawGearTier) !== rawTier) { row.RawGearTier = rawTier; changed = true; }
+    if (number(row.Tier) !== tier) { row.Tier = tier; changed = true; }
+    if (number(row.GearTier) !== tier) { row.GearTier = tier; changed = true; }
+    if (rawTier > CURRENT_EXOTIC_TIER_MAX) {
+      const note = `Exotic tier display is capped at ${CURRENT_EXOTIC_TIER_MAX} until the ${FUTURE_EXOTIC_TIER_MAX}-tier exotic update.`;
+      if (row.TierNote !== note) { row.TierNote = note; changed = true; }
+    }
   }
   return changed;
 }
@@ -310,11 +317,12 @@ function tierMarks(row){
 }
 
 function resolvedTier(row){
-  const explicit = number(row.DisplayTier || row.GearTier || row.Tier || 0);
-  if (isExoticRow(row)) return clamp(explicit || fallbackExoticTier(row), 1, CURRENT_EXOTIC_TIER_MAX);
+  const display = number(row.DisplayTier || 0);
+  const raw = number(row.RawGearTier || row.GearTier || row.Tier || 0);
+  if (isExoticRow(row)) return clamp(display || raw || fallbackExoticTier(row), 1, CURRENT_EXOTIC_TIER_MAX);
   const source = String(row.TierSource || '').toLowerCase();
-  if (source === 'bungie' && explicit > 0) return clamp(explicit, 1, 5);
-  return clamp(explicit || fallbackTier(row), 1, 5);
+  if (source === 'bungie' && raw > 0) return clamp(raw, 1, 5);
+  return clamp(display || raw || fallbackTier(row), 1, 5);
 }
 
 function tierMaxForRow(row){
@@ -322,7 +330,7 @@ function tierMaxForRow(row){
 }
 
 function fallbackExoticTier(row){
-  const explicit = number(row.GearTier || row.Tier || 0);
+  const explicit = number(row.RawGearTier || row.GearTier || row.Tier || 0);
   if (explicit > 0) return explicit;
   const total = number(row.BaseTotal || row.Total || sumBaseStats(row) || 0);
   return total >= 70 ? 2 : 1;
