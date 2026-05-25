@@ -21,6 +21,7 @@ export function openCompareModal(rows, options = {}) {
   modal.style.display = 'grid';
   document.body.classList.add('compare-open');
   bindModal();
+  window.dispatchEvent(new CustomEvent('d2aa:compare-rendered'));
 }
 
 export function closeCompareModal() {
@@ -64,6 +65,7 @@ function bindModal() {
       if (row) row.Tag = button.dataset.compareTag;
       modal.innerHTML = renderModal(currentRows);
       bindModal();
+      window.dispatchEvent(new CustomEvent('d2aa:compare-rendered'));
     });
   });
   if (!keydownBound) {
@@ -101,7 +103,7 @@ function renderCompareCard(row, bestId) {
   const armorBonusHtml = renderer('renderArmorBonuses', fallbackArmorBonuses)(row);
   const statHtml = STAT_KEYS.map((key) => renderer('renderStat', fallbackStat)(row, key)).join('');
   const totalHtml = renderer('renderTotal', fallbackTotal)(row);
-  return `<article class="compare-card ${String(row.Id) === String(bestId) ? 'is-best' : ''}">
+  return `<article class="compare-card ${String(row.Id) === String(bestId) ? 'is-best' : ''}" data-id="${html(row.Id)}">
     <div class="compare-item-head">
       <div class="compare-icon">${iconUrl(row) ? `<img src="${html(iconUrl(row))}" alt="" loading="lazy">` : '◇'}<div class="tier-rail compare-tier-rail">${tierHtml}</div>${row.Power || row.Light ? `<b>${row.Power || row.Light}</b>` : ''}</div>
       <div><h3 title="${html(name)}">${html(name)}</h3><p>${html(row.Class)} • ${html(row.Slot)} • ${html(row.Rarity)} • ${html(location)}${row.IsLocked ? ' • Locked' : ''}</p></div>
