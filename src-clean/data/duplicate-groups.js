@@ -1,16 +1,17 @@
-import { STAT_KEYS, SLOT_ORDER } from '../constants.js';
+import { STAT_KEYS, SLOT_ORDER, STORAGE_KEYS } from '../constants.js';
 import { defaultAnalyzerSort, slotNumber } from './sort.js';
 
 const GROUP_COLORS = ['group-1', 'group-2', 'group-3', 'group-4', 'group-5', 'group-6'];
 const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
-export function applyDuplicateGroups(rows, tolerance = 5) {
+export function applyDuplicateGroups(rows, tolerance = 5, options = {}) {
+  const groupMode = resolveGroupMode(options);
   const grouped = rows.map((row) => ({
     ...row,
     Group: '',
     Dupe_Group: 'X',
     SortGroup: 'ZZ',
-    GroupKey: baseKey(row),
+    GroupKey: groupKey(row, groupMode),
     GroupActionKey: '',
     GroupColor: '',
     Is_Dupe: false,
@@ -18,9 +19,9 @@ export function applyDuplicateGroups(rows, tolerance = 5) {
   }));
   const byKey = new Map();
   grouped.forEach((row, index) => {
-    const key = baseKey(row);
+    const key = groupKey(row, groupMode);
     if (!byKey.has(key)) byKey.set(key, []);
-    byKey.get(key).push({ row, index, key, top: topStats(row) });
+    byKey.get(key).push({ row, index, key, top: topStats(row), baseStats: baseStats(row) });
   });
 
   const discoveredGroups = [];
@@ -33,7 +34,7 @@ export function applyDuplicateGroups(rows, tolerance = 5) {
       assigned.add(i);
       for (let j = i + 1; j < candidates.length; j++) {
         if (assigned.has(j)) continue;
-        if (isDuplicateCandidate(candidates[i], candidates[j], tolerance)) {
+        if (isDuplicateCandidate(candidates[i], candidates[j], tolerance, groupMode)) {
           group.push(j);
           assigned.add(j);
         }
@@ -75,6 +76,16 @@ export function applyDuplicateGroups(rows, tolerance = 5) {
   return grouped;
 }
 
+function resolveGroupMode(options = {}) {
+  const sameNameExactStats = Boolean(options.sameNameExactStats ?? options.sameNameStatGroups ?? readSameNameExactStatsSetting());
+  return { sameNameExactStats };
+}
+function readSameNameExactStatsSetting() {
+  try {
+    const settings = JSON.parse(localStorage.getItem(STORAGE_KEYS.settings) || '{}');
+    return Boolean(settings?.display?.onlySameNameStatGroups || settings?.display?.sameNameExactStats);
+  } catch (_) { return false; }
+}
 function slotCategoryNumber(row) {
   const slot = normalize(row.Slot || row.Type || '');
   const index = SLOT_ORDER.findIndex((name) => normalize(name) === slot);
@@ -83,11 +94,7 @@ function slotCategoryNumber(row) {
 function letterFor(number) {
   let n = Math.max(1, Number(number || 1));
   let output = '';
-  while (n > 0) {
-    n -= 1;
-    output = LETTERS[n % LETTERS.length] + output;
-    n = Math.floor(n / LETTERS.length);
-  }
+  while (n > 0) { n -= 1; output = LETTERS[n % LETTERS.length] + output; n = Math.floor(n / LETTERS.length); }
   return output || 'A';
 }
 function groupSort(a, b) {
@@ -97,26 +104,34 @@ function groupSort(a, b) {
   if (cls) return cls;
   const rarity = String(a.Rarity || '').localeCompare(String(b.Rarity || ''));
   if (rarity) return rarity;
-  return String(a.Name || '').localeCompare(String(b.Name || ''));
+  return displayName(a).localeCompare(displayName(b));
 }
 function classKey(row) { return normalize(row.Equippable || row.Class || 'Any'); }
-function maxTotal(candidates, group) {
-  return Math.max(...group.map((index) => Number(candidates[index].row.Total || 0)));
-}
-
-function isDuplicateCandidate(a, b, tolerance) {
+function maxTotal(candidates, group) { return Math.max(...group.map((index) => baseTotal(candidates[index].row))); }
+function isDuplicateCandidate(a, b, tolerance, groupMode) {
   if (a.key !== b.key) return false;
+  if (groupMode.sameNameExactStats) return sameExactBaseStats(a, b);
   if (a.top.names.join('/') !== b.top.names.join('/')) return false;
   return a.top.values.every((value, index) => Math.abs(value - b.top.values[index]) <= tolerance);
 }
-
-function baseKey(row) {
-  const exoticName = row.Rarity === 'Exotic' ? normalize(row.Name) : 'legendary';
-  return [row.Equippable || row.Class || '', row.Slot || row.Type || '', row.Rarity || '', exoticName].join('|');
+function sameExactBaseStats(a, b) { return STAT_KEYS.every((key) => Number(a.baseStats[key] || 0) === Number(b.baseStats[key] || 0)); }
+function groupKey(row, groupMode) {
+  const exoticName = row.Rarity === 'Exotic' ? normalize(displayName(row)) : 'legendary';
+  const namePart = groupMode.sameNameExactStats ? normalize(displayName(row)) : exoticName;
+  return [row.Equippable || row.Class || '', row.Slot || row.Type || '', row.Rarity || '', namePart].join('|');
 }
-
+function baseStats(row) {
+  const explicit = STAT_KEYS.map((key) => [key, number(row[`Base${key}`])]);
+  const explicitTotal = explicit.reduce((sum, [, value]) => sum + value, 0);
+  const useExplicit = explicitTotal > 0 && explicitTotal <= 75;
+  return Object.fromEntries(STAT_KEYS.map((key) => [key, useExplicit ? number(row[`Base${key}`]) : number(row[key]) ]));
+}
+function baseTotal(row) { return STAT_KEYS.reduce((sum, key) => sum + number(baseStats(row)[key]), 0); }
 function topStats(row) {
-  const entries = STAT_KEYS.map((key) => [key, Number(row[key] || 0)]).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, 3);
+  const stats = baseStats(row);
+  const entries = STAT_KEYS.map((key) => [key, Number(stats[key] || 0)]).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, 3);
   return { names: entries.map(([key]) => key), values: entries.map(([, value]) => value) };
 }
+function displayName(row) { const name = String(row.Name || '').trim(); return name && !name.includes('|') ? name : String(row.Type || row.Slot || 'Unknown Armor'); }
 function normalize(value) { return String(value || '').trim().toLowerCase(); }
+function number(value) { const n = Number(String(value ?? '').replace(/[^0-9.-]/g, '')); return Number.isFinite(n) ? n : 0; }
