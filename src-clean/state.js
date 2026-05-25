@@ -12,7 +12,7 @@ const ARCHETYPE_STATS = [
 ];
 const STAT_KEYS = ['Health', 'Melee', 'Grenade', 'Super', 'ClassAbility', 'Weapon'];
 const BONUS_TYPES = ['Masterwork', 'Mod', 'Artifice', 'Other'];
-const DEFAULT_DISPLAY = { showEquipped: true, showVault: true, showInventory: true, showLocked: true, onlyNewItems: false, onlyGroupedItems: false };
+const DEFAULT_DISPLAY = { showEquipped: true, showVault: true, showInventory: true, showLocked: true, onlyNewItems: false, onlyGroupedItems: false, onlySameNameStatGroups: false };
 
 export const state = {
   rows: [],
@@ -216,52 +216,29 @@ export function slimRowForStorage(row) {
 
 function compactAudit(audit) {
   if (!audit || typeof audit !== 'object') return audit || null;
-  return {
-    activePlugs: compactPlugs(audit.activePlugs),
-    bonusBreakdown: audit.bonusBreakdown || {}
-  };
+  return { activePlugs: compactPlugs(audit.activePlugs), bonusBreakdown: audit.bonusBreakdown || {} };
 }
-
 function compactPlugs(plugs) {
   return (Array.isArray(plugs) ? plugs : [])
-    .map((plug) => ({
-      hash: plug?.hash || '',
-      name: plug?.name || plug?.displayProperties?.name || '',
-      description: plug?.description || plug?.displayProperties?.description || '',
-      icon: plug?.icon || '',
-      type: plug?.type || plug?.itemTypeDisplayName || '',
-      category: plug?.category || plug?.plug?.plugCategoryIdentifier || '',
-      stats: compactStats(plug?.stats || plug?.investmentStats || [])
-    }))
+    .map((plug) => ({ hash: plug?.hash || '', name: plug?.name || plug?.displayProperties?.name || '', description: plug?.description || plug?.displayProperties?.description || '', icon: plug?.icon || '', type: plug?.type || plug?.itemTypeDisplayName || '', category: plug?.category || plug?.plug?.plugCategoryIdentifier || '', stats: compactStats(plug?.stats || plug?.investmentStats || []) }))
     .filter((plug) => plug.stats.length || /set|bonus|mod|masterwork|artifice|piece|wearing|trait|intrinsic|archetype/i.test(`${plug.name} ${plug.description} ${plug.type} ${plug.category}`))
     .slice(0, 24);
 }
-
 function compactStats(stats) {
   return (Array.isArray(stats) ? stats : [])
     .map((stat) => ({ statTypeHash: stat?.statTypeHash, value: number(stat?.value ?? stat?.statValue) }))
     .filter((stat) => stat.statTypeHash && stat.value)
     .slice(0, 8);
 }
-
 function compactPerks(perks) {
   return (Array.isArray(perks) ? perks : [])
-    .map((perk) => ({
-      name: perk?.name || '',
-      description: perk?.description || '',
-      icon: perk?.icon || '',
-      hash: perk?.hash || '',
-      kind: perk?.kind || '',
-      label: perk?.label || ''
-    }))
+    .map((perk) => ({ name: perk?.name || '', description: perk?.description || '', icon: perk?.icon || '', hash: perk?.hash || '', kind: perk?.kind || '', label: perk?.label || '' }))
     .filter((perk) => perk.name || perk.description || perk.hash)
     .slice(0, 8);
 }
-
 function persistSettings() {
   writeJson(STORAGE_KEYS.settings, { view: state.view, theme: state.theme, filters: state.filters, display: state.display, sortBy: state.sortBy, duplicateTolerance: state.duplicateTolerance });
 }
-
 export function loadSettings() {
   const settings = readJson(STORAGE_KEYS.settings, {});
   const savedSort = settings.sortBy === 'recent' ? 'default' : settings.sortBy;
@@ -275,5 +252,4 @@ export function loadSettings() {
   });
   state.filters.class = normalizeClassFilter(state.filters.class);
 }
-
 function emit(detail = {}) { listeners.forEach((fn) => fn(state, detail)); }
