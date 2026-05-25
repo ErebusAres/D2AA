@@ -1,4 +1,4 @@
-import { state, subscribe } from '../src-clean/state.js';
+import { state, subscribe, setState } from '../src-clean/state.js';
 import { TAGS, STAT_KEYS, STAT_LABELS, STAT_ICONS } from '../src-clean/constants.js';
 
 const TAG_BY_LABEL = new Map(TAGS.map((tag) => [String(tag.label || '').trim(), tag]));
@@ -9,12 +9,14 @@ let queued = false;
 let feedPopoutPortal = null;
 let activeFeedWrap = null;
 let hideFeedPopoutTimer = null;
+let sameNameOptionBound = false;
 
 function schedule() {
   if (queued) return;
   queued = true;
   requestAnimationFrame(() => {
     queued = false;
+    ensureSameNameGroupOption();
     rebuildArchetypeIconCache();
     fixTagChips();
     fixStrictGrades();
@@ -24,6 +26,28 @@ function schedule() {
     fixSetBonuses();
     cleanTooltipTitles();
   });
+}
+
+function ensureSameNameGroupOption() {
+  const displayList = document.querySelector('.display-list');
+  if (!displayList) return;
+  let input = document.getElementById('onlySameNameStatGroups');
+  if (!input) {
+    const anchor = document.getElementById('onlyGroupedItems')?.closest('.display-toggle');
+    const label = document.createElement('label');
+    label.className = 'display-toggle';
+    label.title = 'Only create duplicate groups when items have the same name and the exact same base stat spread.';
+    label.innerHTML = '<span>Group same-name exact stats only</span><input id="onlySameNameStatGroups" type="checkbox" />';
+    if (anchor?.parentNode) anchor.parentNode.insertBefore(label, anchor.nextSibling);
+    else displayList.appendChild(label);
+    input = label.querySelector('input');
+  }
+  input.checked = Boolean(state.display?.onlySameNameStatGroups || state.display?.sameNameExactStats);
+  if (sameNameOptionBound) return;
+  input.addEventListener('change', () => {
+    setState({ display: { ...(state.display || {}), onlySameNameStatGroups: input.checked, sameNameExactStats: input.checked } });
+  });
+  sameNameOptionBound = true;
 }
 
 function rowById(id) { return state.rows.find((item) => String(item.Id) === String(id)); }
