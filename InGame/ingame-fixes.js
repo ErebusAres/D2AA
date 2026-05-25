@@ -5,6 +5,14 @@ const STAT_KEYS = ['Health', 'Melee', 'Grenade', 'Super', 'ClassAbility', 'Weapo
 const BONUS_TYPES = ['Masterwork', 'Mod', 'Artifice', 'Other'];
 const CURRENT_EXOTIC_TIER_MAX = 2;
 const FUTURE_EXOTIC_TIER_MAX = 5;
+const STAT_HASH_TO_KEY = {
+  392767087: 'Health', '-390219801': 'Health',
+  4244567218: 'Melee', '-503001078': 'Melee',
+  1735777505: 'Grenade',
+  144602215: 'Super',
+  2996146975: 'ClassAbility', '-1298820321': 'ClassAbility',
+  1943323491: 'Weapon'
+};
 let normalizing = false;
 let lastSignature = '';
 let fixQueued = false;
@@ -232,7 +240,7 @@ function scheduleFixes(){
 function applyInGameFixes(){
   normalizeRowsIfNeeded();
   const rows = new Map((state.rows || []).map((row) => [String(row.Id), row]));
-  document.querySelectorAll('.armor-card[data-id], .feed-card[data-id]').forEach((node) => {
+  document.querySelectorAll('.armor-card[data-id], .feed-card[data-id], .compare-card[data-id]').forEach((node) => {
     const row = rows.get(String(node.dataset.id));
     if (!row) return;
     const isMasterworked = strictMasterworked(row);
@@ -244,8 +252,98 @@ function applyInGameFixes(){
     const rails = [...node.querySelectorAll('.tier-rail')];
     rails.slice(1).forEach((rail) => rail.remove());
     if (rails[0]) rails[0].innerHTML = tierMarks(row).join('');
+    applyPositiveStatMarkers(node, row);
   });
 }
+
+function applyPositiveStatMarkers(node, row){
+  const rows = [...node.querySelectorAll('.stat-bars > .stat-row')];
+  const tuning = positiveTuningByKey(row);
+  rows.forEach((statRow, index) => {
+    const key = STAT_KEYS[index];
+    if (!key) return;
+    const existing = statRow.querySelector('.stat-tuning-marker');
+    const detail = tuning[key];
+    if (!detail) { existing?.remove(); statRow.classList.remove('has-positive-tuning'); return; }
+    const html = tuningMarkerHtml(key, detail);
+    statRow.classList.add('has-positive-tuning');
+    if (existing) {
+      if (existing.outerHTML !== html) existing.outerHTML = html;
+      return;
+    }
+    const icon = statRow.querySelector('img, span');
+    if (icon) icon.insertAdjacentHTML('afterend', html);
+  });
+}
+
+function positiveTuningByKey(row){
+  const out = {};
+  for (const plug of activeAuditPlugs(row)) {
+    const signed = signedStatsForAuditPlug(plug);
+    const positives = Object.entries(signed).filter(([, value]) => value > 0);
+    const negatives = Object.entries(signed).filter(([, value]) => value < 0);
+    if (!positives.length || !negatives.length) continue;
+    const source = plug.name || 'Stat tuning plug';
+    const penalty = negatives.map(([key, value]) => `${formatSigned(value)} ${labelForKey(key)}`).join(', ');
+    for (const [key, value] of positives) {
+      if (!out[key]) out[key] = { value: 0, sources: [], penalties: [] };
+      out[key].value += value;
+      out[key].sources.push(source);
+      out[key].penalties.push(penalty);
+    }
+  }
+  return out;
+}
+
+function activeAuditPlugs(row){
+  const plugs = [...(row.StatAudit?.activePlugs || []), ...(row.SocketAudit?.activePlugs || [])];
+  const seen = new Set();
+  return plugs.filter((plug) => {
+    const key = `${plug.hash || ''}|${plug.name || ''}|${roughSize(plug.stats)}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return Array.isArray(plug.stats) && plug.stats.length;
+  });
+}
+
+function signedStatsForAuditPlug(plug){
+  const out = {};
+  for (const stat of plug.stats || []) {
+    const key = keyFromStatHash(stat.statTypeHash);
+    const value = number(stat.value ?? stat.statValue);
+    if (!key || !value) continue;
+    out[key] = (out[key] || 0) + value;
+  }
+  return out;
+}
+
+function keyFromStatHash(hash){
+  const raw = Number(hash);
+  if (!Number.isFinite(raw)) return null;
+  const unsigned = raw >>> 0;
+  const signed = raw | 0;
+  return STAT_HASH_TO_KEY[unsigned] || STAT_HASH_TO_KEY[signed] || null;
+}
+
+function tuningMarkerHtml(key, detail){
+  const sources = unique(detail.sources).join(', ');
+  const penalties = unique(detail.penalties).filter(Boolean).join('; ');
+  const title = `${labelForKey(key)} tuned ${formatSigned(detail.value)}`;
+  return `<span class="stat-tuning-marker" tabindex="0" aria-label="${escapeAttr(title)}" title="${escapeAttr(title)}">${tuningIconSvg()}<span class="d2-tooltip"><b>${escapeHtml(title)}</b><em>Stat Tuning</em><p>This is the positive side of an active armor stat adjustment.${sources ? ` Source: ${escapeHtml(sources)}.` : ''}${penalties ? ` Penalty: ${escapeHtml(penalties)}.` : ''}</p></span></span>`;
+}
+
+function tuningIconSvg(){
+  return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h8"/><path d="M8 7l-5 5 5 5"/><path d="M21 12h-8"/><path d="M16 7l5 5-5 5"/><path d="M12 4v4"/><path d="M12 16v4"/></svg>';
+}
+
+function labelForKey(key){
+  return key === 'ClassAbility' ? 'Weapons' : key === 'Weapon' ? 'Class' : key;
+}
+
+function unique(values){ return [...new Set(values.filter(Boolean))]; }
+function formatSigned(value){ const v = number(value); return v > 0 ? `+${v}` : String(v); }
+function escapeHtml(value){ return String(value ?? '').replace(/[&<>"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[char])); }
+function escapeAttr(value){ return escapeHtml(value); }
 
 function bindSearchDebounce(){
   const input = document.getElementById('searchBox');
@@ -276,6 +374,7 @@ function startObserver(){
   observerStarted = true;
   const root = document.getElementById('gridView') || document.body;
   new MutationObserver(scheduleFixes).observe(root, { childList: true, subtree: true });
+  window.addEventListener('d2aa:compare-rendered', scheduleFixes);
 }
 
 function strictMasterworked(row){
