@@ -1,5 +1,5 @@
 import { state, subscribe, setState } from '../src-clean/state.js';
-import { isSignedIn } from '../src-clean/data/bungie-auth.js?v=clean62';
+import { isSignedIn, startLogin } from '../src-clean/data/bungie-auth.js?v=clean62';
 
 let lastShown = '';
 let pendingTimer = 0;
@@ -89,10 +89,28 @@ function syncDisplayControls() {
   }
 }
 
+function forceBungieLogin(event) {
+  const btn = event.target.closest?.('#bungieLoginBtn');
+  if (!btn) return;
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  show('Opening Bungie sign-in...', 'queued');
+  const label = btn.querySelector('b');
+  const detail = btn.querySelector('small');
+  if (label) label.textContent = 'Opening...';
+  if (detail) detail.textContent = 'Bungie';
+  startLogin();
+}
+
+document.addEventListener('pointerdown', (event) => {
+  const btn = event.target.closest?.('#bungieLoginBtn');
+  if (btn) show('Opening Bungie sign-in...', 'queued');
+}, true);
+
 document.addEventListener('click', (event) => {
   const btn = event.target.closest?.('#bungieLoginBtn,#bungieSyncBtn,#refreshBtn');
   if (!btn) return;
-  if (btn.id === 'bungieLoginBtn') show('Opening Bungie sign-in...', 'queued');
+  if (btn.id === 'bungieLoginBtn') return forceBungieLogin(event);
   if (btn.id === 'bungieSyncBtn') schedulePending('Manual Sync requested. Waiting for Bungie response...');
   if (btn.id === 'refreshBtn') schedulePending('Latest-items refresh requested. Checking Bungie live state...');
 }, true);
