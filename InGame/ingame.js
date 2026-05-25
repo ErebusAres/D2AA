@@ -1,6 +1,6 @@
 import { state, subscribe, setState, updateTag, dismissRecent, getFilteredRows, loadCachedRows, clearCache, loadSettings, normalizeClassFilter, rowMatchesClass, writeJson } from '../src-clean/state.js';
 import { CLASS_ORDER, SLOT_ORDER, STAT_KEYS, STAT_LABELS, STAT_ICONS, TAGS, STORAGE_KEYS } from '../src-clean/constants.js';
-import { applyDuplicateGroups } from '../src-clean/data/duplicate-groups.js?v=1.64';
+import { applyDuplicateGroups } from '../src-clean/data/duplicate-groups.js?v=1.65';
 import { runItemAction, runGroupPull } from '../src-clean/data/actions.js';
 import { saveBungieInventory } from '../src-clean/data/inventory-cache.js';
 import { getActiveFeedRows } from '../src-clean/data/feed-state.js';
@@ -16,7 +16,7 @@ const ARCHETYPE_NAMES = new Set(['paragon','grenadier','specialist','brawler','b
 
 function boot(){ cacheEls(); loadSettings(); forceSingleClassDefault(); bindEvents(); subscribe(handleStateUpdate); loadCachedRows(); render(); }
 function handleStateUpdate(_,detail={}){ if(detail.statusOnly){ if(els.statusText) els.statusText.textContent=state.status; return; } render(); }
-function cacheEls(){ ['statusText','searchBox','refreshBtn','menuBtn','commandPanel','classToggle','gridView','tableView','tableBody','emptyState','summaryShown','summaryCached','summaryGroups','summaryRecent','summaryClasses','activeChips','csvFile','uploadCsvBtn','restoreCacheBtn','clearCacheBtn','classFilter','slotFilter','rarityFilter','sortBy','duplicateTolerance','duplicateToleranceOut','feedList','feedCount','feedToggle','itemFeed'].forEach(id=>els[id]=document.getElementById(id)); }
+function cacheEls(){ ['statusText','searchBox','refreshBtn','menuBtn','commandPanel','classToggle','gridView','tableView','tableBody','emptyState','summaryShown','summaryCached','summaryGroups','summaryRecent','summaryClasses','activeChips','csvFile','uploadCsvBtn','restoreCacheBtn','clearCacheBtn','classFilter','slotFilter','rarityFilter','sortBy','duplicateTolerance','duplicateToleranceOut','onlySameNameStatGroups','feedList','feedCount','feedToggle','itemFeed'].forEach(id=>els[id]=document.getElementById(id)); }
 function forceSingleClassDefault(){ const cls = normalizeClassFilter(state.filters.class); if(cls === 'all') setState({ filters:{...state.filters, class:'Warlock'} }); }
 function bindEvents(){
   els.searchBox?.addEventListener('input',()=>setState({search:els.searchBox.value}));
@@ -29,6 +29,7 @@ function bindEvents(){
   els.rarityFilter?.addEventListener('change',()=>setState({filters:{...state.filters, rarity:els.rarityFilter.value}}));
   els.sortBy?.addEventListener('change',()=>setState({sortBy:els.sortBy.value}));
   els.duplicateTolerance?.addEventListener('input',()=>setState({duplicateTolerance:Number(els.duplicateTolerance.value||5)}));
+  els.onlySameNameStatGroups?.addEventListener('change',()=>setState({display:{...(state.display||{}),onlySameNameStatGroups:els.onlySameNameStatGroups.checked,sameNameExactStats:els.onlySameNameStatGroups.checked}}));
   els.restoreCacheBtn?.addEventListener('click',()=>loadCachedRows()||setState({status:'No cached rows found. Bungie cache restores automatically at startup.'}));
   els.clearCacheBtn?.addEventListener('click',clearCache);
   els.feedToggle?.addEventListener('click',()=>{ const open=!els.itemFeed.classList.contains('is-open'); els.itemFeed.classList.toggle('is-open',open); document.body.classList.toggle('feed-open',open); writeJson(STORAGE_KEYS.feedOpen,open); });
@@ -36,6 +37,7 @@ function bindEvents(){
 }
 function setOptionsOpen(open){ els.commandPanel?.classList.toggle('is-open',open); document.body.classList.toggle('options-open',open); els.menuBtn?.setAttribute('aria-expanded',String(open)); }
 function setClassFilter(className){ setState({filters:{...state.filters, class:normalizeClassFilter(className)}}); }
+function sameNameExactEnabled(){ return Boolean(state.display?.onlySameNameStatGroups || state.display?.sameNameExactStats); }
 function render(){
   document.body.dataset.theme='ingame';
   if(els.statusText) els.statusText.textContent=state.status;
@@ -43,8 +45,9 @@ function render(){
   if(els.sortBy) els.sortBy.value=state.sortBy;
   if(els.duplicateTolerance) els.duplicateTolerance.value=state.duplicateTolerance;
   if(els.duplicateToleranceOut) els.duplicateToleranceOut.textContent=`±${state.duplicateTolerance}`;
+  if(els.onlySameNameStatGroups) els.onlySameNameStatGroups.checked=sameNameExactEnabled();
   syncFilters(); syncClassToggle();
-  const grouped = applyDuplicateGroups(state.rows,state.duplicateTolerance).map(addGrade);
+  const grouped = applyDuplicateGroups(state.rows,state.duplicateTolerance,{sameNameExactStats:sameNameExactEnabled()}).map(addGrade);
   lastGroupedRows = grouped;
   const filtered = getFilteredRowsFrom(grouped).filter(r=>normalizeClassFilter(state.filters.class)!=='all' ? rowMatchesClass(r,state.filters.class) : false);
   renderGrid(filtered); renderFeed(grouped); updateSummary(grouped,filtered); renderChips();
