@@ -6,16 +6,48 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
-<meta name="d2aa-version" content="ingame-0.31-options-polish" />
+<meta name="d2aa-version" content="ingame-0.32-fast-login" />
 <title>D2AA In-Game Prototype</title>
 <script>
-window.D2AA_VERSION='ingame-0.31-options-polish';
+window.D2AA_VERSION='ingame-0.32-fast-login';
 window.D2AA_BUNGIE_REDIRECT_URI='https://erebusares.github.io/D2AA/InGame/InGame.html';
 window.D2AA_DISABLE_DIM_CONTROLS=true;
 window.D2AA_ASSET_STAMP=Date.now().toString(36);
 document.write(`<link rel="stylesheet" href="./ingame.css?t=${window.D2AA_ASSET_STAMP}" />`);
 document.write(`<link rel="stylesheet" href="./tier-colors.css?t=${window.D2AA_ASSET_STAMP}" />`);
 document.write(`<link rel="stylesheet" href="./ingame-overrides.css?t=${window.D2AA_ASSET_STAMP}" />`);
+(function installFastBungieLogin(){
+  const AUTH_URL='https://www.bungie.net/en/OAuth/Authorize';
+  const TOKEN_KEY='d2aa_bungie_token_v1';
+  const STATE_KEY='d2aa_bungie_oauth_state_v1';
+  const RETURN_KEY='d2aa_clean_return_after_oauth';
+  const CLIENT_ID='50794';
+  function readToken(){try{return JSON.parse(localStorage.getItem(TOKEN_KEY)||'{}')}catch(_){return {}}}
+  function signedIn(){const t=readToken();const now=Math.floor(Date.now()/1000)+60;return Boolean((t.access_token&&t.expires_at&&t.expires_at>now)||(t.refresh_token&&(!t.refresh_expires_at||t.refresh_expires_at>now)));}
+  function cleanUrl(value){const url=new URL(value,location.href);url.searchParams.delete('code');url.searchParams.delete('state');return url.toString();}
+  function randomState(){const values=new Uint32Array(4);crypto.getRandomValues(values);return Array.from(values,(value)=>value.toString(16).padStart(8,'0')).join('');}
+  document.addEventListener('click',(event)=>{
+    const button=event.target.closest&&event.target.closest('#bungieLoginBtn');
+    if(!button||signedIn())return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    const label=button.querySelector('b');
+    const detail=button.querySelector('small');
+    if(label)label.textContent='Opening...';
+    if(detail)detail.textContent='Bungie';
+    const state=randomState();
+    const returnUrl=cleanUrl(location.href);
+    localStorage.setItem(STATE_KEY,state);
+    localStorage.setItem(RETURN_KEY,returnUrl);
+    try{sessionStorage.setItem(RETURN_KEY,returnUrl)}catch(_){}
+    const url=new URL(AUTH_URL);
+    url.searchParams.set('client_id',CLIENT_ID);
+    url.searchParams.set('response_type','code');
+    url.searchParams.set('state',state);
+    url.searchParams.set('redirect_uri',cleanUrl(window.D2AA_BUNGIE_REDIRECT_URI));
+    window.location.assign(url.toString());
+  },true);
+})();
 </script>
 <style>
 /* Options panel polish lives here so we keep editing existing site files without adding another stylesheet. */
