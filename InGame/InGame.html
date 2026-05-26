@@ -6,16 +6,17 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
-<meta name="d2aa-version" content="ingame-0.32-auth-storage-fix" />
+<meta name="d2aa-version" content="ingame-0.33-tuning-icons" />
 <title>D2AA In-Game Prototype</title>
 <script>
-window.D2AA_VERSION='ingame-0.32-auth-storage-fix';
+window.D2AA_VERSION='ingame-0.33-tuning-icons';
 window.D2AA_BUNGIE_REDIRECT_URI='https://erebusares.github.io/D2AA/InGame/InGame.html';
 window.D2AA_DISABLE_DIM_CONTROLS=true;
 window.D2AA_ASSET_STAMP=Date.now().toString(36);
 document.write(`<link rel="stylesheet" href="./ingame.css?t=${window.D2AA_ASSET_STAMP}" />`);
 document.write(`<link rel="stylesheet" href="./tier-colors.css?t=${window.D2AA_ASSET_STAMP}" />`);
 document.write(`<link rel="stylesheet" href="./ingame-overrides.css?t=${window.D2AA_ASSET_STAMP}" />`);
+document.write(`<link rel="stylesheet" href="./tuning-icons.css?t=${window.D2AA_ASSET_STAMP}" />`);
 (function installFastBungieLogin(){
   const AUTH_URL='https://www.bungie.net/en/OAuth/Authorize';
   const STATE_KEY='d2aa_bungie_oauth_state_v1';
@@ -103,8 +104,6 @@ document.write(`<link rel="stylesheet" href="./ingame-overrides.css?t=${window.D
         <label class="display-toggle"><span>Show equipped</span><input id="showEquipped" type="checkbox" checked /></label>
         <label class="display-toggle"><span>Show vaulted</span><input id="showVault" type="checkbox" checked /></label>
         <label class="display-toggle"><span>Show inventory</span><input id="showInventory" type="checkbox" checked /></label>
-        <label class="display-toggle"><span>Show locked</span><input id="showLocked" type="checkbox" checked /></label>
-        <label class="display-toggle"><span>Only new items</span><input id="onlyNewItems" type="checkbox" /></label>
         <label class="display-toggle"><span>Only grouped items</span><input id="onlyGroupedItems" type="checkbox" /></label>
       </div>
     </section>
@@ -130,6 +129,7 @@ await import(`./ingame-fixes.js?t=${assetStamp}`);
 await import(`./stable-dom-fixes.js?t=${assetStamp}`);
 await import(`./status-line.js?t=${assetStamp}`);
 await import(`../src-clean/bungie-wire.js?t=${assetStamp}`);
+await import(`./tuning-patch.js?t=${assetStamp}`);
 </script>
 </body>
 </html>
