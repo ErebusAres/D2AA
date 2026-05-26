@@ -1,4 +1,6 @@
 import { STAT_KEYS, TAGS } from '../constants.js';
+import { detectArmorTuning, tuningBadgeHtml, tuningSummary } from '../data/armor-tuning.js';
+import { ensureTuningStyles } from './grid-v200.js';
 
 let modal;
 let currentRows = [];
@@ -10,10 +12,12 @@ let keydownBound = false;
 
 export function openCompareModal(rows, options = {}) {
   currentRows = Array.isArray(rows) ? rows.slice().sort(compareBaseFirst) : [];
+  currentRows.forEach((row) => detectArmorTuning(row));
   onTagChange = options.onTag || null;
   onPullGroup = options.onPullGroup || null;
   onPullItem = options.onPullItem || null;
   renderers = options.renderers || {};
+  ensureTuningStyles();
   ensureModal();
   modal.innerHTML = renderModal(currentRows);
   modal.hidden = false;
@@ -103,10 +107,11 @@ function renderCompareCard(row, bestId) {
   const armorBonusHtml = renderer('renderArmorBonuses', fallbackArmorBonuses)(row);
   const statHtml = STAT_KEYS.map((key) => renderer('renderStat', fallbackStat)(row, key)).join('');
   const totalHtml = renderer('renderTotal', fallbackTotal)(row);
+  const tuning = tuningSummary(row);
   return `<article class="compare-card ${String(row.Id) === String(bestId) ? 'is-best' : ''}" data-id="${html(row.Id)}">
     <div class="compare-item-head">
       <div class="compare-icon">${iconUrl(row) ? `<img src="${html(iconUrl(row))}" alt="" loading="lazy">` : '◇'}<div class="tier-rail compare-tier-rail">${tierHtml}</div>${row.Power || row.Light ? `<b>${row.Power || row.Light}</b>` : ''}</div>
-      <div><h3 title="${html(name)}">${html(name)}</h3><p>${html(row.Class)} • ${html(row.Slot)} • ${html(row.Rarity)} • ${html(location)}${row.IsLocked ? ' • Locked' : ''}</p></div>
+      <div><h3 title="${html(name)}">${html(name)}</h3><p>${html(row.Class)} • ${html(row.Slot)} • ${html(row.Rarity)} • ${html(location)}${row.IsLocked ? ' • Locked' : ''}</p>${tuning ? `<p class="compare-tuning-summary">${html(tuning)}</p>` : ''}</div>
       <strong class="compare-score" title="Base total used for comparison"><span>BASE</span>${baseTotal(row)}</strong>
     </div>
     <div class="card-body compare-card-body">
@@ -166,7 +171,7 @@ function fallbackArmorBonuses() {
 function fallbackStat(row, key) {
   const base = num(row[`Base${key}`] ?? row[key]);
   const current = num(row[`Current${key}`] ?? row[key]);
-  return `<div class="stat-row"><span>${html(key)}</span><div class="bar"><span class="bar-base" style="width:${Math.min(100, base)}%"></span></div><b>${String(current).padStart(2, ' ')}</b></div>`;
+  return `<div class="stat-row"><span class="compare-stat-label stat-icon-stack">${tuningBadgeHtml(row, key)}${html(key)}</span><div class="bar"><span class="bar-base" style="width:${Math.min(100, base)}%"></span></div><b>${String(current).padStart(2, ' ')}</b></div>`;
 }
 
 function fallbackTotal(row) {
