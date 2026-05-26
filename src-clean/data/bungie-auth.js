@@ -8,6 +8,16 @@ export const BUNGIE_STORAGE = {
   returnUrl: 'd2aa_clean_return_after_oauth'
 };
 
+const CACHE_KEYS_TO_PRUNE = [
+  'd2aa_clean_rows_v1',
+  'd2aa_clean_bungie_rows_v1',
+  'd2aa_clean_bungie_meta_v1',
+  'd2aa_clean_recent_items_v1',
+  'd2aa_clean_last_inventory_v1',
+  'd2aa_clean_manifest_cache_v1',
+  'd2aa_manifest_cache_v1'
+];
+
 export const PUBLIC_CONFIG = {
   apiKey: '96e154014bdd44c0a537e482709b7473',
   clientId: '50794',
@@ -21,7 +31,7 @@ export function readJson(key, fallback = {}) {
   try { return JSON.parse(localStorage.getItem(key) || JSON.stringify(fallback)); }
   catch (_) { return fallback; }
 }
-export function writeJson(key, value) { localStorage.setItem(key, JSON.stringify(value)); }
+export function writeJson(key, value) { safeSetLocalStorage(key, JSON.stringify(value), { preserveAuth: key !== BUNGIE_STORAGE.token }); }
 function cleanConfig(config) {
   // Keep user-configurable API key/client id support, but never allow an old stored redirectUri
   // from beta/hotfix builds to override the currently registered OAuth redirect.
@@ -60,8 +70,8 @@ export function startLogin() {
   const cfg = getBungieConfig();
   const state = randomState();
   const returnUrl = cleanReturnUrl(location.href);
-  localStorage.setItem(BUNGIE_STORAGE.state, state);
-  localStorage.setItem(BUNGIE_STORAGE.returnUrl, returnUrl);
+  safeSetLocalStorage(BUNGIE_STORAGE.state, state, { preserveAuth: true });
+  safeSetLocalStorage(BUNGIE_STORAGE.returnUrl, returnUrl, { preserveAuth: true });
   try { sessionStorage.setItem(BUNGIE_STORAGE.returnUrl, returnUrl); } catch (_) {}
   const redirectUri = cleanReturnUrl(cfg.redirectUri);
   const url = new URL(AUTH_URL);
@@ -108,16 +118,16 @@ export async function handleOAuthRedirect() {
   const code = url.searchParams.get('code');
   if (!code) return false;
   const returnedState = url.searchParams.get('state');
-  const expectedState = localStorage.getItem(BUNGIE_STORAGE.state);
+  const expectedState = safeGetLocalStorage(BUNGIE_STORAGE.state);
   if (expectedState && returnedState !== expectedState) throw new Error('Bungie sign-in failed: OAuth state mismatch.');
   await exchangeCode(code);
-  localStorage.removeItem(BUNGIE_STORAGE.state);
+  safeRemoveLocalStorage(BUNGIE_STORAGE.state);
   try { sessionStorage.removeItem(BUNGIE_STORAGE.returnUrl); } catch (_) {}
   url.searchParams.delete('code');
   url.searchParams.delete('state');
   const cleanCurrentUrl = url.toString();
-  const returnUrl = localStorage.getItem(BUNGIE_STORAGE.returnUrl);
-  localStorage.removeItem(BUNGIE_STORAGE.returnUrl);
+  const returnUrl = safeGetLocalStorage(BUNGIE_STORAGE.returnUrl);
+  safeRemoveLocalStorage(BUNGIE_STORAGE.returnUrl);
   if (returnUrl && sameOriginReturn(returnUrl) && cleanReturnUrl(returnUrl) !== cleanCurrentUrl) {
     window.location.replace(returnUrl);
     return true;
@@ -127,7 +137,7 @@ export async function handleOAuthRedirect() {
 }
 
 export function clearToken() {
-  localStorage.removeItem(BUNGIE_STORAGE.token);
+  safeRemoveLocalStorage(BUNGIE_STORAGE.token);
 }
 
 function getRedirectUri() {
@@ -152,4 +162,40 @@ function randomState() {
   const values = new Uint32Array(4);
   crypto.getRandomValues(values);
   return Array.from(values, (value) => value.toString(16).padStart(8, '0')).join('');
+}
+
+function safeGetLocalStorage(key) {
+  try { return localStorage.getItem(key); }
+  catch (_) { return null; }
+}
+
+function safeRemoveLocalStorage(key) {
+  try { localStorage.removeItem(key); } catch (_) {}
+}
+
+function safeSetLocalStorage(key, value, options = {}) {
+  try {
+    localStorage.removeItem(key);
+    localStorage.setItem(key, value);
+    return true;
+  } catch (firstError) {
+    pruneStorageForAuth(key, options);
+    try {
+      localStorage.removeItem(key);
+      localStorage.setItem(key, value);
+      return true;
+    } catch (secondError) {
+      console.warn('D2AA localStorage write failed; continuing with best-effort auth flow.', key, secondError);
+      try { sessionStorage.setItem(key, value); return true; } catch (_) {}
+      return false;
+    }
+  }
+}
+
+function pruneStorageForAuth(targetKey, options = {}) {
+  for (const key of [BUNGIE_STORAGE.returnUrl, BUNGIE_STORAGE.state]) {
+    if (key !== targetKey) safeRemoveLocalStorage(key);
+  }
+  for (const key of CACHE_KEYS_TO_PRUNE) safeRemoveLocalStorage(key);
+  if (!options.preserveAuth && targetKey === BUNGIE_STORAGE.token) return;
 }
