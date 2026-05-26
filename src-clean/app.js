@@ -4,7 +4,7 @@ import { parseDimCsv } from './data/dim-csv.js';
 import { applyDuplicateGroups } from './data/duplicate-groups.js?v=1.64';
 import { runItemAction, runGroupPull } from './data/actions.js';
 import { getActiveFeedRows } from './data/feed-state.js';
-import { renderGrid } from './render/grid-v169.js';
+import { renderGrid } from './render/grid-v200.js';
 import { renderTable } from './render/table.js';
 import { renderItemFeed } from './render/item-feed.js';
 import { attachTagPicker } from './render/tag-picker.js';
