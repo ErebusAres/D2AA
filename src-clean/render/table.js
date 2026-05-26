@@ -1,10 +1,8 @@
 import { STAT_KEYS, STAT_LABELS, STAT_ICONS, RARITY_ICONS, CLASS_ICONS, SLOT_ICONS, TAGS } from '../constants.js';
 import { actionLabel, canRunAction } from '../data/actions.js';
 import { detectArmorTuning, tuningBadgeHtml } from '../data/armor-tuning.js';
-import { ensureTuningStyles } from './grid-v200.js';
 
 export function renderTable(tbody, rows, onAction) {
-  ensureTuningStyles();
   rows.forEach((row) => detectArmorTuning(row));
   tbody.innerHTML = rows.map((row) => `<tr class="${row.Group ? 'is-grouped ' + row.GroupColor : ''}">
     <td class="table-item-cell"><div class="table-item-icon">${row.Icon ? `<img src="${html(row.Icon)}" alt="" loading="lazy">` : '◇'}</div><div><strong>${html(row.Name)}</strong><small class="table-meta-icons">${metaIcons(row)} ${row.Group ? '• ' + html(row.Group) : ''}</small></div></td>
