@@ -1,0 +1,7 @@
+.stat-icon-stack{display:inline-flex!important;align-items:center;justify-content:center;gap:4px;min-width:34px}
+.tuning-stat-icon{width:16px;height:16px;object-fit:contain;border-radius:5px;padding:1px;background:linear-gradient(180deg,rgba(122,92,255,.28),rgba(36,24,72,.46));border:1px solid rgba(185,165,255,.46);box-shadow:0 0 8px rgba(143,111,255,.32),inset 0 1px 0 rgba(255,255,255,.14);filter:drop-shadow(0 1px 1px rgba(0,0,0,.7))}
+.tuning-stat-icon.tune-negative{border-color:rgba(255,136,124,.48);background:linear-gradient(180deg,rgba(255,89,92,.22),rgba(72,24,30,.48));box-shadow:0 0 8px rgba(255,91,106,.22),inset 0 1px 0 rgba(255,255,255,.12)}
+.tuning-stat-icon.tune-balanced{border-color:rgba(120,210,255,.46);background:linear-gradient(180deg,rgba(84,190,255,.22),rgba(20,42,70,.48));box-shadow:0 0 8px rgba(78,190,255,.24),inset 0 1px 0 rgba(255,255,255,.12)}
+.feed-stats .stat-icon-stack{min-width:auto;gap:3px}
+.feed-stats .tuning-stat-icon{width:14px;height:14px;border-radius:4px}
+.compare-tuning-summary{margin-top:4px!important;color:#c9b8ff!important;font-weight:800!important;font-size:11px!important;letter-spacing:.02em!important}
