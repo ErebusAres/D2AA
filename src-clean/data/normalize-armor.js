@@ -1,4 +1,5 @@
 import { STAT_KEYS } from '../constants.js';
+import { parseCsvTuning } from './armor-tuning.js';
 
 const columnAliases = {
   Name: ['Name', 'Item Name', 'name'],
@@ -32,6 +33,7 @@ export function normalizeArmorRow(raw, index = 0, source = 'DIM') {
   const rarity = normalizeRarity(row.Rarity);
   const tierNumber = normalizeTier(row.Tier, total, rarity);
   const slot = normalizeSlot(row.Slot);
+  const tuning = parseCsvTuning(raw, row);
   return {
     Id: id,
     Name: String(row.Name || 'Unknown Armor'),
@@ -50,6 +52,7 @@ export function normalizeArmorRow(raw, index = 0, source = 'DIM') {
     FoundAt: Date.now() - index,
     Tag: normalizeDimTag(row.Tag),
     Notes: String(row.Notes || ''),
+    ...tuning,
     ...Object.fromEntries(STAT_KEYS.map((key) => [key, number(row[key])]))
   };
 }
