@@ -5,6 +5,14 @@ const TAG_BY_LABEL = new Map(TAGS.map((tag) => [String(tag.label || '').trim(), 
 const TAG_BY_VALUE = new Map(TAGS.map((tag) => [String(tag.value || '').trim(), tag]));
 const ARCHETYPE_ICON_CACHE = new Map();
 const BONUS_ORDER = ['masterwork', 'mod', 'artifice', 'other'];
+const STAT_HASH_TO_KEY = new Map([
+  ['392767087', 'Health'],
+  ['4244567218', 'Melee'], ['-504001078', 'Melee'],
+  ['1735777505', 'Grenade'],
+  ['144602215', 'Super'],
+  ['2996146975', 'ClassAbility'], ['-1298820321', 'ClassAbility'],
+  ['1943323491', 'Weapon']
+]);
 let queued = false;
 let feedPopoutPortal = null;
 let activeFeedWrap = null;
@@ -56,11 +64,38 @@ function rebuildArchetypeIconCache() { ARCHETYPE_ICON_CACHE.clear(); for (const 
 function fixTagChips() { document.querySelectorAll('.tag-chip').forEach((chip) => { const id = chip.dataset.id; const row = id ? rowById(id) : null; const tagValue = row?.Tag || state.tags?.[id] || ''; const found = TAG_BY_VALUE.get(String(tagValue)) || TAG_BY_LABEL.get(String(chip.textContent || '').trim()); if (!found || !found.emoji) return; chip.textContent = found.emoji; chip.title = found.label || found.value || 'Tag'; chip.setAttribute('aria-label', found.label || found.value || 'Tag'); }); }
 function fixStrictGrades() { document.querySelectorAll('.armor-card[data-id], .feed-card[data-id]').forEach((card) => { const row = rowById(card.dataset.id); if (!row) return; const grade = strictGrade(row); card.querySelectorAll('.grade-chip').forEach((chip) => { for (const letter of ['S', 'A', 'B', 'C', 'D', 'F']) chip.classList.remove(`grade-${letter}`); chip.classList.add(`grade-${grade.letter}`); chip.textContent = grade.letter; chip.title = `Rank ${grade.letter} · Base total ${grade.score}`; chip.setAttribute('aria-label', `Rank ${grade.letter}, base total ${grade.score}`); }); }); }
 function strictGrade(row) { const total = num(row.BaseTotal ?? row.Total); const letter = total >= 75 ? 'S' : total >= 73 ? 'A' : total >= 70 ? 'B' : total >= 66 ? 'C' : total >= 62 ? 'D' : 'F'; return { letter, score: total }; }
-function fixPositiveTuningMarkers() { document.querySelectorAll('.armor-card[data-id], .compare-card[data-id]').forEach((card) => { const row = rowById(card.dataset.id); if (!row) return; const rows = card.querySelectorAll('.stat-row, .compare-stat-row'); rows.forEach((statRow, index) => { const key = STAT_KEYS[index]; if (!key) return; const marker = statRow.querySelector(':scope > .stat-tuning-marker'); const tuning = positiveTuningInfo(row, key); if (!tuning) { marker?.remove(); statRow.classList.remove('has-positive-tuning'); return; } statRow.classList.add('has-positive-tuning'); const html = tuningMarkerHtml(tuning); if (marker) { if (marker.dataset.tuningKey !== tuning.key) marker.outerHTML = html; return; } const bar = statRow.querySelector(':scope > .bar, :scope > .compare-bar'); if (bar) bar.insertAdjacentHTML('beforebegin', html); }); }); }
-function positiveTuningInfo(row, key) { for (const type of ['mod', 'artifice', 'other']) { const capType = cap(type); const value = num(row[`${capType}Bonus${key}`]); if (value <= 0) continue; const penalties = STAT_KEYS.filter((other) => other !== key && num(row[`${capType}Bonus${other}`]) < 0).map((other) => ({ key: other, value: Math.abs(num(row[`${capType}Bonus${other}`])) })); if (!penalties.length) continue; return { key: `${type}:${key}:${value}:${penalties.map((penalty) => `${penalty.key}-${penalty.value}`).join(',')}`, type, stat: STAT_LABELS[key] || key, value, penalties };
+function fixPositiveTuningMarkers() { document.querySelectorAll('.armor-card[data-id], .compare-card[data-id]').forEach((card) => { const row = rowById(card.dataset.id); if (!row) return; const rows = card.querySelectorAll('.stat-row, .compare-stat-row'); rows.forEach((statRow, index) => { const key = STAT_KEYS[index]; if (!key) return; const marker = statRow.querySelector(':scope > .stat-tuning-marker'); const tuning = positiveTuningInfo(row, key); if (!tuning) { marker?.remove(); statRow.classList.remove('has-positive-tuning'); return; } statRow.classList.add('has-positive-tuning'); const html = tuningMarkerHtml(tuning); if (marker) { if (marker.dataset.tuningKey !== tuning.key) marker.outerHTML = html; return; } const icon = statRow.querySelector(':scope > img'); if (icon) icon.insertAdjacentHTML('beforebegin', html); else statRow.insertAdjacentHTML('afterbegin', html); }); }); }
+function positiveTuningInfo(row, key) {
+  const fromAudit = auditPositiveTuningInfo(row, key);
+  if (fromAudit) return fromAudit;
+  for (const type of ['mod', 'artifice', 'other']) { const capType = cap(type); const value = num(row[`${capType}Bonus${key}`]); if (value <= 0) continue; const penalties = STAT_KEYS.filter((other) => other !== key && num(row[`${capType}Bonus${other}`]) < 0).map((other) => ({ key: other, value: Math.abs(num(row[`${capType}Bonus${other}`])) })); if (!penalties.length) continue; return { key: `${type}:${key}:${value}:${penalties.map((penalty) => `${penalty.key}-${penalty.value}`).join(',')}`, type, stat: STAT_LABELS[key] || key, value, penalties };
   }
   return null;
 }
+function auditPositiveTuningInfo(row, key) {
+  const plugs = [ ...(Array.isArray(row.StatAudit?.activePlugs) ? row.StatAudit.activePlugs : []), ...(Array.isArray(row.SocketAudit?.activePlugs) ? row.SocketAudit.activePlugs : []) ];
+  for (const plug of plugs) {
+    const signed = signedStatsByKey(plug);
+    const value = num(signed[key]);
+    if (value <= 0) continue;
+    const penalties = STAT_KEYS.filter((other) => other !== key && num(signed[other]) < 0).map((other) => ({ key: other, value: Math.abs(num(signed[other])) }));
+    if (!penalties.length) continue;
+    return { key: `audit:${plug.hash || plug.name || ''}:${key}:${value}:${penalties.map((penalty) => `${penalty.key}-${penalty.value}`).join(',')}`, type: normalize(plug.type || plug.category || plug.name).includes('artifice') ? 'artifice' : normalize(plug.type || plug.category || plug.name).includes('mod') ? 'mod' : 'other', stat: STAT_LABELS[key] || key, value, penalties };
+  }
+  return null;
+}
+function signedStatsByKey(plug) {
+  const out = Object.fromEntries(STAT_KEYS.map((key) => [key, 0]));
+  for (const stat of plug?.stats || []) {
+    const rawHash = String(stat.statTypeHash ?? stat.statHash ?? stat.hash ?? '');
+    const unsignedHash = String(toUint32(rawHash));
+    const key = STAT_HASH_TO_KEY.get(rawHash) || STAT_HASH_TO_KEY.get(unsignedHash);
+    if (!key) continue;
+    out[key] += num(stat.value ?? stat.statValue ?? stat.base ?? 0);
+  }
+  return out;
+}
+function toUint32(value) { const n = Number(value); return Number.isFinite(n) ? (n >>> 0) : 0; }
 function tuningMarkerHtml(tuning) { const penaltyText = tuning.penalties.map((penalty) => `-${penalty.value} ${STAT_LABELS[penalty.key] || penalty.key}`).join(' · '); const label = `Tuned stat: +${tuning.value} ${tuning.stat}`; return `<span class="stat-tuning-marker" data-tuning-key="${esc(tuning.key)}" tabindex="0" aria-label="${esc(label)}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h12"/><path d="M13 4l3 3-3 3"/><path d="M20 17H8"/><path d="M11 14l-3 3 3 3"/></svg><span class="d2-tooltip"><b>${esc(tuning.stat)}</b><em>Stat Tuning</em><p>Boosted by +${esc(tuning.value)} from a signed stat adjustment.</p><p class="muted">Tradeoff: ${esc(penaltyText)}.</p></span></span>`; }
 function fixFeedTiers() { document.querySelectorAll('.feed-card[data-id]').forEach((card) => { const row = rowById(card.dataset.id); if (!row) return; const strayRails = [...card.querySelectorAll(':scope > .tier-rail, :scope > .feed-tier-rail')]; const existingWrap = card.querySelector(':scope > .feed-icon-wrap'); let wrap = existingWrap; let img = wrap?.querySelector(':scope > img') || card.querySelector(':scope > img'); if (!img) return; if (!wrap) { wrap = document.createElement('span'); wrap.className = 'feed-icon-wrap'; wrap.tabIndex = 0; img.parentNode.insertBefore(wrap, img); wrap.appendChild(img); } else { wrap.tabIndex = 0; if (img.parentNode !== wrap) wrap.insertBefore(img, wrap.firstChild); } strayRails.forEach((rail) => rail.remove()); const rails = [...wrap.querySelectorAll(':scope > .tier-rail, :scope > .feed-tier-rail')]; const rail = rails.shift() || document.createElement('span'); rails.forEach((extra) => extra.remove()); rail.className = 'tier-rail feed-tier-rail'; const html = tierMarks(row); if (rail.innerHTML !== html) rail.innerHTML = html; if (rail.parentNode !== wrap) wrap.appendChild(rail); }); }
 function fixFeedStatPopouts() { ensureFeedPopoutPortal(); document.querySelectorAll('.feed-card[data-id]').forEach((card) => { const row = rowById(card.dataset.id); const wrap = card.querySelector('.feed-icon-wrap'); if (!row || !wrap) return; wrap.tabIndex = 0; wrap.dataset.feedPopoutId = String(row.Id); wrap.dataset.tooltipKey = feedTooltipKey(row); wrap.setAttribute('aria-label', `${displayName(row)} details`); wrap.querySelector(':scope > .feed-stat-popout')?.remove(); if (wrap.dataset.popoutBound === '1') return; wrap.dataset.popoutBound = '1'; wrap.addEventListener('pointerenter', () => showFeedPopout(wrap)); wrap.addEventListener('pointerleave', queueHideFeedPopout); wrap.addEventListener('focus', () => showFeedPopout(wrap)); wrap.addEventListener('blur', queueHideFeedPopout); }); }
