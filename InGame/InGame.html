@@ -6,10 +6,10 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
-<meta name="d2aa-version" content="ingame-0.32-fast-login-2" />
+<meta name="d2aa-version" content="ingame-0.32-auth-storage-fix" />
 <title>D2AA In-Game Prototype</title>
 <script>
-window.D2AA_VERSION='ingame-0.32-fast-login-2';
+window.D2AA_VERSION='ingame-0.32-auth-storage-fix';
 window.D2AA_BUNGIE_REDIRECT_URI='https://erebusares.github.io/D2AA/InGame/InGame.html';
 window.D2AA_DISABLE_DIM_CONTROLS=true;
 window.D2AA_ASSET_STAMP=Date.now().toString(36);
@@ -21,8 +21,12 @@ document.write(`<link rel="stylesheet" href="./ingame-overrides.css?t=${window.D
   const STATE_KEY='d2aa_bungie_oauth_state_v1';
   const RETURN_KEY='d2aa_clean_return_after_oauth';
   const CLIENT_ID='50794';
+  const PRUNE_KEYS=['d2aa_clean_rows_v1','d2aa_clean_bungie_rows_v1','d2aa_clean_bungie_meta_v1','d2aa_clean_recent_items_v1','d2aa_clean_last_inventory_v1','d2aa_clean_manifest_cache_v1','d2aa_manifest_cache_v1'];
   function cleanUrl(value){const url=new URL(value,location.href);url.searchParams.delete('code');url.searchParams.delete('state');return url.toString();}
   function randomState(){const values=new Uint32Array(4);crypto.getRandomValues(values);return Array.from(values,(value)=>value.toString(16).padStart(8,'0')).join('');}
+  function safeRemove(key){try{localStorage.removeItem(key)}catch(_){}}
+  function prune(){safeRemove(RETURN_KEY);safeRemove(STATE_KEY);for(const key of PRUNE_KEYS)safeRemove(key)}
+  function safeSet(key,value){try{localStorage.removeItem(key);localStorage.setItem(key,value);return true}catch(first){prune();try{localStorage.removeItem(key);localStorage.setItem(key,value);return true}catch(second){console.warn('D2AA auth storage write failed; redirecting anyway.',key,second);try{sessionStorage.setItem(key,value);return true}catch(_){return false}}}}
   window.D2AA_FORCE_BUNGIE_LOGIN=function(event){
     if(event){event.preventDefault();event.stopPropagation();if(event.stopImmediatePropagation)event.stopImmediatePropagation();}
     const button=document.getElementById('bungieLoginBtn');
@@ -33,9 +37,9 @@ document.write(`<link rel="stylesheet" href="./ingame-overrides.css?t=${window.D
     if(label)label.textContent='Opening...';
     if(detail)detail.textContent='Bungie';
     const state=randomState();
-    const returnUrl=cleanUrl(location.href);
-    localStorage.setItem(STATE_KEY,state);
-    localStorage.setItem(RETURN_KEY,returnUrl);
+    const returnUrl=cleanUrl(window.D2AA_BUNGIE_REDIRECT_URI||location.href);
+    safeSet(STATE_KEY,state);
+    safeSet(RETURN_KEY,returnUrl);
     try{sessionStorage.setItem(RETURN_KEY,returnUrl)}catch(_){}
     const url=new URL(AUTH_URL);
     url.searchParams.set('client_id',CLIENT_ID);
