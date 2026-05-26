@@ -1,6 +1,5 @@
 import { STAT_KEYS, TAGS } from '../constants.js';
 import { detectArmorTuning, tuningBadgeHtml, tuningSummary } from '../data/armor-tuning.js';
-import { ensureTuningStyles } from './grid-v200.js';
 
 let modal;
 let currentRows = [];
@@ -17,7 +16,6 @@ export function openCompareModal(rows, options = {}) {
   onPullGroup = options.onPullGroup || null;
   onPullItem = options.onPullItem || null;
   renderers = options.renderers || {};
-  ensureTuningStyles();
   ensureModal();
   modal.innerHTML = renderModal(currentRows);
   modal.hidden = false;
