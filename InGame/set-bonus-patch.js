@@ -101,12 +101,22 @@ function setBonusLabel(text) {
   return 'Armor Set Bonus';
 }
 
+function ensureStylesheet() {
+  if (document.querySelector('link[data-d2aa-set-bonus-rows]')) return;
+  const link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.href = `./set-bonus-rows.css?t=${window.D2AA_ASSET_STAMP || Date.now().toString(36)}`;
+  link.dataset.d2aaSetBonusRows = 'true';
+  document.head.appendChild(link);
+}
+
 function isExotic(row) { return normal(row?.Rarity) === 'exotic'; }
 function normalizeIcon(value) { const text = String(value || ''); if (!text) return ''; if (text.startsWith('http')) return text; if (text.startsWith('/')) return `https://www.bungie.net${text}`; return text; }
 function normal(value) { return String(value || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, ' '); }
 function h(value) { return String(value ?? '').replace(/[&<>"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[char])); }
 
 function boot() {
+  ensureStylesheet();
   subscribe(scheduleRender);
   scheduleRender();
   const observer = new MutationObserver((mutations) => {
