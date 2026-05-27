@@ -1,5 +1,5 @@
 (() => {
-  const version = new URLSearchParams(location.search).get('v') || '110';
+  const version = new URLSearchParams(location.search).get('v') || '111';
   const withVersion = (path) => `${path}${path.includes('?') ? '&' : '?'}v=${encodeURIComponent(version)}`;
 
   function loadCss(path) {
@@ -10,10 +10,7 @@
       link.rel = 'stylesheet';
       link.href = withVersion(path);
       link.onload = resolve;
-      link.onerror = () => {
-        console.warn('D2AA CSS failed to load:', path);
-        resolve();
-      };
+      link.onerror = () => { console.warn('D2AA CSS failed to load:', path); resolve(); };
       document.head.appendChild(link);
     });
   }
@@ -23,19 +20,16 @@
       const script = document.createElement('script');
       script.src = withVersion(path);
       script.onload = resolve;
-      script.onerror = () => {
-        console.error('D2AA script failed to load:', path);
-        resolve();
-      };
+      script.onerror = () => { console.error('D2AA script failed to load:', path); resolve(); };
       document.body.appendChild(script);
     });
   }
 
   async function run() {
-    // Temporary rollback: source-file loading caused cache autoload/feed/layout regressions.
-    // Load the stable bundled app again while cleanup continues safely in source files.
     await loadCss('src/styles/d2aa-live.css');
+    await loadCss('src/live/d2aa-live-tuning.css');
     await loadScript('src/live/d2aa-live.js');
+    await loadScript('src/live/d2aa-live-tuning.js');
     document.dispatchEvent(new CustomEvent('d2aa:bundle-loaded', { detail: { version } }));
   }
 
