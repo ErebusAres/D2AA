@@ -4,7 +4,6 @@ import { STAT_KEYS } from '../src-clean/constants.js';
 import { detectArmorTuning, tuningTitle } from '../src-clean/data/armor-tuning.js';
 
 let queued = false;
-let lastKnownTuningIcon = '';
 
 function scheduleDecorate() {
   if (queued) return;
@@ -17,21 +16,19 @@ function scheduleDecorate() {
 
 function decorateTuningIcons() {
   const rowsById = new Map((state.rows || []).map((row) => [String(row.Id), row]));
-  document.querySelectorAll('.armor-card[data-id], .compare-card[data-id], .feed-card[data-id]').forEach((card) => {
+  document.querySelectorAll('.armor-card[data-id], .compare-card[data-id]').forEach((card) => {
     const row = rowsById.get(String(card.dataset.id));
     const tuning = detectArmorTuning(row);
-    const capability = tuningCapability(row, tuning);
+    const capability = tuningCapability(tuning);
     card.querySelector('.tuning-title-chip')?.remove();
-    normalizeExistingStatIcons(card);
-    if (!capability.hasActiveBoost || !capability.icon) return;
+    normalizeOldTuningMarkup(card);
+    ensureTuningColumn(card);
+    if (!capability.hasActiveBoost) return;
     decorateBoostedStatRow(card, capability);
   });
 }
 
-function tuningCapability(row, activeTuning) {
-  if (!row) return { hasActiveBoost: false };
-  const activeIcon = activeTuning?.icon || row.TuningIcon || row.TuningIconUrl || row.ArmorTuning?.icon || '';
-  if (activeIcon) lastKnownTuningIcon = normalizeIcon(activeIcon);
+function tuningCapability(activeTuning) {
   const stats = activeTuning?.stats || {};
   const boostedStat = STAT_KEYS.find((statKey) => Number(stats?.[statKey] || 0) > 0);
   if (!boostedStat) return { hasActiveBoost: false };
@@ -39,9 +36,21 @@ function tuningCapability(row, activeTuning) {
     hasActiveBoost: true,
     boostedStat,
     mode: activeTuning?.mode || 'active',
-    stats,
-    icon: normalizeIcon(activeIcon || lastKnownTuningIcon || '')
+    stats
   };
+}
+
+function ensureTuningColumn(card) {
+  card.querySelectorAll(':scope .stat-row').forEach((statRow) => {
+    statRow.classList.add('has-tuning-column');
+    if (statRow.querySelector(':scope > .stat-tuning-slot')) return;
+    const firstIcon = findBaseStatIcon(statRow);
+    const slot = document.createElement('span');
+    slot.className = 'stat-tuning-slot';
+    slot.setAttribute('aria-hidden', 'true');
+    if (firstIcon) statRow.insertBefore(slot, firstIcon);
+    else statRow.prepend(slot);
+  });
 }
 
 function decorateBoostedStatRow(card, capability) {
@@ -49,31 +58,29 @@ function decorateBoostedStatRow(card, capability) {
   const index = STAT_KEYS.indexOf(capability.boostedStat);
   const statRow = statRows[index];
   if (!statRow) return;
-  const statIcon = findBaseStatIcon(statRow);
-  if (!statIcon) return;
-  const host = statIcon.closest('.ingame-tuning-stack') || document.createElement('span');
-  if (!host.classList.contains('ingame-tuning-stack')) {
-    host.className = 'stat-icon-stack ingame-tuning-stack';
-    statIcon.replaceWith(host);
-    host.appendChild(statIcon);
-  }
-  let tuningIcon = host.querySelector(':scope > .tuning-stat-icon');
-  if (!tuningIcon) {
-    tuningIcon = document.createElement('img');
-    host.insertBefore(tuningIcon, statIcon);
-  }
-  tuningIcon.className = `tuning-stat-icon ${capability.mode === 'balanced' ? 'tune-balanced' : 'tune-positive'}`;
-  tuningIcon.src = capability.icon;
-  tuningIcon.alt = '';
-  tuningIcon.loading = 'lazy';
-  tuningIcon.title = tuningTitle(capability, capability.boostedStat);
+  const slot = statRow.querySelector(':scope > .stat-tuning-slot');
+  if (!slot) return;
+  slot.classList.add('is-tuned-stat');
+  slot.removeAttribute('aria-hidden');
+  slot.setAttribute('role', 'img');
+  slot.setAttribute('aria-label', 'Tuned stat');
+  slot.title = tuningTitle(capability, capability.boostedStat);
+  slot.innerHTML = dimTunedStatSvg();
   statRow.classList.add('has-tuning-stat');
-  statRow.title = tuningIcon.title;
+  statRow.title = slot.title;
 }
 
-function normalizeExistingStatIcons(card) {
+function normalizeOldTuningMarkup(card) {
   card.querySelectorAll('.tuning-title-chip').forEach((chip) => chip.remove());
   card.querySelectorAll('.stat-row.has-tuning-stat').forEach((statRow) => statRow.classList.remove('has-tuning-stat'));
+  card.querySelectorAll('.stat-tuning-slot').forEach((slot) => {
+    slot.className = 'stat-tuning-slot';
+    slot.setAttribute('aria-hidden', 'true');
+    slot.removeAttribute('role');
+    slot.removeAttribute('aria-label');
+    slot.removeAttribute('title');
+    slot.innerHTML = '';
+  });
   card.querySelectorAll('.ingame-tuning-stack').forEach((stack) => {
     const baseIcon = stack.querySelector(':scope > img:not(.tuning-stat-icon)');
     stack.querySelectorAll(':scope > .tuning-stat-icon').forEach((icon) => icon.remove());
@@ -83,17 +90,11 @@ function normalizeExistingStatIcons(card) {
 }
 
 function findBaseStatIcon(statRow) {
-  const stacked = statRow.querySelector('.ingame-tuning-stack > img:not(.tuning-stat-icon)');
-  if (stacked) return stacked;
-  return statRow.querySelector('img:not(.tuning-stat-icon):not(.tuning-title-chip img)');
+  return statRow.querySelector(':scope > img:not(.tuning-stat-icon), :scope > .ingame-tuning-stack > img:not(.tuning-stat-icon)');
 }
 
-function normalizeIcon(value) {
-  const text = String(value || '');
-  if (!text) return '';
-  if (text.startsWith('http')) return text;
-  if (text.startsWith('/')) return `https://www.bungie.net${text}`;
-  return text;
+function dimTunedStatSvg() {
+  return '<svg focusable="false" data-prefix="dim" data-icon="dimTunedStat" class="svg-inline--fa fa-dimTunedStat app-icon" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><path fill="currentColor" d="M2,14.25 h28 v3.5 h-28zM2,10.5 l7,-7 l7,7 h-4.5 l-2.5,-2.5 l-2.5,2.5 zM30,21.5 l-7,7 l-7,-7 h4.5 l2.5,2.5 l2.5,-2.5 z"></path></svg>';
 }
 
 function boot() {
