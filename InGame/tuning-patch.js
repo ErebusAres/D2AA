@@ -36,6 +36,8 @@ function tuningCapability(activeTuning) {
     hasActiveBoost: true,
     boostedStat,
     mode: activeTuning?.mode || 'active',
+    name: activeTuning?.name || 'Armor Tuning',
+    icon: activeTuning?.icon || '',
     stats
   };
 }
@@ -60,19 +62,23 @@ function decorateBoostedStatRow(card, capability) {
   if (!statRow) return;
   const slot = statRow.querySelector(':scope > .stat-tuning-slot');
   if (!slot) return;
+  const title = tuningTitle(capability, capability.boostedStat);
   slot.classList.add('is-tuned-stat');
   slot.removeAttribute('aria-hidden');
   slot.setAttribute('role', 'img');
-  slot.setAttribute('aria-label', 'Tuned stat');
-  slot.title = tuningTitle(capability, capability.boostedStat);
-  slot.innerHTML = dimTunedStatSvg();
+  slot.setAttribute('aria-label', title || 'Tuned stat');
+  slot.title = title;
+  slot.innerHTML = capability.icon ? tuningIconImg(capability.icon, title) : '';
   statRow.classList.add('has-tuning-stat');
-  statRow.title = slot.title;
+  statRow.title = title;
 }
 
 function normalizeOldTuningMarkup(card) {
   card.querySelectorAll('.tuning-title-chip').forEach((chip) => chip.remove());
-  card.querySelectorAll('.stat-row.has-tuning-stat').forEach((statRow) => statRow.classList.remove('has-tuning-stat'));
+  card.querySelectorAll('.stat-tuning-marker').forEach((marker) => marker.remove());
+  card.querySelectorAll('.stat-row.has-tuning-stat, .stat-row.has-positive-tuning').forEach((statRow) => {
+    statRow.classList.remove('has-tuning-stat', 'has-positive-tuning');
+  });
   card.querySelectorAll('.stat-tuning-slot').forEach((slot) => {
     slot.className = 'stat-tuning-slot';
     slot.setAttribute('aria-hidden', 'true');
@@ -93,8 +99,12 @@ function findBaseStatIcon(statRow) {
   return statRow.querySelector(':scope > img:not(.tuning-stat-icon), :scope > .ingame-tuning-stack > img:not(.tuning-stat-icon)');
 }
 
-function dimTunedStatSvg() {
-  return '<svg focusable="false" data-prefix="dim" data-icon="dimTunedStat" class="svg-inline--fa fa-dimTunedStat app-icon" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><path fill="currentColor" d="M2,14.25 h28 v3.5 h-28zM2,10.5 l7,-7 l7,7 h-4.5 l-2.5,-2.5 l-2.5,2.5 zM30,21.5 l-7,7 l-7,-7 h4.5 l2.5,2.5 l2.5,-2.5 z"></path></svg>';
+function tuningIconImg(src, title) {
+  return `<img class="real-tuning-stat-icon" src="${escapeAttr(src)}" alt="" title="${escapeAttr(title || 'Armor Tuning')}" loading="lazy">`;
+}
+
+function escapeAttr(value) {
+  return String(value ?? '').replace(/[&<>"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[char]));
 }
 
 function boot() {
