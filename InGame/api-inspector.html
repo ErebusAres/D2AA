@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>D2AA Bungie API Armor Inspector</title>
+  <style>
+    :root { color-scheme: dark; --bg:#080b12; --panel:#111827; --panel2:#172033; --text:#eef3ff; --muted:#9aa7bd; --line:#2a3650; --accent:#c7a34a; --bad:#ff6b6b; --good:#76e39a; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:Inter,system-ui,Segoe UI,Arial,sans-serif; background:radial-gradient(circle at top,#152039,#080b12 55%); color:var(--text); }
+    header { position:sticky; top:0; z-index:2; padding:16px 20px; background:rgba(8,11,18,.92); border-bottom:1px solid var(--line); backdrop-filter: blur(12px); }
+    h1 { margin:0 0 6px; font-size:20px; }
+    p { color:var(--muted); margin:0; line-height:1.45; }
+    main { display:grid; grid-template-columns:minmax(320px,420px) 1fr; gap:16px; padding:16px; }
+    .panel { background:rgba(17,24,39,.9); border:1px solid var(--line); border-radius:14px; box-shadow:0 20px 50px rgba(0,0,0,.24); overflow:hidden; }
+    .controls { display:flex; flex-wrap:wrap; gap:8px; padding:12px; border-bottom:1px solid var(--line); }
+    button, input, select { color:var(--text); background:#0c1220; border:1px solid var(--line); border-radius:10px; padding:9px 11px; }
+    button { cursor:pointer; font-weight:700; }
+    button:hover { border-color:var(--accent); }
+    input { flex:1; min-width:180px; }
+    .status { padding:10px 12px; color:var(--muted); border-bottom:1px solid var(--line); }
+    .list { max-height:calc(100vh - 180px); overflow:auto; }
+    .item { display:grid; grid-template-columns:44px 1fr auto; gap:10px; align-items:center; width:100%; padding:10px 12px; border:0; border-bottom:1px solid rgba(255,255,255,.07); background:transparent; text-align:left; }
+    .item.is-active { background:rgba(199,163,74,.13); }
+    .item img { width:40px; height:40px; border-radius:8px; object-fit:cover; }
+    .item small { display:block; color:var(--muted); margin-top:2px; }
+    .pill { display:inline-flex; align-items:center; gap:4px; border:1px solid var(--line); border-radius:999px; padding:2px 7px; color:var(--muted); font-size:11px; margin:2px 2px 0 0; }
+    .detail { padding:14px; overflow:auto; max-height:calc(100vh - 125px); }
+    .summary { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:8px; margin-bottom:12px; }
+    .box { background:var(--panel2); border:1px solid var(--line); border-radius:12px; padding:10px; }
+    .box b { display:block; font-size:20px; margin-top:4px; }
+    table { width:100%; border-collapse:collapse; margin:10px 0 16px; }
+    th, td { text-align:left; border-bottom:1px solid rgba(255,255,255,.08); padding:7px 6px; font-variant-numeric:tabular-nums; }
+    th { color:var(--muted); font-size:12px; }
+    .pos { color:var(--good); } .neg { color:var(--bad); }
+    .plug { display:grid; grid-template-columns:32px 1fr auto; gap:10px; align-items:center; padding:9px; border:1px solid var(--line); border-radius:12px; margin:8px 0; background:#0c1220; }
+    .plug img { width:30px; height:30px; border-radius:6px; }
+    .plug small { display:block; color:var(--muted); }
+    pre { white-space:pre-wrap; word-break:break-word; background:#060914; border:1px solid var(--line); border-radius:12px; padding:12px; color:#dbe7ff; max-height:360px; overflow:auto; }
+    @media (max-width:900px){ main{grid-template-columns:1fr}.list,.detail{max-height:none} }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>D2AA Bungie API Armor Inspector</h1>
+    <p>Raw armor stat/sockets view. This page is diagnostic only; it does not render or modify the main InGame layout.</p>
+  </header>
+  <main>
+    <section class="panel">
+      <div class="controls">
+        <button id="loginBtn" type="button">Connect Bungie</button>
+        <button id="fetchBtn" type="button">Fetch Armor Data</button>
+        <input id="filterBox" placeholder="filter item name, slot, id" />
+      </div>
+      <div id="status" class="status">Ready.</div>
+      <div id="list" class="list"></div>
+    </section>
+    <section class="panel">
+      <div id="detail" class="detail"><p>Select an armor item after fetching.</p></div>
+    </section>
+  </main>
+  <script type="module" src="./api-inspector.js?v=001"></script>
+</body>
+</html>
