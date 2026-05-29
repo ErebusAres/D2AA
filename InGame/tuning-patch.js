@@ -33,12 +33,12 @@ function tuningCapability(activeTuning) {
   const tunedStats = STAT_KEYS
     .map((statKey) => ({ statKey, value: Number(stats?.[statKey] || 0) }))
     .filter((entry) => entry.value !== 0);
-  if (!tunedStats.length) return { hasTuningStats: false };
+  if (!tunedStats.length || !activeTuning?.icon) return { hasTuningStats: false };
   return {
     hasTuningStats: true,
     mode: activeTuning?.mode || 'active',
     name: activeTuning?.name || 'Armor Tuning',
-    icon: activeTuning?.icon || '',
+    icon: activeTuning.icon,
     stats,
     tunedStats
   };
@@ -66,13 +66,12 @@ function decorateTunedStatRows(card, capability) {
     const slot = statRow.querySelector(':scope > .stat-tuning-slot');
     if (!slot) continue;
     const title = tuningTitle(capability, statKey);
-    const sign = value > 0 ? '+' : '−';
     slot.classList.add('is-tuned-stat', value > 0 ? 'is-tune-positive' : 'is-tune-negative');
     slot.removeAttribute('aria-hidden');
     slot.setAttribute('role', 'img');
     slot.setAttribute('aria-label', title || 'Tuned stat');
     slot.title = title;
-    slot.innerHTML = capability.icon ? tuningIconImg(capability.icon, title, sign, value) : tuningSignFallback(sign, title, value);
+    slot.innerHTML = tuningIconImg(capability.icon, title, value);
     statRow.classList.add('has-tuning-stat', value > 0 ? 'has-positive-tuning-stat' : 'has-negative-tuning-stat');
     statRow.title = title;
   }
@@ -104,14 +103,9 @@ function findBaseStatIcon(statRow) {
   return statRow.querySelector(':scope > img:not(.tuning-stat-icon), :scope > .ingame-tuning-stack > img:not(.tuning-stat-icon)');
 }
 
-function tuningIconImg(src, title, sign, value) {
+function tuningIconImg(src, title, value) {
   const tuneClass = Number(value) > 0 ? 'tune-positive' : 'tune-negative';
-  return `<span class="real-tuning-icon-wrap ${tuneClass}"><img class="real-tuning-stat-icon" src="${escapeAttr(src)}" alt="" title="${escapeAttr(title || 'Armor Tuning')}" loading="lazy"><b>${escapeAttr(sign)}</b></span>`;
-}
-
-function tuningSignFallback(sign, title, value) {
-  const tuneClass = Number(value) > 0 ? 'tune-positive' : 'tune-negative';
-  return `<span class="real-tuning-icon-wrap ${tuneClass}" title="${escapeAttr(title || 'Armor Tuning')}"><b>${escapeAttr(sign)}</b></span>`;
+  return `<img class="real-tuning-stat-icon ${tuneClass}" src="${escapeAttr(src)}" alt="" title="${escapeAttr(title || 'Armor Tuning')}" loading="lazy">`;
 }
 
 function escapeAttr(value) {
