@@ -103,19 +103,25 @@ document.write(`<link rel="stylesheet" href="./set-bonus-rows.css?t=${window.D2A
       <h2>Display</h2>
       <div class="display-list">
         <label class="display-toggle"><span>Show equipped</span><input id="showEquipped" type="checkbox" checked /></label>
-        <label class="display-toggle"><span>Show vaulted</span><input id="showVault" type="checkbox" checked /></label>
+        <label class="display-toggle"><span>Show vault</span><input id="showVault" type="checkbox" checked /></label>
         <label class="display-toggle"><span>Show inventory</span><input id="showInventory" type="checkbox" checked /></label>
+        <label class="display-toggle"><span>Show locked</span><input id="showLocked" type="checkbox" checked /></label>
+        <label class="display-toggle"><span>Only new items</span><input id="onlyNewItems" type="checkbox" /></label>
         <label class="display-toggle"><span>Only grouped items</span><input id="onlyGroupedItems" type="checkbox" /></label>
+        <label class="display-toggle"><span>Only same-name exact-stat groups</span><input id="onlySameNameStatGroups" type="checkbox" /></label>
       </div>
     </section>
   </aside>
 
-  <main class="workspace" id="workspace">
-    <div class="active-chips" id="activeChips"></div>
-    <section id="gridView" class="slot-board"></section>
-    <section id="tableView" hidden></section>
-    <table hidden><tbody id="tableBody"></tbody></table>
-    <div id="emptyState" class="empty-state"><h2>No armor loaded yet.</h2><p>Sign in with Bungie, then Sync Armor. This prototype is Bungie-first and keeps the DIM CSV path hidden.</p></div>
+  <section class="summary-strip" aria-label="Inventory summary">
+    <span>Shown<strong id="summaryShown">0</strong></span><span>Cached<strong id="summaryCached">0</strong></span><span>Groups<strong id="summaryGroups">0</strong></span><span>New<strong id="summaryRecent">0</strong></span><span>Class<strong id="summaryClasses">All</strong></span>
+  </section>
+  <div class="active-chips" id="activeChips"></div>
+
+  <main>
+    <section id="gridView" class="slot-stack"></section>
+    <section id="emptyState" class="empty-state"><h2>No armor loaded</h2><p>Sign in with Bungie or restore a cache to populate the in-game analyzer.</p></section>
+    <section id="tableView" class="table-view" hidden><table><tbody id="tableBody"></tbody></table></section>
   </main>
 
   <aside class="item-feed is-open" id="itemFeed">
@@ -127,6 +133,7 @@ document.write(`<link rel="stylesheet" href="./set-bonus-rows.css?t=${window.D2A
 const assetStamp=window.D2AA_ASSET_STAMP||Date.now().toString(36);
 await import(`./ingame.js?t=${assetStamp}`);
 await import(`./ingame-fixes.js?t=${assetStamp}`);
+await import(`./stat-base-patch.js?t=${assetStamp}`);
 await import(`./stable-dom-fixes.js?t=${assetStamp}`);
 await import(`./status-line.js?t=${assetStamp}`);
 await import(`../src-clean/bungie-wire.js?t=${assetStamp}`);
