@@ -13,6 +13,32 @@ const BONUS_TYPES = ['Masterwork', 'Mod', 'Artifice', 'Other'];
 let queued = false;
 let applying = false;
 
+function installFeedLayoutGuard() {
+  if (document.getElementById('d2aa-feed-layout-guard')) return;
+  const style = document.createElement('style');
+  style.id = 'd2aa-feed-layout-guard';
+  style.textContent = `
+    @media (min-width: 1100px) {
+      body:has(.item-feed.is-open) main,
+      body.feed-open main {
+        padding-right: 364px !important;
+      }
+      body:has(.item-feed.is-open) .slot-heading,
+      body.feed-open .slot-heading,
+      body:has(.item-feed.is-open) .active-chips,
+      body.feed-open .active-chips {
+        margin-right: 364px !important;
+      }
+    }
+    @media (max-width: 1099px) {
+      main { padding-right: 12px !important; }
+      .slot-heading, .active-chips { margin-right: 0 !important; }
+      .item-feed.is-open { max-width: min(340px, 86vw) !important; }
+    }
+  `;
+  document.head.appendChild(style);
+}
+
 function scheduleCorrection() {
   if (queued || applying) return;
   queued = true;
@@ -149,6 +175,7 @@ function emptyStats() { return Object.fromEntries(STAT_KEYS.map((key) => [key, 0
 function totalOf(stats) { return STAT_KEYS.reduce((sum, key) => sum + number(stats?.[key]), 0); }
 function number(value) { const n = Number(String(value ?? '').replace(/[^0-9.-]/g, '')); return Number.isFinite(n) ? n : 0; }
 
+installFeedLayoutGuard();
 subscribe((_, detail = {}) => {
   if (!detail.statusOnly) scheduleCorrection();
 });
