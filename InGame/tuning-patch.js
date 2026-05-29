@@ -23,22 +23,24 @@ function decorateTuningIcons() {
     card.querySelector('.tuning-title-chip')?.remove();
     normalizeOldTuningMarkup(card);
     ensureTuningColumn(card);
-    if (!capability.hasActiveBoost) return;
-    decorateBoostedStatRow(card, capability);
+    if (!capability.hasTuningStats) return;
+    decorateTunedStatRows(card, capability);
   });
 }
 
 function tuningCapability(activeTuning) {
   const stats = activeTuning?.stats || {};
-  const boostedStat = STAT_KEYS.find((statKey) => Number(stats?.[statKey] || 0) > 0);
-  if (!boostedStat) return { hasActiveBoost: false };
+  const tunedStats = STAT_KEYS
+    .map((statKey) => ({ statKey, value: Number(stats?.[statKey] || 0) }))
+    .filter((entry) => entry.value !== 0);
+  if (!tunedStats.length) return { hasTuningStats: false };
   return {
-    hasActiveBoost: true,
-    boostedStat,
+    hasTuningStats: true,
     mode: activeTuning?.mode || 'active',
     name: activeTuning?.name || 'Armor Tuning',
     icon: activeTuning?.icon || '',
-    stats
+    stats,
+    tunedStats
   };
 }
 
@@ -55,29 +57,32 @@ function ensureTuningColumn(card) {
   });
 }
 
-function decorateBoostedStatRow(card, capability) {
+function decorateTunedStatRows(card, capability) {
   const statRows = Array.from(card.querySelectorAll(':scope .stat-row'));
-  const index = STAT_KEYS.indexOf(capability.boostedStat);
-  const statRow = statRows[index];
-  if (!statRow) return;
-  const slot = statRow.querySelector(':scope > .stat-tuning-slot');
-  if (!slot) return;
-  const title = tuningTitle(capability, capability.boostedStat);
-  slot.classList.add('is-tuned-stat');
-  slot.removeAttribute('aria-hidden');
-  slot.setAttribute('role', 'img');
-  slot.setAttribute('aria-label', title || 'Tuned stat');
-  slot.title = title;
-  slot.innerHTML = capability.icon ? tuningIconImg(capability.icon, title) : '';
-  statRow.classList.add('has-tuning-stat');
-  statRow.title = title;
+  for (const { statKey, value } of capability.tunedStats) {
+    const index = STAT_KEYS.indexOf(statKey);
+    const statRow = statRows[index];
+    if (!statRow) continue;
+    const slot = statRow.querySelector(':scope > .stat-tuning-slot');
+    if (!slot) continue;
+    const title = tuningTitle(capability, statKey);
+    const sign = value > 0 ? '+' : '−';
+    slot.classList.add('is-tuned-stat', value > 0 ? 'is-tune-positive' : 'is-tune-negative');
+    slot.removeAttribute('aria-hidden');
+    slot.setAttribute('role', 'img');
+    slot.setAttribute('aria-label', title || 'Tuned stat');
+    slot.title = title;
+    slot.innerHTML = capability.icon ? tuningIconImg(capability.icon, title, sign, value) : tuningSignFallback(sign, title, value);
+    statRow.classList.add('has-tuning-stat', value > 0 ? 'has-positive-tuning-stat' : 'has-negative-tuning-stat');
+    statRow.title = title;
+  }
 }
 
 function normalizeOldTuningMarkup(card) {
   card.querySelectorAll('.tuning-title-chip').forEach((chip) => chip.remove());
   card.querySelectorAll('.stat-tuning-marker').forEach((marker) => marker.remove());
-  card.querySelectorAll('.stat-row.has-tuning-stat, .stat-row.has-positive-tuning').forEach((statRow) => {
-    statRow.classList.remove('has-tuning-stat', 'has-positive-tuning');
+  card.querySelectorAll('.stat-row.has-tuning-stat, .stat-row.has-positive-tuning, .stat-row.has-positive-tuning-stat, .stat-row.has-negative-tuning-stat').forEach((statRow) => {
+    statRow.classList.remove('has-tuning-stat', 'has-positive-tuning', 'has-positive-tuning-stat', 'has-negative-tuning-stat');
   });
   card.querySelectorAll('.stat-tuning-slot').forEach((slot) => {
     slot.className = 'stat-tuning-slot';
@@ -99,8 +104,14 @@ function findBaseStatIcon(statRow) {
   return statRow.querySelector(':scope > img:not(.tuning-stat-icon), :scope > .ingame-tuning-stack > img:not(.tuning-stat-icon)');
 }
 
-function tuningIconImg(src, title) {
-  return `<img class="real-tuning-stat-icon" src="${escapeAttr(src)}" alt="" title="${escapeAttr(title || 'Armor Tuning')}" loading="lazy">`;
+function tuningIconImg(src, title, sign, value) {
+  const tuneClass = Number(value) > 0 ? 'tune-positive' : 'tune-negative';
+  return `<span class="real-tuning-icon-wrap ${tuneClass}"><img class="real-tuning-stat-icon" src="${escapeAttr(src)}" alt="" title="${escapeAttr(title || 'Armor Tuning')}" loading="lazy"><b>${escapeAttr(sign)}</b></span>`;
+}
+
+function tuningSignFallback(sign, title, value) {
+  const tuneClass = Number(value) > 0 ? 'tune-positive' : 'tune-negative';
+  return `<span class="real-tuning-icon-wrap ${tuneClass}" title="${escapeAttr(title || 'Armor Tuning')}"><b>${escapeAttr(sign)}</b></span>`;
 }
 
 function escapeAttr(value) {
