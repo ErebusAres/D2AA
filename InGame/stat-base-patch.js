@@ -1,3 +1,4 @@
+import './debug-helper.js';
 import { state, setState, subscribe } from '../src-clean/state.js';
 import { STAT_KEYS } from '../src-clean/constants.js';
 
@@ -61,29 +62,30 @@ function correctRowsFromApiAudit() {
 }
 
 function buildApiAuditedRow(row) {
-  if (!row || row.__d2aaApiAuditBreakdown === 'v1') return row;
+  if (!row || row.__d2aaApiAuditBreakdown === 'v2') return row;
   const current = currentStats(row);
   const currentTotal = totalOf(current);
-  if (!currentTotal) return { ...row, __d2aaApiAuditBreakdown: 'v1' };
+  if (!currentTotal) return { ...row, __d2aaApiAuditBreakdown: 'v2' };
 
   const audit = auditActivePlugBonuses(row);
-  const positiveTotals = sumPositiveTotals(audit.breakdown);
-  let base = subtractStats(current, positiveTotals);
-  let baseSource = 'BungieInstanceStatsMinusPositiveActivePlugStats';
+  let base = activeArmorStatsBase(row);
+  let baseSource = 'ActiveArmorStatsSockets';
 
-  const definitionBase = definitionStats(row);
-  const definitionTotal = totalOf(definitionBase);
-  if (definitionTotal > 0 && definitionTotal <= 75) {
-    const derivedTotal = totalOf(base);
-    const definitionBonusTotal = currentTotal - definitionTotal;
-    const positiveBonusTotal = totalOf(positiveTotals);
-    if (derivedTotal > 75 || Math.abs(definitionBonusTotal - positiveBonusTotal) <= 5) {
+  if (!validBaseTotal(totalOf(base))) {
+    const definitionBase = definitionStats(row);
+    const definitionTotal = totalOf(definitionBase);
+    if (validBaseTotal(definitionTotal)) {
       base = definitionBase;
       baseSource = 'BungieDefinitionStats';
+    } else {
+      const positiveTotals = sumPositiveTotals(audit.breakdown);
+      base = subtractStats(current, positiveTotals);
+      baseSource = 'BungieInstanceStatsMinusPositiveActivePlugStats';
     }
   }
 
-  const next = { ...row, __d2aaApiAuditBreakdown: 'v1' };
+  const fittedBreakdown = fitBonusBreakdownToCurrent(base, current, audit.breakdown);
+  const next = { ...row, __d2aaApiAuditBreakdown: 'v2' };
   for (const key of STAT_KEYS) {
     const baseValue = Math.max(0, number(base[key]));
     const currentValue = Math.max(0, number(current[key]));
@@ -95,7 +97,7 @@ function buildApiAuditedRow(row) {
 
   for (const type of BONUS_TYPES) {
     const lower = type.toLowerCase();
-    for (const key of STAT_KEYS) next[`${type}Bonus${key}`] = number(audit.breakdown[lower]?.[key]);
+    for (const key of STAT_KEYS) next[`${type}Bonus${key}`] = number(fittedBreakdown[lower]?.[key]);
     next[`${type}BonusTotal`] = STAT_KEYS.reduce((sum, key) => sum + number(next[`${type}Bonus${key}`]), 0);
   }
 
@@ -106,11 +108,60 @@ function buildApiAuditedRow(row) {
   next.StatSource = baseSource;
   next.StatAudit = {
     ...(row.StatAudit || {}),
-    apiAuditBreakdown: audit.breakdown,
+    apiAuditBreakdown: fittedBreakdown,
+    apiAuditRawBreakdown: audit.breakdown,
     apiAuditIgnoredPlugs: audit.ignoredPlugs,
-    apiAuditBaseSource: baseSource
+    apiAuditBaseSource: baseSource,
+    apiAuditArmorStatsBase: activeArmorStatsBase(row)
   };
   return next;
+}
+
+function activeArmorStatsBase(row) {
+  const out = emptyStats();
+  for (const plug of row.StatAudit?.activePlugs || []) {
+    if (!isArmorStatsPlug(plug)) continue;
+    const stats = signedStatsForPlugAudit(plug);
+    for (const key of STAT_KEYS) out[key] += Math.max(0, number(stats[key]));
+  }
+  return out;
+}
+
+function isArmorStatsPlug(plug) {
+  return normalize(plug?.category || '') === 'armor stats';
+}
+
+function validBaseTotal(total) {
+  return total > 0 && total <= 75;
+}
+
+function fitBonusBreakdownToCurrent(base, current, rawBreakdown) {
+  const fitted = emptyBreakdown();
+  const remaining = emptyStats();
+  for (const key of STAT_KEYS) remaining[key] = Math.max(0, number(current[key]) - number(base[key]));
+
+  for (const type of ['mod', 'artifice', 'other']) {
+    for (const key of STAT_KEYS) {
+      const value = Math.min(remaining[key], Math.max(0, number(rawBreakdown[type]?.[key])));
+      fitted[type][key] = value;
+      remaining[key] -= value;
+    }
+  }
+
+  for (const key of STAT_KEYS) {
+    const rawMasterwork = Math.max(0, number(rawBreakdown.masterwork?.[key]));
+    const value = Math.min(remaining[key], rawMasterwork || remaining[key]);
+    fitted.masterwork[key] = value;
+    remaining[key] -= value;
+  }
+
+  for (const key of STAT_KEYS) {
+    if (remaining[key] <= 0) continue;
+    fitted.other[key] += remaining[key];
+    remaining[key] = 0;
+  }
+
+  return fitted;
 }
 
 function auditActivePlugBonuses(row) {
@@ -120,6 +171,10 @@ function auditActivePlugBonuses(row) {
     const signed = signedStatsForPlugAudit(plug);
     if (!absoluteTotalOf(signed)) continue;
     const text = normalizedPlugText(plug);
+    if (isArmorStatsPlug(plug)) {
+      ignoredPlugs.push(ignoredPlug(plug, 'base-armor-stats'));
+      continue;
+    }
     if (isArchetypePlug(plug, text)) {
       ignoredPlugs.push(ignoredPlug(plug, 'archetype'));
       continue;
@@ -129,10 +184,9 @@ function auditActivePlugBonuses(row) {
       ignoredPlugs.push(ignoredPlug(plug, 'not-stat-bonus-socket'));
       continue;
     }
-    const positive = positiveStatsOnly(type === 'masterwork' ? masterworkStatsForAuditPlug(plug, signed) : signed);
+    const positive = positiveStatsOnly(signed);
     for (const key of STAT_KEYS) breakdown[type][key] += number(positive[key]);
   }
-  if (totalOf(breakdown.masterwork) > 10) capMasterworkBreakdown(breakdown.masterwork);
   return { breakdown, ignoredPlugs };
 }
 
@@ -140,28 +194,12 @@ function bonusTypeForAuditPlug(plug, text, signed) {
   const hasPositive = STAT_KEYS.some((key) => number(signed[key]) > 0);
   const hasNegative = STAT_KEYS.some((key) => number(signed[key]) < 0);
   const maxAbs = Math.max(0, ...STAT_KEYS.map((key) => Math.abs(number(signed[key]))));
-  if (text.includes('masterwork')) return 'masterwork';
+  if (text.includes('masterwork') || text.includes('upgrade armor') || normalize(plug?.category || '').includes('armor masterworks')) return 'masterwork';
   if (text.includes('artifice')) return 'artifice';
   if (text.includes('armor mod') || text.includes('armor mods') || text.includes('mod socket') || text.includes('stat mod')) return 'mod';
   if ((text.includes('tuning') || text.includes('tuned') || text.includes('attunement')) && hasPositive) return 'other';
   if (hasPositive && hasNegative && maxAbs <= 5) return 'other';
   return '';
-}
-
-function masterworkStatsForAuditPlug(plug, signed) {
-  const positive = positiveStatsOnly(signed);
-  const total = totalOf(positive);
-  if (total <= 10) return positive;
-  const target = columnFromPlugText(plug) || largestStatKey(positive);
-  const out = emptyStats();
-  if (target) out[target] = 10;
-  return out;
-}
-
-function capMasterworkBreakdown(stats) {
-  const target = largestStatKey(stats);
-  for (const key of STAT_KEYS) stats[key] = 0;
-  if (target) stats[target] = 10;
 }
 
 function signedStatsForPlugAudit(plug) {
@@ -214,17 +252,6 @@ function positiveStatsOnly(stats) {
   return out;
 }
 
-function columnFromPlugText(plug) {
-  const text = normalizedPlugText(plug);
-  if (text.includes('health') || text.includes('resilience')) return 'Health';
-  if (text.includes('melee') || text.includes('strength')) return 'Melee';
-  if (text.includes('grenade') || text.includes('discipline')) return 'Grenade';
-  if (text.includes('super') || text.includes('intellect')) return 'Super';
-  if (text.includes('class') || text.includes('mobility')) return 'ClassAbility';
-  if (text.includes('weapon') || text.includes('recovery')) return 'Weapon';
-  return '';
-}
-
 function normalizedPlugText(plug) {
   return normalize(`${plug?.name || ''} ${plug?.description || ''} ${plug?.type || ''} ${plug?.category || ''}`);
 }
@@ -242,10 +269,6 @@ function keyFromHash(hash) {
   const raw = Number(hash);
   if (!Number.isFinite(raw)) return '';
   return STAT_HASH_TO_KEY[raw >>> 0] || STAT_HASH_TO_KEY[raw | 0] || '';
-}
-
-function largestStatKey(stats) {
-  return STAT_KEYS.reduce((best, key) => number(stats[key]) > number(stats[best]) ? key : best, STAT_KEYS[0]);
 }
 
 function emptyStats() { return Object.fromEntries(STAT_KEYS.map((key) => [key, 0])); }
