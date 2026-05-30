@@ -10,6 +10,7 @@ const STAT_HASH_TO_KEY = {
   1943323491: 'Weapon'
 };
 const BONUS_TYPES = ['Masterwork', 'Mod', 'Artifice', 'Other'];
+const MAX_ARMOR_BASE_TOTAL = 75;
 let queued = false;
 let applying = false;
 
@@ -50,6 +51,7 @@ function correctRows() {
   const rows = state.rows.map((row) => {
     let corrected = correctTuningNegativeBase(row);
     corrected = correctRowFromDefinitionStats(corrected);
+    corrected = normalizeOvercapBaseTotal(corrected);
     if (corrected !== row) changed = true;
     return corrected;
   });
@@ -84,9 +86,7 @@ function correctTuningNegativeBase(row) {
           changed = true;
         }
       }
-      if (value > 0) {
-        ensurePositiveDisplayedBonus(next, key, value);
-      }
+      if (value > 0) ensurePositiveDisplayedBonus(next, key, value);
     }
   }
 
@@ -100,7 +100,7 @@ function correctRowFromDefinitionStats(row) {
   if (!row || row.__d2aaDefinitionBaseCorrected) return row;
   const definitionBase = definitionStats(row);
   const definitionTotal = totalOf(definitionBase);
-  if (definitionTotal <= 0 || definitionTotal > 75) return row;
+  if (definitionTotal <= 0 || definitionTotal > MAX_ARMOR_BASE_TOTAL) return row;
 
   const current = currentStats(row);
   const currentTotal = totalOf(current);
@@ -127,6 +127,64 @@ function correctRowFromDefinitionStats(row) {
 
   reconcileDisplayedBonusTotals(next, row, currentTotal - definitionTotal);
   return next;
+}
+
+function normalizeOvercapBaseTotal(row) {
+  if (!row || row.__d2aaOvercapBaseNormalized) return row;
+  const baseTotal = STAT_KEYS.reduce((sum, key) => sum + number(row[`Base${key}`] ?? row[key]), 0);
+  if (baseTotal <= MAX_ARMOR_BASE_TOTAL) return { ...row, __d2aaOvercapBaseNormalized: true };
+
+  const next = { ...row, __d2aaOvercapBaseNormalized: true };
+  let surplus = baseTotal - MAX_ARMOR_BASE_TOTAL;
+  const reduceOrder = overcapReductionOrder(next);
+
+  for (const key of reduceOrder) {
+    if (surplus <= 0) break;
+    const current = number(next[`Current${key}`] ?? next[key]);
+    const base = number(next[`Base${key}`] ?? next[key]);
+    if (base <= 0) continue;
+    const preferredDrop = Math.max(0, base - current);
+    const fallbackDrop = preferredDrop || base;
+    const drop = Math.min(surplus, fallbackDrop);
+    next[`Base${key}`] = base - drop;
+    next[key] = base - drop;
+    next[`StatBonus${key}`] = current - (base - drop);
+    if (preferredDrop) zeroNegativeDisplayedBonus(next, key);
+    surplus -= drop;
+  }
+
+  if (surplus > 0) {
+    for (const key of STAT_KEYS) {
+      if (surplus <= 0) break;
+      const current = number(next[`Current${key}`] ?? next[key]);
+      const base = number(next[`Base${key}`] ?? next[key]);
+      const drop = Math.min(surplus, base);
+      next[`Base${key}`] = base - drop;
+      next[key] = base - drop;
+      next[`StatBonus${key}`] = current - (base - drop);
+      surplus -= drop;
+    }
+  }
+
+  recomputeTotals(next);
+  reconcileDisplayedBonusTotals(next, next, next.CurrentTotal - next.BaseTotal);
+  next.StatSource = `${row.StatSource || 'Bungie'}+OvercapBaseNormalize`;
+  return next;
+}
+
+function overcapReductionOrder(row) {
+  const tuningNegatives = [];
+  for (const plug of activeTuningPlugs(row)) {
+    const signed = signedStatsForPlugAudit(plug);
+    for (const key of STAT_KEYS) if (number(signed[key]) < 0 && !tuningNegatives.includes(key)) tuningNegatives.push(key);
+  }
+  const baseAboveCurrent = STAT_KEYS
+    .filter((key) => number(row[`Base${key}`] ?? row[key]) > number(row[`Current${key}`] ?? row[key]) && !tuningNegatives.includes(key))
+    .sort((a, b) => (number(row[`Base${b}`] ?? row[b]) - number(row[`Current${b}`] ?? row[b])) - (number(row[`Base${a}`] ?? row[a]) - number(row[`Current${a}`] ?? row[a])));
+  const largestBase = STAT_KEYS
+    .filter((key) => !tuningNegatives.includes(key) && !baseAboveCurrent.includes(key))
+    .sort((a, b) => number(row[`Base${b}`] ?? row[b]) - number(row[`Base${a}`] ?? row[a]));
+  return [...tuningNegatives, ...baseAboveCurrent, ...largestBase];
 }
 
 function activeTuningPlugs(row) {
@@ -165,8 +223,7 @@ function reconcileDisplayedBonusTotals(next, original, desiredSignedBonusTotal) 
   const remainder = desiredSignedBonusTotal - existingSignedTypeTotal;
   if (remainder) {
     const tunedKey = positiveTunedStatKey(original) || largestPositiveBonusKey(next) || largestCurrentGainKey(next);
-    const targetType = positiveTunedStatKey(original) ? 'Other' : 'Other';
-    next[`${targetType}Bonus${tunedKey}`] = number(next[`${targetType}Bonus${tunedKey}`]) + remainder;
+    next[`OtherBonus${tunedKey}`] = number(next[`OtherBonus${tunedKey}`]) + remainder;
   }
 
   recomputeTypeTotals(next);
