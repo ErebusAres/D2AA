@@ -10,7 +10,8 @@ const STAT_HASH_TO_KEY = {
   1943323491: 'Weapon'
 };
 const BONUS_TYPES = ['Masterwork', 'Mod', 'Artifice', 'Other'];
-const MAX_ARMOR_BASE_TOTAL = 75;
+const BONUS_TYPE_KEYS = ['masterwork', 'mod', 'artifice', 'other'];
+const ARCHETYPE_NAMES = new Set(['paragon', 'grenadier', 'specialist', 'brawler', 'bulwark', 'gunner']);
 let queued = false;
 let applying = false;
 
@@ -36,24 +37,22 @@ function installFeedLayoutGuard() {
   document.head.appendChild(style);
 }
 
-function scheduleCorrection() {
+function scheduleAuditCorrection() {
   if (queued || applying) return;
   queued = true;
   requestAnimationFrame(() => {
     queued = false;
-    correctRows();
+    correctRowsFromApiAudit();
   });
 }
 
-function correctRows() {
+function correctRowsFromApiAudit() {
   if (applying || !Array.isArray(state.rows) || !state.rows.length) return;
   let changed = false;
   const rows = state.rows.map((row) => {
-    let corrected = correctTuningNegativeBase(row);
-    corrected = correctRowFromDefinitionStats(corrected);
-    corrected = normalizeOvercapBaseTotal(corrected);
-    if (corrected !== row) changed = true;
-    return corrected;
+    const next = buildApiAuditedRow(row);
+    if (next !== row) changed = true;
+    return next;
   });
   if (!changed) return;
   applying = true;
@@ -61,182 +60,108 @@ function correctRows() {
   applying = false;
 }
 
-function correctTuningNegativeBase(row) {
-  if (!row || row.__d2aaTuningNegativeBaseCorrected) return row;
-  const tuningPlugs = activeTuningPlugs(row);
-  if (!tuningPlugs.length) return { ...row, __d2aaTuningNegativeBaseCorrected: true };
-
-  const next = { ...row, __d2aaTuningNegativeBaseCorrected: true };
-  let changed = false;
-
-  for (const plug of tuningPlugs) {
-    const signed = signedStatsForPlugAudit(plug);
-    for (const key of STAT_KEYS) {
-      const value = number(signed[key]);
-      if (!value) continue;
-      if (value < 0) {
-        const current = number(next[`Current${key}`] ?? next[key]);
-        const base = number(next[`Base${key}`] ?? next[key]);
-        const correctedBase = Math.max(0, Math.min(base, current));
-        if (correctedBase !== base) {
-          next[key] = correctedBase;
-          next[`Base${key}`] = correctedBase;
-          next[`StatBonus${key}`] = current - correctedBase;
-          zeroNegativeDisplayedBonus(next, key);
-          changed = true;
-        }
-      }
-      if (value > 0) ensurePositiveDisplayedBonus(next, key, value);
-    }
-  }
-
-  if (!changed) return next;
-  recomputeTotals(next);
-  next.StatSource = `${row.StatSource || 'Bungie'}+TuningNegativeBasePatch`;
-  return next;
-}
-
-function correctRowFromDefinitionStats(row) {
-  if (!row || row.__d2aaDefinitionBaseCorrected) return row;
-  const definitionBase = definitionStats(row);
-  const definitionTotal = totalOf(definitionBase);
-  if (definitionTotal <= 0 || definitionTotal > MAX_ARMOR_BASE_TOTAL) return row;
-
+function buildApiAuditedRow(row) {
+  if (!row || row.__d2aaApiAuditBreakdown === 'v1') return row;
   const current = currentStats(row);
   const currentTotal = totalOf(current);
-  if (currentTotal < definitionTotal || currentTotal - definitionTotal > 45) return row;
+  if (!currentTotal) return { ...row, __d2aaApiAuditBreakdown: 'v1' };
 
-  const existingBaseTotal = number(row.BaseTotal || row.Total || 0);
-  if (existingBaseTotal === definitionTotal) return { ...row, __d2aaDefinitionBaseCorrected: true };
+  const audit = auditActivePlugBonuses(row);
+  const positiveTotals = sumPositiveTotals(audit.breakdown);
+  let base = subtractStats(current, positiveTotals);
+  let baseSource = 'BungieInstanceStatsMinusPositiveActivePlugStats';
 
-  const next = { ...row, __d2aaDefinitionBaseCorrected: true };
-  for (const key of STAT_KEYS) {
-    const base = Math.max(0, number(definitionBase[key]));
-    const cur = Math.max(0, number(current[key]));
-    next[key] = base;
-    next[`Base${key}`] = base;
-    next[`Current${key}`] = cur;
-    next[`StatBonus${key}`] = cur - base;
-  }
-
-  next.Total = definitionTotal;
-  next.BaseTotal = definitionTotal;
-  next.CurrentTotal = currentTotal;
-  next.StatBonusTotal = currentTotal - definitionTotal;
-  next.StatSource = `${row.StatSource || 'Bungie'}+DefinitionBasePatch`;
-
-  reconcileDisplayedBonusTotals(next, row, currentTotal - definitionTotal);
-  return next;
-}
-
-function normalizeOvercapBaseTotal(row) {
-  if (!row || row.__d2aaOvercapBaseNormalized) return row;
-  const baseTotal = STAT_KEYS.reduce((sum, key) => sum + number(row[`Base${key}`] ?? row[key]), 0);
-  if (baseTotal <= MAX_ARMOR_BASE_TOTAL) return { ...row, __d2aaOvercapBaseNormalized: true };
-
-  const next = { ...row, __d2aaOvercapBaseNormalized: true };
-  let surplus = baseTotal - MAX_ARMOR_BASE_TOTAL;
-  const reduceOrder = overcapReductionOrder(next);
-
-  for (const key of reduceOrder) {
-    if (surplus <= 0) break;
-    const current = number(next[`Current${key}`] ?? next[key]);
-    const base = number(next[`Base${key}`] ?? next[key]);
-    if (base <= 0) continue;
-    const preferredDrop = Math.max(0, base - current);
-    const fallbackDrop = preferredDrop || base;
-    const drop = Math.min(surplus, fallbackDrop);
-    next[`Base${key}`] = base - drop;
-    next[key] = base - drop;
-    next[`StatBonus${key}`] = current - (base - drop);
-    if (preferredDrop) zeroNegativeDisplayedBonus(next, key);
-    surplus -= drop;
-  }
-
-  if (surplus > 0) {
-    for (const key of STAT_KEYS) {
-      if (surplus <= 0) break;
-      const current = number(next[`Current${key}`] ?? next[key]);
-      const base = number(next[`Base${key}`] ?? next[key]);
-      const drop = Math.min(surplus, base);
-      next[`Base${key}`] = base - drop;
-      next[key] = base - drop;
-      next[`StatBonus${key}`] = current - (base - drop);
-      surplus -= drop;
+  const definitionBase = definitionStats(row);
+  const definitionTotal = totalOf(definitionBase);
+  if (definitionTotal > 0 && definitionTotal <= 75) {
+    const derivedTotal = totalOf(base);
+    const definitionBonusTotal = currentTotal - definitionTotal;
+    const positiveBonusTotal = totalOf(positiveTotals);
+    if (derivedTotal > 75 || Math.abs(definitionBonusTotal - positiveBonusTotal) <= 5) {
+      base = definitionBase;
+      baseSource = 'BungieDefinitionStats';
     }
   }
 
-  recomputeTotals(next);
-  reconcileDisplayedBonusTotals(next, next, next.CurrentTotal - next.BaseTotal);
-  next.StatSource = `${row.StatSource || 'Bungie'}+OvercapBaseNormalize`;
+  const next = { ...row, __d2aaApiAuditBreakdown: 'v1' };
+  for (const key of STAT_KEYS) {
+    const baseValue = Math.max(0, number(base[key]));
+    const currentValue = Math.max(0, number(current[key]));
+    next[key] = baseValue;
+    next[`Base${key}`] = baseValue;
+    next[`Current${key}`] = currentValue;
+    next[`StatBonus${key}`] = currentValue - baseValue;
+  }
+
+  for (const type of BONUS_TYPES) {
+    const lower = type.toLowerCase();
+    for (const key of STAT_KEYS) next[`${type}Bonus${key}`] = number(audit.breakdown[lower]?.[key]);
+    next[`${type}BonusTotal`] = STAT_KEYS.reduce((sum, key) => sum + number(next[`${type}Bonus${key}`]), 0);
+  }
+
+  next.Total = totalOf(base);
+  next.BaseTotal = next.Total;
+  next.CurrentTotal = currentTotal;
+  next.StatBonusTotal = next.CurrentTotal - next.BaseTotal;
+  next.StatSource = baseSource;
+  next.StatAudit = {
+    ...(row.StatAudit || {}),
+    apiAuditBreakdown: audit.breakdown,
+    apiAuditIgnoredPlugs: audit.ignoredPlugs,
+    apiAuditBaseSource: baseSource
+  };
   return next;
 }
 
-function overcapReductionOrder(row) {
-  const tuningNegatives = [];
-  for (const plug of activeTuningPlugs(row)) {
-    const signed = signedStatsForPlugAudit(plug);
-    for (const key of STAT_KEYS) if (number(signed[key]) < 0 && !tuningNegatives.includes(key)) tuningNegatives.push(key);
-  }
-  const baseAboveCurrent = STAT_KEYS
-    .filter((key) => number(row[`Base${key}`] ?? row[key]) > number(row[`Current${key}`] ?? row[key]) && !tuningNegatives.includes(key))
-    .sort((a, b) => (number(row[`Base${b}`] ?? row[b]) - number(row[`Current${b}`] ?? row[b])) - (number(row[`Base${a}`] ?? row[a]) - number(row[`Current${a}`] ?? row[a])));
-  const largestBase = STAT_KEYS
-    .filter((key) => !tuningNegatives.includes(key) && !baseAboveCurrent.includes(key))
-    .sort((a, b) => number(row[`Base${b}`] ?? row[b]) - number(row[`Base${a}`] ?? row[a]));
-  return [...tuningNegatives, ...baseAboveCurrent, ...largestBase];
-}
-
-function activeTuningPlugs(row) {
-  const out = [];
+function auditActivePlugBonuses(row) {
+  const breakdown = emptyBreakdown();
+  const ignoredPlugs = [];
   for (const plug of row.StatAudit?.activePlugs || []) {
     const signed = signedStatsForPlugAudit(plug);
-    const positives = STAT_KEYS.filter((key) => number(signed[key]) > 0);
-    const negatives = STAT_KEYS.filter((key) => number(signed[key]) < 0);
-    if (!positives.length || !negatives.length) continue;
-    const maxPositive = Math.max(...positives.map((key) => number(signed[key])));
-    const maxNegative = Math.max(...negatives.map((key) => Math.abs(number(signed[key]))));
-    if (maxPositive <= 5 && maxNegative <= 5) out.push(plug);
+    if (!absoluteTotalOf(signed)) continue;
+    const text = normalizedPlugText(plug);
+    if (isArchetypePlug(plug, text)) {
+      ignoredPlugs.push(ignoredPlug(plug, 'archetype'));
+      continue;
+    }
+    const type = bonusTypeForAuditPlug(plug, text, signed);
+    if (!type) {
+      ignoredPlugs.push(ignoredPlug(plug, 'not-stat-bonus-socket'));
+      continue;
+    }
+    const positive = positiveStatsOnly(type === 'masterwork' ? masterworkStatsForAuditPlug(plug, signed) : signed);
+    for (const key of STAT_KEYS) breakdown[type][key] += number(positive[key]);
   }
+  if (totalOf(breakdown.masterwork) > 10) capMasterworkBreakdown(breakdown.masterwork);
+  return { breakdown, ignoredPlugs };
+}
+
+function bonusTypeForAuditPlug(plug, text, signed) {
+  const hasPositive = STAT_KEYS.some((key) => number(signed[key]) > 0);
+  const hasNegative = STAT_KEYS.some((key) => number(signed[key]) < 0);
+  const maxAbs = Math.max(0, ...STAT_KEYS.map((key) => Math.abs(number(signed[key]))));
+  if (text.includes('masterwork')) return 'masterwork';
+  if (text.includes('artifice')) return 'artifice';
+  if (text.includes('armor mod') || text.includes('armor mods') || text.includes('mod socket') || text.includes('stat mod')) return 'mod';
+  if ((text.includes('tuning') || text.includes('tuned') || text.includes('attunement')) && hasPositive) return 'other';
+  if (hasPositive && hasNegative && maxAbs <= 5) return 'other';
+  return '';
+}
+
+function masterworkStatsForAuditPlug(plug, signed) {
+  const positive = positiveStatsOnly(signed);
+  const total = totalOf(positive);
+  if (total <= 10) return positive;
+  const target = columnFromPlugText(plug) || largestStatKey(positive);
+  const out = emptyStats();
+  if (target) out[target] = 10;
   return out;
 }
 
-function zeroNegativeDisplayedBonus(row, key) {
-  for (const type of BONUS_TYPES) {
-    const field = `${type}Bonus${key}`;
-    if (number(row[field]) < 0) row[field] = 0;
-  }
-}
-
-function ensurePositiveDisplayedBonus(row, key, value) {
-  const existingPositive = BONUS_TYPES.reduce((sum, type) => sum + Math.max(0, number(row[`${type}Bonus${key}`])), 0);
-  if (existingPositive >= value) return;
-  row[`OtherBonus${key}`] = number(row[`OtherBonus${key}`]) + (value - existingPositive);
-}
-
-function reconcileDisplayedBonusTotals(next, original, desiredSignedBonusTotal) {
-  for (const type of BONUS_TYPES) {
-    for (const key of STAT_KEYS) next[`${type}Bonus${key}`] = number(original[`${type}Bonus${key}`]);
-  }
-
-  const existingSignedTypeTotal = BONUS_TYPES.reduce((sum, type) => sum + STAT_KEYS.reduce((inner, key) => inner + number(next[`${type}Bonus${key}`]), 0), 0);
-  const remainder = desiredSignedBonusTotal - existingSignedTypeTotal;
-  if (remainder) {
-    const tunedKey = positiveTunedStatKey(original) || largestPositiveBonusKey(next) || largestCurrentGainKey(next);
-    next[`OtherBonus${tunedKey}`] = number(next[`OtherBonus${tunedKey}`]) + remainder;
-  }
-
-  recomputeTypeTotals(next);
-}
-
-function positiveTunedStatKey(row) {
-  const plugs = activeTuningPlugs(row);
-  for (const plug of plugs) {
-    const signed = signedStatsForPlugAudit(plug);
-    const key = STAT_KEYS.find((statKey) => number(signed[statKey]) > 0);
-    if (key) return key;
-  }
-  return '';
+function capMasterworkBreakdown(stats) {
+  const target = largestStatKey(stats);
+  for (const key of STAT_KEYS) stats[key] = 0;
+  if (target) stats[target] = 10;
 }
 
 function signedStatsForPlugAudit(plug) {
@@ -249,15 +174,16 @@ function signedStatsForPlugAudit(plug) {
   return out;
 }
 
-function definitionStats(row) {
-  return statsFromHashMap(row.StatAudit?.definitionStats || row.DefinitionAudit?.definitionStats || {});
-}
-
 function currentStats(row) {
+  const fromAudit = statsFromHashMap(row.StatAudit?.itemStats || {});
+  if (totalOf(fromAudit)) return fromAudit;
   const out = emptyStats();
   for (const key of STAT_KEYS) out[key] = number(row[`Current${key}`] ?? row[key]);
-  if (!totalOf(out)) return statsFromHashMap(row.StatAudit?.itemStats || {});
   return out;
+}
+
+function definitionStats(row) {
+  return statsFromHashMap(row.StatAudit?.definitionStats || row.DefinitionAudit?.definitionStats || {});
 }
 
 function statsFromHashMap(source) {
@@ -270,17 +196,46 @@ function statsFromHashMap(source) {
   return out;
 }
 
-function recomputeTotals(row) {
-  row.Total = STAT_KEYS.reduce((sum, key) => sum + number(row[`Base${key}`] ?? row[key]), 0);
-  row.BaseTotal = row.Total;
-  row.CurrentTotal = STAT_KEYS.reduce((sum, key) => sum + number(row[`Current${key}`] ?? row[key]), 0);
-  row.StatBonusTotal = row.CurrentTotal - row.BaseTotal;
-  for (const key of STAT_KEYS) row[`StatBonus${key}`] = number(row[`Current${key}`] ?? row[key]) - number(row[`Base${key}`] ?? row[key]);
-  recomputeTypeTotals(row);
+function sumPositiveTotals(breakdown) {
+  const out = emptyStats();
+  for (const type of BONUS_TYPE_KEYS) for (const key of STAT_KEYS) out[key] += Math.max(0, number(breakdown[type]?.[key]));
+  return out;
 }
 
-function recomputeTypeTotals(row) {
-  for (const type of BONUS_TYPES) row[`${type}BonusTotal`] = STAT_KEYS.reduce((sum, key) => sum + number(row[`${type}Bonus${key}`]), 0);
+function subtractStats(current, bonus) {
+  const out = emptyStats();
+  for (const key of STAT_KEYS) out[key] = Math.max(0, number(current[key]) - Math.max(0, number(bonus[key])));
+  return out;
+}
+
+function positiveStatsOnly(stats) {
+  const out = emptyStats();
+  for (const key of STAT_KEYS) out[key] = Math.max(0, number(stats?.[key]));
+  return out;
+}
+
+function columnFromPlugText(plug) {
+  const text = normalizedPlugText(plug);
+  if (text.includes('health') || text.includes('resilience')) return 'Health';
+  if (text.includes('melee') || text.includes('strength')) return 'Melee';
+  if (text.includes('grenade') || text.includes('discipline')) return 'Grenade';
+  if (text.includes('super') || text.includes('intellect')) return 'Super';
+  if (text.includes('class') || text.includes('mobility')) return 'ClassAbility';
+  if (text.includes('weapon') || text.includes('recovery')) return 'Weapon';
+  return '';
+}
+
+function normalizedPlugText(plug) {
+  return normalize(`${plug?.name || ''} ${plug?.description || ''} ${plug?.type || ''} ${plug?.category || ''}`);
+}
+
+function isArchetypePlug(plug, text) {
+  const name = normalize(plug?.name || '');
+  return ARCHETYPE_NAMES.has(name) || text.includes('archetype');
+}
+
+function ignoredPlug(plug, reason) {
+  return { hash: plug?.hash || '', name: plug?.name || '', reason };
 }
 
 function keyFromHash(hash) {
@@ -289,20 +244,19 @@ function keyFromHash(hash) {
   return STAT_HASH_TO_KEY[raw >>> 0] || STAT_HASH_TO_KEY[raw | 0] || '';
 }
 
-function largestPositiveBonusKey(row) {
-  return STAT_KEYS.reduce((best, key) => number(row[`StatBonus${key}`]) > number(row[`StatBonus${best}`]) ? key : best, STAT_KEYS[0]);
-}
-
-function largestCurrentGainKey(row) {
-  return STAT_KEYS.reduce((best, key) => number(row[`Current${key}`]) - number(row[`Base${key}`]) > number(row[`Current${best}`]) - number(row[`Base${best}`]) ? key : best, STAT_KEYS[0]);
+function largestStatKey(stats) {
+  return STAT_KEYS.reduce((best, key) => number(stats[key]) > number(stats[best]) ? key : best, STAT_KEYS[0]);
 }
 
 function emptyStats() { return Object.fromEntries(STAT_KEYS.map((key) => [key, 0])); }
+function emptyBreakdown() { return Object.fromEntries(BONUS_TYPE_KEYS.map((type) => [type, emptyStats()])); }
 function totalOf(stats) { return STAT_KEYS.reduce((sum, key) => sum + number(stats?.[key]), 0); }
+function absoluteTotalOf(stats) { return STAT_KEYS.reduce((sum, key) => sum + Math.abs(number(stats?.[key])), 0); }
+function normalize(value) { return String(value || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, ' '); }
 function number(value) { const n = Number(String(value ?? '').replace(/[^0-9.-]/g, '')); return Number.isFinite(n) ? n : 0; }
 
 installFeedLayoutGuard();
 subscribe((_, detail = {}) => {
-  if (!detail.statusOnly) scheduleCorrection();
+  if (!detail.statusOnly) scheduleAuditCorrection();
 });
-scheduleCorrection();
+scheduleAuditCorrection();
