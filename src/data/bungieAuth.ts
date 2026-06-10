@@ -94,7 +94,6 @@ async function exchangeCode(code: string): Promise<BungieToken> {
   body.set('grant_type', 'authorization_code');
   body.set('code', code);
   body.set('client_id', cfg.clientId);
-  body.set('redirect_uri', normalizeBungieRedirectUri(cfg.redirectUri));
   const response = await fetch(TOKEN_URL, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-API-Key': cfg.apiKey }, body });
   const json = await readResponseJson(response);
   if (!response.ok) throw new Error(errorMessage(json, `OAuth token exchange failed (${response.status}).`));
@@ -132,12 +131,19 @@ function saveToken(token: BungieToken): BungieToken {
   return saved;
 }
 
-async function readResponseJson(response: Response): Promise<BungieToken & { error_description?: string; Message?: string }> {
+async function readResponseJson(response: Response): Promise<BungieToken & { error?: string; error_description?: string; ErrorCode?: number; ErrorStatus?: string; Message?: string; MessageData?: unknown }> {
   return response.json().catch(() => ({}));
 }
 
-function errorMessage(json: { error_description?: string; Message?: string }, fallback: string): string {
-  return json.error_description || json.Message || fallback;
+function errorMessage(json: { error?: string; error_description?: string; ErrorCode?: number; ErrorStatus?: string; Message?: string; MessageData?: unknown }, fallback: string): string {
+  const parts = [
+    json.error_description,
+    json.Message,
+    json.ErrorStatus,
+    json.error,
+    json.ErrorCode ? `ErrorCode ${json.ErrorCode}` : ''
+  ].filter(Boolean);
+  return parts.length ? `${fallback} ${parts.join(' ')}` : fallback;
 }
 
 function readOAuthState(): string {
