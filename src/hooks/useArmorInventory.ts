@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { ArmorItem } from '../types/armor';
-import { mockArmor } from '../data/mockArmor';
 import { normalizeArmorRow } from '../data/armorNormalization';
 import { clearBungieInventoryCache, loadBungieInventoryFromCache, formatCacheTime } from '../data/inventoryCache';
 import { syncBungieInventory } from '../data/bungieSync';
@@ -18,7 +17,7 @@ export function useArmorInventory(setStatus: (status: string) => void): {
 } {
   const [tags, setTags] = useState<Record<string, string>>(() => readJson(STORAGE_KEYS.tags, {}));
   const [dismissed, setDismissed] = useState<Record<string, number>>(() => readJson(STORAGE_KEYS.dismissedRecent, {}));
-  const [rawRows, setRawRows] = useState<ArmorItem[]>(() => mockArmor);
+  const [rawRows, setRawRows] = useState<ArmorItem[]>([]);
 
   const rows = useMemo(() => rawRows.map((row, index) => {
     const normalized = normalizeArmorRow(row, index, tags[row.Id]);
@@ -37,7 +36,7 @@ export function useArmorInventory(setStatus: (status: string) => void): {
       setRows(cached.rows, `Loaded Bungie cache: ${cached.rows.length} armor from ${formatCacheTime(cached.meta)}.`);
       return;
     }
-    setStatus('No Bungie cache found. Showing mock armor.');
+    setStatus('No Bungie cache found. Sign in with Bungie or sync armor to populate the analyzer.');
   }, [setRows, setStatus]);
 
   useEffect(() => {

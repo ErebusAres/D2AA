@@ -1,5 +1,6 @@
 import type { BungiePublicConfig, BungieToken } from '../types/auth';
 import { readJson, removeStorage, writeJson } from '../utils/storage';
+import { PUBLIC_BUNGIE_CONFIG, defaultBungieRedirectUri } from './appConfig';
 
 const AUTH_URL = 'https://www.bungie.net/en/OAuth/Authorize';
 const TOKEN_URL = 'https://www.bungie.net/Platform/App/OAuth/Token/';
@@ -12,9 +13,8 @@ export const BUNGIE_STORAGE = {
 } as const;
 
 export const PUBLIC_CONFIG: BungiePublicConfig = {
-  apiKey: '96e154014bdd44c0a537e482709b7473',
-  clientId: '50794',
-  redirectUri: 'https://erebusares.github.io/D2AA/'
+  ...PUBLIC_BUNGIE_CONFIG,
+  redirectUri: defaultBungieRedirectUri()
 };
 
 let refreshPromise: Promise<BungieToken> | null = null;
@@ -25,7 +25,7 @@ export function getBungieConfig(): BungiePublicConfig {
     ...PUBLIC_CONFIG,
     apiKey: stored.apiKey || PUBLIC_CONFIG.apiKey,
     clientId: stored.clientId || PUBLIC_CONFIG.clientId,
-    redirectUri: window.D2AA_BUNGIE_REDIRECT_URI || stored.redirectUri || PUBLIC_CONFIG.redirectUri
+    redirectUri: stored.redirectUri || defaultBungieRedirectUri()
   };
 }
 
