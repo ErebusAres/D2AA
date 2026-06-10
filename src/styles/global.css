@@ -1,0 +1,16 @@
+* { box-sizing: border-box; }
+html, body, #root { min-height: 100%; }
+body {
+  margin: 0;
+  background:
+    radial-gradient(circle at 20% 0%, rgba(216, 180, 91, 0.09), transparent 28rem),
+    linear-gradient(180deg, #10131a 0%, var(--bg) 48%, #050609 100%);
+  color: var(--text);
+}
+button, input, select { font: inherit; }
+button { color: inherit; cursor: pointer; }
+img { display: block; max-width: 100%; }
+main { padding: 0 320px 48px 20px; }
+@media (max-width: 1120px) {
+  main { padding-right: 20px; }
+}
