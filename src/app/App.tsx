@@ -1,4 +1,5 @@
-import { useCallback, useState } from 'react';
+import { Component, useCallback, useState } from 'react';
+import type { ErrorInfo, ReactNode } from 'react';
 import Header from '../components/Header';
 import Toolbar from '../components/Toolbar';
 import FiltersPanel from '../components/FiltersPanel';
@@ -17,7 +18,44 @@ import { defaultFilterState, normalizeFilterState } from '../state/filterState';
 import { STORAGE_KEYS } from '../utils/constants';
 import type { FilterState } from '../types/filters';
 
-export default function App() {
+interface AppErrorBoundaryState {
+  errorMessage: string;
+}
+
+class AppErrorBoundary extends Component<{ children: ReactNode }, AppErrorBoundaryState> {
+  state: AppErrorBoundaryState = { errorMessage: '' };
+
+  static getDerivedStateFromError(error: unknown): AppErrorBoundaryState {
+    return { errorMessage: error instanceof Error ? error.message : String(error) };
+  }
+
+  componentDidCatch(error: unknown, info: ErrorInfo): void {
+    console.error('D2AA render failure', error, info.componentStack);
+  }
+
+  render(): ReactNode {
+    if (this.state.errorMessage) {
+      return (
+        <div className="app-shell">
+          <header className="command-bar">
+            <div className="brand-lockup">
+              <span className="brand-diamond">◆</span>
+              <div><strong>D2 Armor Analyzer</strong><span>D2AA loaded with a recoverable render error.</span></div>
+            </div>
+          </header>
+          <ErrorState message={`D2AA loaded, but a React render error occurred: ${this.state.errorMessage}`} />
+          <main>
+            <EmptyState hasRows={false} />
+          </main>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
+function D2AAApp() {
   const [status, setStatus] = useState('Ready.');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -69,5 +107,13 @@ export default function App() {
       </main>
       <ItemFeed rows={groupedRows} onDismiss={inventory.dismissRecent} onRefresh={() => runAction(inventory.sync)} onTag={inventory.updateTag} />
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <AppErrorBoundary>
+      <D2AAApp />
+    </AppErrorBoundary>
   );
 }

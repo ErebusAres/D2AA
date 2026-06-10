@@ -1,6 +1,7 @@
 import type { BungiePublicConfig } from '../types/auth';
 
 const FALLBACK_DEPLOY_PATH = '/D2AA/';
+const FALLBACK_DEPLOY_REDIRECT_URI = 'https://erebusares.github.io/D2AA/';
 const LEGACY_STATIC_PAGE_RE = /\/(?:D2AA|d2aa-clean|beta2)\.html$/i;
 
 export const PUBLIC_BUNGIE_CONFIG: Omit<BungiePublicConfig, 'redirectUri'> = {
@@ -11,7 +12,7 @@ export const PUBLIC_BUNGIE_CONFIG: Omit<BungiePublicConfig, 'redirectUri'> = {
 export function defaultBungieRedirectUri(): string {
   const explicit = import.meta.env.VITE_BUNGIE_REDIRECT_URI || window.D2AA_BUNGIE_REDIRECT_URI;
   if (explicit) return normalizeBungieRedirectUri(explicit);
-  return `${location.origin}${FALLBACK_DEPLOY_PATH}`;
+  return FALLBACK_DEPLOY_REDIRECT_URI;
 }
 
 export function normalizeBungieRedirectUri(value: string | undefined): string {
@@ -20,7 +21,7 @@ export function normalizeBungieRedirectUri(value: string | undefined): string {
   url.searchParams.delete('code');
   url.searchParams.delete('state');
   if (LEGACY_STATIC_PAGE_RE.test(url.pathname)) {
-    url.pathname = `${url.pathname.replace(LEGACY_STATIC_PAGE_RE, '').replace(/\/?$/, '/')}`;
+    return FALLBACK_DEPLOY_REDIRECT_URI;
   }
   if (url.pathname === '/') url.pathname = FALLBACK_DEPLOY_PATH;
   return url.toString();
