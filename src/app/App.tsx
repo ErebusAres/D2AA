@@ -13,7 +13,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useArmorFilters } from '../hooks/useArmorFilters';
 import { useArmorInventory } from '../hooks/useArmorInventory';
 import { useLocalStorage } from '../hooks/useLocalStorage';
-import { defaultFilterState } from '../state/filterState';
+import { defaultFilterState, normalizeFilterState } from '../state/filterState';
 import { STORAGE_KEYS } from '../utils/constants';
 import type { FilterState } from '../types/filters';
 
@@ -22,7 +22,7 @@ export default function App() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [optionsOpen, setOptionsOpen] = useState(false);
-  const [filters, setFilters] = useLocalStorage<FilterState>(STORAGE_KEYS.settings, defaultFilterState);
+  const [filters, setFilters] = useLocalStorage<FilterState>(STORAGE_KEYS.settings, defaultFilterState, normalizeFilterState);
   const auth = useAuth(setStatus);
   const inventory = useArmorInventory(setStatus);
   const { groupedRows, filteredRows } = useArmorFilters(inventory.rows, filters);
