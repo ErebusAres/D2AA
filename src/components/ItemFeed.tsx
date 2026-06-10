@@ -5,16 +5,20 @@ import { displayName } from '../utils/formatters';
 interface ItemFeedProps {
   rows: ArmorItem[];
   onDismiss: (id: string) => void;
+  onRefresh: () => void;
   onTag: (id: string, tag: string) => void;
 }
 
-export default function ItemFeed({ rows, onDismiss, onTag }: ItemFeedProps) {
+export default function ItemFeed({ rows, onDismiss, onRefresh, onTag }: ItemFeedProps) {
   const active = getActiveFeedRows(rows);
   return (
     <aside className="item-feed is-open">
-      <button type="button" className="feed-tab">Item Feed</button>
       <div className="feed-shell">
-        <div className="feed-head"><strong>Latest Items</strong><span>{active.length}</span></div>
+        <div className="feed-head">
+          <strong>Latest Items</strong>
+          <span>{active.length}</span>
+          <button type="button" className="feed-refresh-button" title="Check latest drops now" aria-label="Check latest drops now" onClick={onRefresh}>{'\u21bb'}</button>
+        </div>
         <div className="feed-list">
           {active.map((row) => (
             <article className={`feed-card ${row.GroupColor || ''}`} key={row.Id}>

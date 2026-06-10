@@ -1,6 +1,6 @@
 import type { BungiePublicConfig, BungieToken } from '../types/auth';
 import { readJson, removeStorage, writeJson } from '../utils/storage';
-import { PUBLIC_BUNGIE_CONFIG, defaultBungieRedirectUri } from './appConfig';
+import { PUBLIC_BUNGIE_CONFIG, defaultBungieRedirectUri, normalizeBungieRedirectUri } from './appConfig';
 
 const AUTH_URL = 'https://www.bungie.net/en/OAuth/Authorize';
 const TOKEN_URL = 'https://www.bungie.net/Platform/App/OAuth/Token/';
@@ -9,7 +9,7 @@ export const BUNGIE_STORAGE = {
   config: 'd2aa_bungie_public_config_v1',
   token: 'd2aa_bungie_token_v1',
   state: 'd2aa_bungie_oauth_state_v1',
-  returnUrl: 'd2aa_clean_return_after_oauth'
+  returnUrl: 'd2aa_return_after_oauth_v1'
 } as const;
 
 export const PUBLIC_CONFIG: BungiePublicConfig = {
@@ -25,7 +25,7 @@ export function getBungieConfig(): BungiePublicConfig {
     ...PUBLIC_CONFIG,
     apiKey: stored.apiKey || PUBLIC_CONFIG.apiKey,
     clientId: stored.clientId || PUBLIC_CONFIG.clientId,
-    redirectUri: stored.redirectUri || defaultBungieRedirectUri()
+    redirectUri: normalizeBungieRedirectUri(stored.redirectUri || PUBLIC_CONFIG.redirectUri)
   };
 }
 
@@ -58,14 +58,14 @@ export async function ensureValidToken(): Promise<BungieToken> {
 export function startLogin(): void {
   const cfg = getBungieConfig();
   const state = randomState();
-  const returnUrl = cleanReturnUrl(location.href);
+  const returnUrl = normalizeBungieRedirectUri(location.href);
   writeJson(BUNGIE_STORAGE.state, state);
   writeJson(BUNGIE_STORAGE.returnUrl, returnUrl);
   const url = new URL(AUTH_URL);
   url.searchParams.set('client_id', cfg.clientId);
   url.searchParams.set('response_type', 'code');
   url.searchParams.set('state', state);
-  url.searchParams.set('redirect_uri', cleanReturnUrl(cfg.redirectUri));
+  url.searchParams.set('redirect_uri', normalizeBungieRedirectUri(cfg.redirectUri));
   window.location.assign(url.toString());
 }
 
@@ -94,7 +94,7 @@ async function exchangeCode(code: string): Promise<BungieToken> {
   body.set('grant_type', 'authorization_code');
   body.set('code', code);
   body.set('client_id', cfg.clientId);
-  body.set('redirect_uri', cleanReturnUrl(cfg.redirectUri));
+  body.set('redirect_uri', normalizeBungieRedirectUri(cfg.redirectUri));
   const response = await fetch(TOKEN_URL, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-API-Key': cfg.apiKey }, body });
   const json = await readResponseJson(response);
   if (!response.ok) throw new Error(errorMessage(json, `OAuth token exchange failed (${response.status}).`));
@@ -138,13 +138,6 @@ async function readResponseJson(response: Response): Promise<BungieToken & { err
 
 function errorMessage(json: { error_description?: string; Message?: string }, fallback: string): string {
   return json.error_description || json.Message || fallback;
-}
-
-function cleanReturnUrl(value: string): string {
-  const url = new URL(value, location.href);
-  url.searchParams.delete('code');
-  url.searchParams.delete('state');
-  return url.toString();
 }
 
 function randomState(): string {

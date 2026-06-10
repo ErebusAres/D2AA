@@ -35,8 +35,8 @@ export async function saveBungieInventory(rows: ArmorItem[], reason = 'sync'): P
   const slimRows = cleanRows.map(slimArmorRow);
   writeSeenLedger(slimRows, seenLedger, savedAt);
   const meta = { savedAt, count: slimRows.length, reason, version: CACHE_SCHEMA_VERSION, ...summarizeChanges(slimRows, previousById) };
-  await idbSet(IDB_ROWS_KEY, slimRows).catch(() => writeJson(STORAGE_KEYS.bungieRows, slimRows));
-  await idbSet(IDB_META_KEY, meta).catch(() => writeJson(STORAGE_KEYS.bungieMeta, meta));
+  await idbSet(IDB_ROWS_KEY, slimRows).catch(() => safeWriteJson(STORAGE_KEYS.bungieRows, slimRows));
+  await idbSet(IDB_META_KEY, meta).catch(() => safeWriteJson(STORAGE_KEYS.bungieMeta, meta));
   removeStorage(STORAGE_KEYS.rows);
   return { rows: cleanRows, meta };
 }
@@ -113,6 +113,17 @@ function writeSeenLedger(rows: ArmorItem[], previous: Record<string, SeenLedgerE
     };
   }
   writeJson(SEEN_LEDGER_KEY, next);
+}
+
+function safeWriteJson(key: string, value: unknown): void {
+  try {
+    writeJson(key, value);
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'QuotaExceededError') {
+      throw new Error('Browser storage is full. Clear old site data, then sync armor again.');
+    }
+    throw error;
+  }
 }
 
 function summarizeChanges(rows: ArmorItem[], previousById: Map<string, ArmorItem>): { added: number; moved: number; changed: number } {

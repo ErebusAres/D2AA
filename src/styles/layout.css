@@ -131,8 +131,13 @@
 .empty-state p { margin: 0; color: var(--muted); }
 .error-state { border-color: rgba(217, 97, 97, 0.42); color: #ffb4b4; }
 @media (max-width: 1120px) {
-  .command-bar { grid-template-columns: auto 1fr auto; }
-  .live-chip, .class-toggle { display: none; }
+  .command-bar { grid-template-columns: auto auto minmax(0, 1fr) auto; }
+  .class-toggle {
+    grid-column: 1 / -1;
+    display: flex;
+    gap: 6px;
+  }
+  .class-toggle button { flex: 1; }
   .search-wrap { grid-column: 1 / -1; }
-  .summary-strip { margin-right: 20px; }
+  .summary-strip { display: none; }
 }
