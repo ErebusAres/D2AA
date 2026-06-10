@@ -4,9 +4,44 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>D2 Armor Analyzer</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%2307090d'/%3E%3Cpath d='M32 8 56 32 32 56 8 32Z' fill='%23d8b45b'/%3E%3Cpath d='M32 18 46 32 32 46 18 32Z' fill='%2307090d'/%3E%3C/svg%3E" />
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+    <script type="module">
+      const showBootError = (error) => {
+        const root = document.getElementById('root');
+        if (!root) return;
+        root.replaceChildren();
+        const shell = document.createElement('div');
+        shell.style.cssText = 'min-height:100vh;background:#07090d;color:#f2f4f7;font:500 16px system-ui;padding:24px';
+        const title = document.createElement('h1');
+        title.style.color = '#f0cf74';
+        title.textContent = 'D2 Armor Analyzer';
+        const message = document.createElement('p');
+        message.textContent = 'D2AA loaded, but the app bundle failed to start.';
+        const detail = document.createElement('pre');
+        detail.style.cssText = 'white-space:pre-wrap;color:#ffb4b4';
+        detail.textContent = error instanceof Error ? error.message : String(error);
+        shell.append(title, message, detail);
+        root.append(shell);
+      };
+
+      try {
+        if (location.hostname === 'erebusares.github.io') {
+          const css = document.createElement('link');
+          css.rel = 'stylesheet';
+          css.href = '/D2AA/assets/app.css';
+          document.head.append(css);
+          const appModule = '/D2AA/assets/app.js';
+          await import(/* @vite-ignore */ appModule);
+        } else {
+          const devModule = '/src/main.tsx';
+          await import(/* @vite-ignore */ devModule);
+        }
+      } catch (error) {
+        showBootError(error);
+      }
+    </script>
   </body>
 </html>
