@@ -36,8 +36,7 @@
           const appModule = '/D2AA/assets/app.js';
           await import(/* @vite-ignore */ appModule);
         } else {
-          const devModule = '/src/main.tsx';
-          await import(/* @vite-ignore */ devModule);
+          await import('/src/main.tsx');
         }
       } catch (error) {
         showBootError(error);

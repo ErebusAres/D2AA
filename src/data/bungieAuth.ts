@@ -59,7 +59,7 @@ export function startLogin(): void {
   const cfg = getBungieConfig();
   const state = randomState();
   const returnUrl = normalizeBungieRedirectUri(location.href);
-  writeJson(BUNGIE_STORAGE.state, state);
+  localStorage.setItem(BUNGIE_STORAGE.state, state);
   writeJson(BUNGIE_STORAGE.returnUrl, returnUrl);
   const url = new URL(AUTH_URL);
   url.searchParams.set('client_id', cfg.clientId);
@@ -74,7 +74,7 @@ export async function handleOAuthRedirect(): Promise<boolean> {
   const code = url.searchParams.get('code');
   if (!code) return false;
   const returnedState = url.searchParams.get('state');
-  const expectedState = localStorage.getItem(BUNGIE_STORAGE.state);
+  const expectedState = readOAuthState();
   if (expectedState && returnedState !== expectedState) throw new Error('Bungie sign-in failed: OAuth state mismatch.');
   await exchangeCode(code);
   removeStorage(BUNGIE_STORAGE.state);
@@ -138,6 +138,17 @@ async function readResponseJson(response: Response): Promise<BungieToken & { err
 
 function errorMessage(json: { error_description?: string; Message?: string }, fallback: string): string {
   return json.error_description || json.Message || fallback;
+}
+
+function readOAuthState(): string {
+  const stored = localStorage.getItem(BUNGIE_STORAGE.state) || '';
+  if (!stored) return '';
+  try {
+    const parsed = JSON.parse(stored) as unknown;
+    return typeof parsed === 'string' ? parsed : stored;
+  } catch {
+    return stored;
+  }
 }
 
 function randomState(): string {
