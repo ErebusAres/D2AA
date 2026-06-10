@@ -14,7 +14,7 @@ export const BUNGIE_STORAGE = {
 export const PUBLIC_CONFIG: BungiePublicConfig = {
   apiKey: '96e154014bdd44c0a537e482709b7473',
   clientId: '50794',
-  redirectUri: 'https://erebusares.github.io/D2AA-2/'
+  redirectUri: 'https://erebusares.github.io/D2AA/'
 };
 
 let refreshPromise: Promise<BungieToken> | null = null;
