@@ -21,6 +21,10 @@ These are remaining user-facing parity items from `D2AA-Archived` that should be
   - Old reference: `D2AA-Archived/src/app/main.js` (`statModel`, `bonusParts`, `renderTotal`)
   - React implementation: `src/utils/statMath.ts`, `src/components/ArmorStats.tsx`
   - Notes: card stats now show base/current derivation, typed bonus parts, base source, audit warnings, and absolute total text.
+- Item Feed Popouts
+  - Old reference: `D2AA-Archived/InGame/stable-dom-fixes.js` (`fixFeedStatPopouts`, `renderFeedPopout`)
+  - React implementation: `src/components/ItemFeed.tsx`, `src/styles/panels.css`
+  - Notes: feed rows now have empty states, tier rails, and hover/focus stat popouts without DOM patching.
 
 ## Remaining Parity Checks
 

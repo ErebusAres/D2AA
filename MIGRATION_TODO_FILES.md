@@ -28,7 +28,7 @@ Use this as the live scratchpad for what changed, what still needs parity work, 
 - `src/components/TagPicker.tsx` - floating React emoji tag picker used by cards and feed rows.
 - `src/components/ArmorGrid.tsx` - slot stack grouping.
 - `src/components/Header.tsx` - old command bar parity.
-- `src/components/ItemFeed.tsx` - right rail latest items.
+- `src/components/ItemFeed.tsx` - right rail latest items, empty states, and icon stat popouts.
 - `src/components/ActiveFilterChips.tsx` - React replacement for old `#activeChips` rendering.
 - `src/components/CopyItemIdButton.tsx` - React replacement for old `id-copy-patch.js` copy control.
 - `src/components/DuplicateCompareModal.tsx` - React replacement for old duplicate compare overlay.
@@ -54,6 +54,7 @@ Use this as the live scratchpad for what changed, what still needs parity work, 
   - exotic intrinsic/catalyst rows.
   - tuning markers in stat rows.
   - stat calculation titles/tooltip text explaining base source, visible bonus parts, and absolute totals.
+  - item feed popouts show the same stat breakdowns and do not clip at desktop/mobile widths.
 - Preserve card icon-only controls where practical:
   - tag chips should show compact archived emoji symbols, not words like `Favorite` or `Keep`.
   - tag chips should open the floating React picker, not a native select/dropdown arrow.

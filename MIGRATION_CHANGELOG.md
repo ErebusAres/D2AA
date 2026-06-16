@@ -61,6 +61,11 @@ This file tracks migration decisions and larger changes while porting the archiv
   - total rows now display base plus typed adjustments and the absolute current total.
   - stat math now reads audited bonus breakdown fallback fields and shows negative adjustment segments when present.
 - Verified `npm run build` passes after stat calculation parity.
+- Improved the React latest item feed:
+  - feed now shows explicit empty states instead of a blank rail.
+  - feed item icons now render tier rails.
+  - hovering or focusing a feed icon opens a React stat popout that reuses `ArmorStats` and the same calculation breakdowns as armor cards.
+- Verified `npm run build` passes after item feed polish.
 
 ## Prior Completed Migration Work
 
