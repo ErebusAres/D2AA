@@ -75,6 +75,10 @@ This file tracks migration decisions and larger changes while porting the archiv
   - confirmed active React repo is `GitHub\D2AA`, while `GitHub\D2AA-2` still contains the old static `D2AA.html` style app and should not be edited for current React work.
   - confirmed Vite source entry is correct in `index.html`.
   - changed Vite production asset base from `/D2AA/` to relative `./` so deployed JS/CSS loads even if GitHub Pages path casing or repo rename cache is inconsistent.
+- Confirmed live GitHub Pages is still serving the branch root `index.html` instead of the Actions `dist` artifact, leaving `/src/main.tsx` in the live page and causing a blank screen.
+- Added a branch-root static fallback:
+  - Vite now emits stable `assets/app.js` and `assets/app.css` files.
+  - root `index.html` loads those built assets when hosted on `github.io`, while keeping the normal Vite dev entry for local `npm run dev`.
 
 ## Prior Completed Migration Work
 

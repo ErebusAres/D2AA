@@ -9,5 +9,15 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <script type="module">
+      if (/\.github\.io$/i.test(location.hostname)) {
+        const css = document.createElement('link');
+        css.rel = 'stylesheet';
+        css.href = './assets/app.css';
+        document.head.appendChild(css);
+        const appBundle = './assets/app.js';
+        await import(/* @vite-ignore */ appBundle);
+      }
+    </script>
   </body>
 </html>

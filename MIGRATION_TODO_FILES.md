@@ -43,7 +43,8 @@ Use this as the live scratchpad for what changed, what still needs parity work, 
 - `src/data/actions.ts` - Bungie item transfer actions and fallback copy behavior.
 - `src/data/bungieApi.ts` - shared Bungie GET/POST helpers.
 - `src/data/dimCsv.ts` - dependency-free DIM CSV parser and mapper for local import fallback.
-- `vite.config.ts` - Vite production build config; uses relative `base: './'` to avoid white screens from GitHub Pages repo/path casing during rename churn.
+- `vite.config.ts` - Vite production build config; uses relative `base: './'` and stable `assets/app.js` / `assets/app.css` output so branch-root Pages hosting can load the built app.
+- `index.html` - Vite dev entry plus a GitHub Pages static fallback loader for committed root `assets/app.js` and `assets/app.css`.
 
 ## Next Todo
 
@@ -70,5 +71,5 @@ Use this as the live scratchpad for what changed, what still needs parity work, 
 - Consider whether item ID copy should be hidden behind a debug/display option or remain visible like the archived patch.
 - DIM CSV import is implemented as an explicit side-panel fallback; keep Bungie sync as the default live path.
 - Run `npm run build` before every push.
-- Keep Vite production assets hashed. Do not recommit root `assets/app.css` or `assets/app.js`; those fixed names can revive stale visuals.
-- After Pages deploys, hard-refresh `https://erebusares.github.io/D2AA/` and verify the built HTML references `./assets/...` instead of `/D2AA/assets/...`.
+- Until GitHub Pages is confirmed to serve the Actions artifact, keep root `assets/app.css` and `assets/app.js` updated after build so branch-root hosting is not blank.
+- After Pages deploys, hard-refresh `https://erebusares.github.io/D2AA/` and verify the app renders even if live HTML still contains `/src/main.tsx`.
