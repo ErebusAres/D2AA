@@ -71,6 +71,10 @@ This file tracks migration decisions and larger changes while porting the archiv
   - catalog rows use stable local icons when Bungie does not expose the right set bonus icon/data through the profile path.
   - current entries cover Aion Adapter, Aion Renewal, Bushido, Techsec, Twofold Crown, Last Discipline, Collective Psyche, and Lustrous.
 - Verified `npm run build` passes after the set bonus catalog.
+- Investigated blank/white GitHub Pages load after repo rename/path churn:
+  - confirmed active React repo is `GitHub\D2AA`, while `GitHub\D2AA-2` still contains the old static `D2AA.html` style app and should not be edited for current React work.
+  - confirmed Vite source entry is correct in `index.html`.
+  - changed Vite production asset base from `/D2AA/` to relative `./` so deployed JS/CSS loads even if GitHub Pages path casing or repo rename cache is inconsistent.
 
 ## Prior Completed Migration Work
 
