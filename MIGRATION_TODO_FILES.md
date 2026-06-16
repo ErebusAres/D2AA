@@ -53,6 +53,7 @@ Use this as the live scratchpad for what changed, what still needs parity work, 
   - set bonus rows with Bungie API icons.
   - exotic intrinsic/catalyst rows.
   - tuning markers in stat rows.
+  - stat calculation titles/tooltip text explaining base source, visible bonus parts, and absolute totals.
 - Preserve card icon-only controls where practical:
   - tag chips should show compact archived emoji symbols, not words like `Favorite` or `Keep`.
   - tag chips should open the floating React picker, not a native select/dropdown arrow.

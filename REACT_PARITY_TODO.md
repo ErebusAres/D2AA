@@ -17,6 +17,10 @@ These are remaining user-facing parity items from `D2AA-Archived` that should be
 - Item ID Copy / Debug Control
   - Old reference: `D2AA-Archived/InGame/id-copy-patch.js`
   - React implementation: `src/components/CopyItemIdButton.tsx`
+- Stat Calculation Display
+  - Old reference: `D2AA-Archived/src/app/main.js` (`statModel`, `bonusParts`, `renderTotal`)
+  - React implementation: `src/utils/statMath.ts`, `src/components/ArmorStats.tsx`
+  - Notes: card stats now show base/current derivation, typed bonus parts, base source, audit warnings, and absolute total text.
 
 ## Remaining Parity Checks
 

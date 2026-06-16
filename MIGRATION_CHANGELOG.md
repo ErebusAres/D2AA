@@ -56,6 +56,11 @@ This file tracks migration decisions and larger changes while porting the archiv
   - syncs DIM tag values into the existing tag cache.
   - stores imported CSV rows in the local armor cache and restores them only when no Bungie cache exists.
 - Verified `npm run build` passes after DIM CSV import.
+- Reworked React stat calculation display toward archived InGame behavior:
+  - per-stat rows now expose base/current calculation text and base source in the tooltip/title.
+  - total rows now display base plus typed adjustments and the absolute current total.
+  - stat math now reads audited bonus breakdown fallback fields and shows negative adjustment segments when present.
+- Verified `npm run build` passes after stat calculation parity.
 
 ## Prior Completed Migration Work
 
