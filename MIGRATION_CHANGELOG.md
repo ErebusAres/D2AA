@@ -47,6 +47,9 @@ This file tracks migration decisions and larger changes while porting the archiv
 - Removed the stale committed root `assets/app.css` and `assets/app.js` bundle that could make GitHub Pages/source-root hosting show an older visual layer.
 - Simplified `index.html` and `vite.config.ts` back to standard Vite asset injection so production builds use hashed CSS/JS filenames.
 - Verified `npm run build` emits one hashed CSS/JS pair from `dist/index.html`, reducing stale-cache mixed-look risk.
+- Removed the shown/cached/groups/new/class summary strip from the React shell per current layout preference.
+- Kept tag controls as icon-only chips and updated the picker into a floating React popout so clicking the tag icon opens archived-style emoji choices without a native select arrow.
+- Replaced the command-bar Sync Armor down-arrow glyph with a refresh glyph to reduce visual clutter.
 
 ## Prior Completed Migration Work
 

@@ -14,7 +14,7 @@ export default function AuthButtons({ auth, onSync }: AuthButtonsProps) {
         <small>{auth.isSignedIn ? 'Connected' : 'Bungie'}</small>
       </button>
       <button type="button" className="command-button" title="Manual Bungie armor sync" onClick={onSync}>
-        <span>↓</span><b>Sync Armor</b><small>{auth.isSignedIn ? 'Full inventory' : 'Sign in first'}</small>
+        <span>↻</span><b>Sync Armor</b><small>{auth.isSignedIn ? 'Full inventory' : 'Sign in first'}</small>
       </button>
     </>
   );

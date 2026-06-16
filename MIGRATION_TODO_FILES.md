@@ -19,12 +19,13 @@ Use this as the live scratchpad for what changed, what still needs parity work, 
 ## In-Progress React Files
 
 - `src/styles/global.css` - page background and main workspace spacing.
-- `src/styles/layout.css` - command bar, summary strip, feed, global shell.
+- `src/styles/layout.css` - command bar, feed, active filter chip spacing, global shell.
 - `src/styles/panels.css` - side options panel, filter controls, display toggles.
 - `src/styles/armor-card.css` - armor card, title blocks, stat bars, tooltips, set bonus rows.
 - `src/components/ArmorCard.tsx` - archetype, perk rows, card composition.
 - `src/components/ArmorStats.tsx` - stat/tuning visual display.
 - `src/components/ArmorBadges.tsx` - tags, location/action chip, grade chip.
+- `src/components/TagPicker.tsx` - floating React emoji tag picker used by cards and feed rows.
 - `src/components/ArmorGrid.tsx` - slot stack grouping.
 - `src/components/Header.tsx` - old command bar parity.
 - `src/components/ItemFeed.tsx` - right rail latest items.
@@ -52,7 +53,8 @@ Use this as the live scratchpad for what changed, what still needs parity work, 
   - exotic intrinsic/catalyst rows.
   - tuning markers in stat rows.
 - Preserve card icon-only controls where practical:
-  - tag chips should show compact symbols, not words like `Favorite` or `Keep`.
+  - tag chips should show compact archived emoji symbols, not words like `Favorite` or `Keep`.
+  - tag chips should open the floating React picker, not a native select/dropdown arrow.
   - lock/location/copy controls should stay compact icon chips.
 - Preserve tier rail color bands:
   - tier 1-2 active diamonds are all white.

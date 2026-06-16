@@ -4,7 +4,6 @@ import Header from '../components/Header';
 import Toolbar from '../components/Toolbar';
 import FiltersPanel from '../components/FiltersPanel';
 import DisplayOptionsPanel from '../components/DisplayOptionsPanel';
-import StatsSummary from '../components/StatsSummary';
 import ActiveFilterChips from '../components/ActiveFilterChips';
 import ArmorGrid from '../components/ArmorGrid';
 import DuplicateCompareModal from '../components/DuplicateCompareModal';
@@ -112,7 +111,6 @@ function D2AAApp() {
         <FiltersPanel rows={groupedRows} value={filters} onChange={setFilters} />
         <DisplayOptionsPanel value={filters.display} onChange={(display) => setFilters((current) => ({ ...current, display }))} />
       </aside>
-      <StatsSummary allRows={groupedRows} shownRows={filteredRows} activeClass={filters.filters.class} />
       <ActiveFilterChips value={filters} onChange={setFilters} />
       {error ? <ErrorState message={error} /> : null}
       {loading ? <LoadingState label="Working" /> : null}

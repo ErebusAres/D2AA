@@ -21,7 +21,7 @@
   background: rgba(255, 255, 255, .055);
   color: var(--gold);
 }
-.live-chip, .brand-lockup, .class-toggle, .search-wrap, .command-button, .summary-strip {
+.live-chip, .brand-lockup, .class-toggle, .search-wrap, .command-button {
   clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
 }
 .live-chip {
@@ -110,29 +110,11 @@
 .command-button small { color: var(--muted); font-size: 11px; }
 .command-button--gold { border-color: rgba(216, 180, 91, 0.42); background: rgba(216, 180, 91, 0.12); }
 .bungie-mark img { width: 20px; height: 20px; filter: brightness(0) invert(1); }
-.summary-strip {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1px;
-  margin: 16px 360px 16px 16px;
-  border: 1px solid rgba(216, 180, 91, 0.16);
-  background: rgba(0, 0, 0, 0.22);
-  overflow: hidden;
-}
-.summary-strip span {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  padding: 10px 14px;
-  color: var(--muted);
-  background: rgba(255, 255, 255, 0.035);
-}
-.summary-strip strong { color: var(--gold-bright); font-size: 18px; }
 .active-chips {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin: -6px 360px 10px 16px;
+  margin: 16px 360px 10px 16px;
 }
 .active-chips button {
   display: inline-flex;
@@ -173,5 +155,5 @@
   }
   .class-toggle button { flex: 1; }
   .search-wrap { grid-column: 1 / -1; }
-  .summary-strip, .active-chips { display: none; }
+  .active-chips { display: none; }
 }
