@@ -13,7 +13,8 @@ These are remaining user-facing parity items from `D2AA-Archived` that should be
   - React implementation: `src/components/ActiveFilterChips.tsx`
 - Set Bonus Rows
   - Old reference: `D2AA-Archived/InGame/set-bonus-patch.js`
-  - React implementation: `src/data/armorBonuses.ts`, `src/components/ArmorCard.tsx`
+  - React implementation: `src/data/armorBonuses.ts`, `src/data/armorSetCatalog.ts`, `src/components/ArmorCard.tsx`
+  - Notes: known Armor 3.0 set bonuses now use a local catalog for correct 2-piece/4-piece names, descriptions, and stable icons when Bungie set plugs are incomplete.
 - Item ID Copy / Debug Control
   - Old reference: `D2AA-Archived/InGame/id-copy-patch.js`
   - React implementation: `src/components/CopyItemIdButton.tsx`

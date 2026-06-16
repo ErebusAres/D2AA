@@ -38,6 +38,7 @@ Use this as the live scratchpad for what changed, what still needs parity work, 
 - `src/data/bungieSync.ts` - real Bungie armor row normalization and manifest plug collection.
 - `src/data/armorArchetype.ts` - resolves canonical archetype names/icons/descriptions from Bungie plug definitions.
 - `src/data/armorBonuses.ts` - resolves set bonus, armor bonus, exotic perk, and catalyst display rows.
+- `src/data/armorSetCatalog.ts` - local Armor 3.0 set bonus catalog used when Bungie plugs only provide weak selector/name data.
 - `src/data/armorTuning.ts` - isolates tuning icon/stat presentation.
 - `src/data/actions.ts` - Bungie item transfer actions and fallback copy behavior.
 - `src/data/bungieApi.ts` - shared Bungie GET/POST helpers.
@@ -63,7 +64,7 @@ Use this as the live scratchpad for what changed, what still needs parity work, 
   - tier 1-2 active diamonds are all white.
   - tier 3-4 active diamonds are all purple.
   - tier 5 active diamonds are all gold.
-- Revisit `src/data/armorBonuses.ts` set selector matching with real inventories if any rows miss expected set bonuses.
+- Revisit `src/data/armorSetCatalog.ts` with real inventories if new set names appear or Bungie exposes better official icons/details.
 - Decide whether compare modal should add the archived bulk "Pull Group" action or stay per-item only.
 - Consider whether item ID copy should be hidden behind a debug/display option or remain visible like the archived patch.
 - DIM CSV import is implemented as an explicit side-panel fallback; keep Bungie sync as the default live path.

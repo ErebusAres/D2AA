@@ -66,6 +66,11 @@ This file tracks migration decisions and larger changes while porting the archiv
   - feed item icons now render tier rails.
   - hovering or focusing a feed icon opens a React stat popout that reuses `ArmorStats` and the same calculation breakdowns as armor cards.
 - Verified `npm run build` passes after item feed polish.
+- Added a local Armor 3.0 set bonus catalog:
+  - known set names now resolve to curated 2-piece and 4-piece rows instead of weak selector/plug guesses.
+  - catalog rows use stable local icons when Bungie does not expose the right set bonus icon/data through the profile path.
+  - current entries cover Aion Adapter, Aion Renewal, Bushido, Techsec, Twofold Crown, Last Discipline, Collective Psyche, and Lustrous.
+- Verified `npm run build` passes after the set bonus catalog.
 
 ## Prior Completed Migration Work
 

@@ -1,5 +1,6 @@
 import type { ArmorPerk } from '../types/armor';
 import type { DestinyInventoryItemDefinition } from '../types/bungie';
+import { resolveCatalogSetBonuses } from './armorSetCatalog';
 
 const ARCHETYPE_NAMES = new Set(['paragon', 'grenadier', 'specialist', 'brawler', 'bulwark', 'gunner']);
 
@@ -17,6 +18,12 @@ export function resolvePotentialSetBonuses(args: {
   archetypeHash: unknown;
   iconUrl: (value: unknown) => string;
 }): ArmorPerk[] {
+  const catalogBonuses = resolveCatalogSetBonuses({
+    itemDefinition: args.itemDefinition,
+    plugDefs: [...args.activePlugDefs, ...args.allPlugDefs, ...args.selectorPlugDefs]
+  });
+  if (catalogBonuses.length) return catalogBonuses;
+
   const activeHashes = new Set(args.activePlugDefs.map((plug) => String(plug.hash || '')));
   return uniquePerks([...args.activePlugDefs, ...args.allPlugDefs, ...args.selectorPlugDefs]
     .filter((plug) => isSetBonus(plug, args.archetypeHash))
