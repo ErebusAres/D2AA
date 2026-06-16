@@ -42,6 +42,7 @@
 .action-card span { grid-row: 1 / 3; color: var(--gold-bright); }
 .action-card small { color: var(--muted); }
 .action-card--danger span { color: #ff8f8f; }
+.file-input { display: none; }
 .control-field { display: grid; gap: 6px; }
 .control-field > span, .display-list > span {
   color: var(--muted);

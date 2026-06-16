@@ -50,6 +50,12 @@ This file tracks migration decisions and larger changes while porting the archiv
 - Removed the shown/cached/groups/new/class summary strip from the React shell per current layout preference.
 - Kept tag controls as icon-only chips and updated the picker into a floating React popout so clicking the tag icon opens archived-style emoji choices without a native select arrow.
 - Replaced the command-bar Sync Armor down-arrow glyph with a refresh glyph to reduce visual clutter.
+- Added optional DIM CSV import to the React options panel:
+  - parses CSV locally with a typed, dependency-free parser.
+  - maps DIM/export columns into `ArmorItem` rows.
+  - syncs DIM tag values into the existing tag cache.
+  - stores imported CSV rows in the local armor cache and restores them only when no Bungie cache exists.
+- Verified `npm run build` passes after DIM CSV import.
 
 ## Prior Completed Migration Work
 

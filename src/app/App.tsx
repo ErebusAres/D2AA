@@ -107,7 +107,7 @@ function D2AAApp() {
         onSync={() => runAction(inventory.sync)}
       />
       <aside className={`side-panel ${optionsOpen ? 'is-open' : ''}`} aria-label="Options panel">
-        <Toolbar onRestore={() => runAction(inventory.restoreCache)} onClear={() => runAction(inventory.clearCache)} />
+        <Toolbar onImportCsv={(file) => runAction(() => inventory.importCsv(file))} onRestore={() => runAction(inventory.restoreCache)} onClear={() => runAction(inventory.clearCache)} />
         <FiltersPanel rows={groupedRows} value={filters} onChange={setFilters} />
         <DisplayOptionsPanel value={filters.display} onChange={(display) => setFilters((current) => ({ ...current, display }))} />
       </aside>

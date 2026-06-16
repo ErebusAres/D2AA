@@ -41,6 +41,7 @@ Use this as the live scratchpad for what changed, what still needs parity work, 
 - `src/data/armorTuning.ts` - isolates tuning icon/stat presentation.
 - `src/data/actions.ts` - Bungie item transfer actions and fallback copy behavior.
 - `src/data/bungieApi.ts` - shared Bungie GET/POST helpers.
+- `src/data/dimCsv.ts` - dependency-free DIM CSV parser and mapper for local import fallback.
 
 ## Next Todo
 
@@ -63,6 +64,6 @@ Use this as the live scratchpad for what changed, what still needs parity work, 
 - Revisit `src/data/armorBonuses.ts` set selector matching with real inventories if any rows miss expected set bonuses.
 - Decide whether compare modal should add the archived bulk "Pull Group" action or stay per-item only.
 - Consider whether item ID copy should be hidden behind a debug/display option or remain visible like the archived patch.
-- Consider DIM CSV import only as an explicit later feature, not default runtime.
+- DIM CSV import is implemented as an explicit side-panel fallback; keep Bungie sync as the default live path.
 - Run `npm run build` before every push.
 - Keep Vite production assets hashed. Do not recommit root `assets/app.css` or `assets/app.js`; those fixed names can revive stale visuals.
