@@ -63,3 +63,4 @@ Use this as the live scratchpad for what changed, what still needs parity work, 
 - Consider whether item ID copy should be hidden behind a debug/display option or remain visible like the archived patch.
 - Consider DIM CSV import only as an explicit later feature, not default runtime.
 - Run `npm run build` before every push.
+- Keep Vite production assets hashed. Do not recommit root `assets/app.css` or `assets/app.js`; those fixed names can revive stale visuals.

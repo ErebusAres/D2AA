@@ -44,6 +44,9 @@ This file tracks migration decisions and larger changes while porting the archiv
   - tier 3-4: purple.
   - tier 5: gold.
 - Verified `npm run build` passes after card icon/tier rail corrections.
+- Removed the stale committed root `assets/app.css` and `assets/app.js` bundle that could make GitHub Pages/source-root hosting show an older visual layer.
+- Simplified `index.html` and `vite.config.ts` back to standard Vite asset injection so production builds use hashed CSS/JS filenames.
+- Verified `npm run build` emits one hashed CSS/JS pair from `dist/index.html`, reducing stale-cache mixed-look risk.
 
 ## Prior Completed Migration Work
 
