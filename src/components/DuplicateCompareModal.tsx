@@ -83,7 +83,7 @@ function CompareCard({ row, isBest, onTag, onAction }: { row: ArmorItem; isBest:
         <div className="compare-tag-set">
           {TAGS.filter((tag) => tag.picker).map((tag) => (
             <button type="button" key={tag.value || 'none'} className={row.Tag === tag.value ? 'is-active' : ''} onClick={() => onTag(row.Id, tag.value)}>
-              {tag.label}
+              {tag.emoji}
             </button>
           ))}
         </div>

@@ -110,16 +110,53 @@
   font-size: 12px;
 }
 .tag-chip { max-width: 94px; cursor: pointer; }
-.tag-chip--icon {
+.tag-picker {
+  position: relative;
+  display: inline-flex;
+}
+.tag-chip--emoji {
   width: 26px;
   min-width: 26px;
   max-width: 26px;
   height: 22px;
   padding: 0;
   text-align: center;
-  font-weight: 900;
+  font-size: 14px;
+  font-weight: 700;
   line-height: 1;
 }
+.tag-chip--emoji.is-compact { font-size: 13px; }
+.tag-menu {
+  position: absolute;
+  z-index: 400;
+  left: 0;
+  top: calc(100% + 8px);
+  display: grid;
+  width: 210px;
+  padding: 8px;
+  border: 1px solid rgba(216, 180, 91, .38);
+  background: linear-gradient(180deg, rgba(19, 24, 32, .99), rgba(8, 10, 14, .99));
+  box-shadow: 0 18px 45px rgba(0, 0, 0, .62), inset 0 1px 0 rgba(255, 255, 255, .08);
+}
+.tag-menu-item {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 26px 1fr;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  padding: 7px 8px;
+}
+.tag-menu-item:hover, .tag-menu-item:focus-visible, .tag-menu-item.is-active {
+  border-color: rgba(216, 180, 91, .38);
+  background: rgba(216, 180, 91, .12);
+  outline: none;
+}
+.tag-menu-item span { display: grid; place-items: center; }
+.tag-menu-item b { font-size: 12px; font-weight: 700; }
 .location-chip, .lock-chip, .id-copy-chip {
   width: 26px;
   min-width: 26px;

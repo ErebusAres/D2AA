@@ -50,12 +50,12 @@ export const DEFAULT_DISPLAY: DisplayOptions = {
 };
 
 export const TAGS = [
-  { value: '', label: 'No tag', picker: true },
-  { value: 'favorite', label: 'Favorite', picker: true },
-  { value: 'keep', label: 'Keep', picker: true },
-  { value: 'junk', label: 'Junk', picker: true },
-  { value: 'infuse', label: 'Infuse', picker: true },
-  { value: 'archive', label: 'Archive', picker: true }
+  { value: '', label: 'No tag', emoji: '+', picker: true },
+  { value: 'favorite', label: 'Favorite', emoji: '❤️', picker: true },
+  { value: 'keep', label: 'Keep', emoji: '🏷️', picker: true },
+  { value: 'junk', label: 'Junk', emoji: '🚫', picker: true },
+  { value: 'infuse', label: 'Infuse', emoji: '⚡', picker: true },
+  { value: 'archive', label: 'Archive', emoji: '📦', picker: true }
 ] as const;
 
 export const ARCHETYPE_ALIASES: Record<string, string> = {

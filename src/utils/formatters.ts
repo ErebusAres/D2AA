@@ -1,4 +1,5 @@
 import type { ArmorItem } from '../types/armor';
+import { TAGS } from './constants';
 
 export function displayName(row: ArmorItem): string {
   const name = String(row.Name || '').trim();
@@ -6,19 +7,11 @@ export function displayName(row: ArmorItem): string {
 }
 
 export function tagIcon(value: unknown): string {
-  const tag = String(value || '').toLowerCase();
-  if (tag === 'favorite') return '★';
-  if (tag === 'keep') return '✓';
-  if (tag === 'junk') return '×';
-  if (tag === 'infuse') return '↑';
-  if (tag === 'archive') return '□';
-  return '+';
+  return TAGS.find((tag) => tag.value === String(value || '').toLowerCase())?.emoji || '+';
 }
 
 export function tagTitle(value: unknown): string {
-  const tag = String(value || '').trim();
-  if (!tag) return 'No tag';
-  return tag.replace(/^./, (char) => char.toUpperCase());
+  return TAGS.find((tag) => tag.value === String(value || '').toLowerCase())?.label || 'No tag';
 }
 
 export function locationText(row: ArmorItem): 'Equipped' | 'Vault' | 'Inventory' {

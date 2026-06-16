@@ -1,8 +1,9 @@
 import type { ArmorItem } from '../types/armor';
 import { getActiveFeedRows } from '../data/feedState';
-import { displayName, rarityClass, tagIcon, tagTitle } from '../utils/formatters';
+import { displayName, rarityClass } from '../utils/formatters';
 import { gradeFor } from '../utils/statMath';
 import CopyItemIdButton from './CopyItemIdButton';
+import TagPicker from './TagPicker';
 
 interface ItemFeedProps {
   rows: ArmorItem[];
@@ -28,7 +29,7 @@ export default function ItemFeed({ rows, onDismiss, onRefresh, onTag }: ItemFeed
               <div>
                 <strong>{displayName(row)}</strong>
                 <span className="feed-meta">
-                  <button type="button" className="tag-chip" title={`Tag: ${tagTitle(row.Tag)}`} aria-label={`Tag item: ${tagTitle(row.Tag)}`} onClick={() => onTag(row.Id, 'keep')}>{tagIcon(row.Tag)}</button>
+                  <TagPicker id={row.Id} value={row.Tag || ''} onChange={onTag} compact />
                   <CopyItemIdButton id={row.Id} />
                   <b className={`grade-chip grade-${gradeFor(row).letter}`} title={`Rank ${gradeFor(row).letter}`}>{gradeFor(row).letter}</b>
                 </span>

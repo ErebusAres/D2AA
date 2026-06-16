@@ -1,8 +1,7 @@
 import type { ArmorItem } from '../types/armor';
-import { TAGS } from '../utils/constants';
 import { actionLabel, canRunAction } from '../data/actions';
-import { tagIcon, tagTitle } from '../utils/formatters';
 import CopyItemIdButton from './CopyItemIdButton';
+import TagPicker from './TagPicker';
 
 interface ArmorBadgesProps {
   row: ArmorItem;
@@ -16,9 +15,7 @@ export default function ArmorBadges({ row, grade, location, onTag, onAction }: A
   const label = actionLabel(row);
   return (
     <div className="meta-line">
-      <select className="tag-chip tag-chip--icon" value={row.Tag || ''} onChange={(event) => onTag(row.Id, event.target.value)} aria-label={`Tag item: ${tagTitle(row.Tag)}`} title={`Tag: ${tagTitle(row.Tag)}`}>
-        {TAGS.map((tag) => <option key={tag.value} value={tag.value}>{tagIcon(tag.value)}</option>)}
-      </select>
+      <TagPicker id={row.Id} value={row.Tag || ''} onChange={onTag} />
       {row.IsLocked ? <span className="lock-chip" title="Locked in game" aria-label="Locked in game"><LockIcon /></span> : null}
       <button
         type="button"
