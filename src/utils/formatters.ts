@@ -5,6 +5,22 @@ export function displayName(row: ArmorItem): string {
   return name && !name.includes('|') ? name : String(row.Type || row.Slot || 'Unknown Armor');
 }
 
+export function tagIcon(value: unknown): string {
+  const tag = String(value || '').toLowerCase();
+  if (tag === 'favorite') return '★';
+  if (tag === 'keep') return '✓';
+  if (tag === 'junk') return '×';
+  if (tag === 'infuse') return '↑';
+  if (tag === 'archive') return '□';
+  return '+';
+}
+
+export function tagTitle(value: unknown): string {
+  const tag = String(value || '').trim();
+  if (!tag) return 'No tag';
+  return tag.replace(/^./, (char) => char.toUpperCase());
+}
+
 export function locationText(row: ArmorItem): 'Equipped' | 'Vault' | 'Inventory' {
   if (row.IsEquipped) return 'Equipped';
   if (row.IsInVault) return 'Vault';

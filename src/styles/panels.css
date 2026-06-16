@@ -148,6 +148,8 @@
   max-width: 26px;
   padding: 0;
   overflow: hidden;
+  font-weight: 900;
+  line-height: 1;
 }
 .feed-meta .grade-chip { width: 24px; min-width: 24px; }
 @media (max-width: 1120px) {

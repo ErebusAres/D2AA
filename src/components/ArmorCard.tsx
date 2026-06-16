@@ -14,13 +14,14 @@ interface ArmorCardProps {
 export default function ArmorCard({ row, onTag, onAction, onCompareGroup }: ArmorCardProps) {
   const grade = gradeFor(row);
   const perks = displayPerks(row);
+  const tier = Number(row.Tier || row.GearTier || 0);
   return (
     <article className={`armor-card rarity-${rarityClass(row.Rarity)} ${row.GroupColor || ''} ${row.IsMasterworked ? 'is-masterworked' : ''}`}>
       <div className="card-title">
         {row.IconUrl || row.Icon ? <img className="item-icon" src={row.IconUrl || row.Icon} alt="" /> : <div className="item-icon item-icon--empty" />}
-        <div className="tier-rail">{Array.from({ length: 5 }, (_, index) => {
-          const tier = 5 - index;
-          return <span key={tier} className={`tier-mark tier-${tier} ${tier <= Number(row.Tier || row.GearTier || 0) ? 'is-on' : ''}`}>◆</span>;
+        <div className={`tier-rail ${tierColorClass(tier)}`}>{Array.from({ length: 5 }, (_, index) => {
+          const level = 5 - index;
+          return <span key={level} className={`tier-mark ${level <= tier ? 'is-on' : ''}`}>◆</span>;
         })}</div>
         <div className="title-copy">
           <strong title={displayName(row)}>{displayName(row)}</strong>
@@ -48,6 +49,13 @@ export default function ArmorCard({ row, onTag, onAction, onCompareGroup }: Armo
       </div>
     </article>
   );
+}
+
+function tierColorClass(tier: number): string {
+  if (tier >= 5) return 'tier-color-gold';
+  if (tier >= 3) return 'tier-color-purple';
+  if (tier >= 1) return 'tier-color-white';
+  return 'tier-color-empty';
 }
 
 function SetBonusRow({ perk }: { perk: ArmorPerk }) {

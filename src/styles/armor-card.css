@@ -76,9 +76,9 @@
   paint-order: stroke fill;
   text-shadow: 0 1px 3px #000, 0 0 4px #000;
 }
-.tier-mark.tier-5.is-on { color: var(--gold); }
-.tier-mark.tier-4.is-on, .tier-mark.tier-3.is-on { color: var(--tier-purple); }
-.tier-mark.tier-2.is-on, .tier-mark.tier-1.is-on { color: #f2f4f7; }
+.tier-rail.tier-color-gold .tier-mark.is-on { color: var(--gold); }
+.tier-rail.tier-color-purple .tier-mark.is-on { color: var(--tier-purple); }
+.tier-rail.tier-color-white .tier-mark.is-on { color: #f2f4f7; }
 .title-copy { min-width: 0; padding-right: 8px; }
 .title-copy > strong {
   display: block;
@@ -110,6 +110,16 @@
   font-size: 12px;
 }
 .tag-chip { max-width: 94px; cursor: pointer; }
+.tag-chip--icon {
+  width: 26px;
+  min-width: 26px;
+  max-width: 26px;
+  height: 22px;
+  padding: 0;
+  text-align: center;
+  font-weight: 900;
+  line-height: 1;
+}
 .location-chip, .lock-chip, .id-copy-chip {
   width: 26px;
   min-width: 26px;

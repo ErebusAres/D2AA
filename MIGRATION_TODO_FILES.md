@@ -51,6 +51,13 @@ Use this as the live scratchpad for what changed, what still needs parity work, 
   - set bonus rows with Bungie API icons.
   - exotic intrinsic/catalyst rows.
   - tuning markers in stat rows.
+- Preserve card icon-only controls where practical:
+  - tag chips should show compact symbols, not words like `Favorite` or `Keep`.
+  - lock/location/copy controls should stay compact icon chips.
+- Preserve tier rail color bands:
+  - tier 1-2 active diamonds are all white.
+  - tier 3-4 active diamonds are all purple.
+  - tier 5 active diamonds are all gold.
 - Revisit `src/data/armorBonuses.ts` set selector matching with real inventories if any rows miss expected set bonuses.
 - Decide whether compare modal should add the archived bulk "Pull Group" action or stay per-item only.
 - Consider whether item ID copy should be hidden behind a debug/display option or remain visible like the archived patch.

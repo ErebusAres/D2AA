@@ -38,6 +38,12 @@ This file tracks migration decisions and larger changes while porting the archiv
   - compare cards reuse armor stat bars and show archetype, totals, grade score, tags, item ID copy, and per-item pull/vault action.
   - compare modal styling follows the archived InGame overlay/card language without old DOM scripts.
 - Verified `npm run build` passes after duplicate compare parity.
+- Replaced visible card/feed tag words with compact icon glyphs while keeping full tag names in titles and ARIA labels.
+- Corrected tier diamond color behavior so all active diamonds share the item tier band color:
+  - tier 1-2: white.
+  - tier 3-4: purple.
+  - tier 5: gold.
+- Verified `npm run build` passes after card icon/tier rail corrections.
 
 ## Prior Completed Migration Work
 
