@@ -1,6 +1,8 @@
 import type { ArmorItem } from '../types/armor';
 import { getActiveFeedRows } from '../data/feedState';
-import { displayName } from '../utils/formatters';
+import { displayName, rarityClass } from '../utils/formatters';
+import { gradeFor } from '../utils/statMath';
+import CopyItemIdButton from './CopyItemIdButton';
 
 interface ItemFeedProps {
   rows: ArmorItem[];
@@ -21,13 +23,17 @@ export default function ItemFeed({ rows, onDismiss, onRefresh, onTag }: ItemFeed
         </div>
         <div className="feed-list">
           {active.map((row) => (
-            <article className={`feed-card ${row.GroupColor || ''}`} key={row.Id}>
+            <article className={`feed-card rarity-${rarityClass(row.Rarity)} ${row.GroupColor || ''}`} key={row.Id}>
               {row.IconUrl || row.Icon ? <img src={row.IconUrl || row.Icon} alt="" /> : null}
               <div>
                 <strong>{displayName(row)}</strong>
+                <span className="feed-meta">
+                  <button type="button" className="tag-chip" onClick={() => onTag(row.Id, 'keep')}>{row.Tag || '+'}</button>
+                  <CopyItemIdButton id={row.Id} />
+                  <b className={`grade-chip grade-${gradeFor(row).letter}`} title={`Rank ${gradeFor(row).letter}`}>{gradeFor(row).letter}</b>
+                </span>
                 <small>{row.Slot} · {row.Archetype || '—'} · {row.Power || row.Light || ''}</small>
               </div>
-              <button type="button" onClick={() => onTag(row.Id, 'keep')}>Keep</button>
               <button type="button" className="dismiss" onClick={() => onDismiss(row.Id)}>×</button>
             </article>
           ))}

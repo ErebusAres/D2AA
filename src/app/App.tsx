@@ -5,6 +5,7 @@ import Toolbar from '../components/Toolbar';
 import FiltersPanel from '../components/FiltersPanel';
 import DisplayOptionsPanel from '../components/DisplayOptionsPanel';
 import StatsSummary from '../components/StatsSummary';
+import ActiveFilterChips from '../components/ActiveFilterChips';
 import ArmorGrid from '../components/ArmorGrid';
 import ItemFeed from '../components/ItemFeed';
 import EmptyState from '../components/EmptyState';
@@ -106,6 +107,7 @@ function D2AAApp() {
         <DisplayOptionsPanel value={filters.display} onChange={(display) => setFilters((current) => ({ ...current, display }))} />
       </aside>
       <StatsSummary allRows={groupedRows} shownRows={filteredRows} activeClass={filters.filters.class} />
+      <ActiveFilterChips value={filters} onChange={setFilters} />
       {error ? <ErrorState message={error} /> : null}
       {loading ? <LoadingState label="Working" /> : null}
       <main>

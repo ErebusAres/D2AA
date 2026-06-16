@@ -3,6 +3,14 @@ import type { StatKey } from '../types/armor';
 
 const ARCHETYPE_NAMES = new Set(['paragon', 'grenadier', 'specialist', 'brawler', 'bulwark', 'gunner']);
 const STAT_KEYS: StatKey[] = ['Health', 'Melee', 'Grenade', 'Super', 'ClassAbility', 'Weapon'];
+const STAT_TO_ARCHETYPE: Record<StatKey, string> = {
+  Health: 'Bulwark',
+  Melee: 'Brawler',
+  Grenade: 'Grenadier',
+  Super: 'Paragon',
+  ClassAbility: 'Specialist',
+  Weapon: 'Gunner'
+};
 
 export interface ResolvedArmorArchetype {
   name: string;
@@ -21,7 +29,7 @@ export function resolveArmorArchetype(args: {
   const fallbackName = highestInvestmentStatName(args.itemDefinition, args.hashToColumn) || '—';
   const canonical = args.plugDefs.filter((plug) => {
     const name = normalize(plug.displayProperties?.name);
-    return ARCHETYPE_NAMES.has(name) && normalize(plug.plug?.plugCategoryIdentifier) === 'armor archetypes';
+    return ARCHETYPE_NAMES.has(name) && normalize(plug.plug?.plugCategoryIdentifier).includes('armor archetype');
   });
   const found = canonical.find((plug) => displayIconPath(plug.displayProperties)) || canonical[0];
   if (!found) return { name: fallbackName, icon: '', description: '', hash: '', trait: '' };
@@ -49,9 +57,7 @@ function highestInvestmentStatName(definition: DestinyInventoryItemDefinition, h
       value = totals[key];
     }
   }
-  if (best === 'Weapon') return 'Class';
-  if (best === 'ClassAbility') return 'Weapon';
-  return best;
+  return best ? STAT_TO_ARCHETYPE[best] : '';
 }
 
 function displayIconPath(displayProperties?: { icon?: string; iconSequences?: Array<{ frames?: string[] }> }): string {

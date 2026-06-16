@@ -110,8 +110,13 @@
   font-size: 12px;
 }
 .tag-chip { max-width: 94px; cursor: pointer; }
+.location-chip, .lock-chip, .id-copy-chip {
+  width: 26px;
+  min-width: 26px;
+  height: 22px;
+  padding: 0;
+}
 .location-chip {
-  min-width: 48px;
   color: #d8dde7;
   cursor: default;
 }
@@ -122,6 +127,36 @@
   outline: none;
 }
 .location-chip:disabled { opacity: .82; }
+.location-chip svg, .lock-chip svg {
+  display: block;
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.lock-chip svg { width: 14px; height: 14px; }
+.id-copy-chip {
+  border-color: rgba(255, 255, 255, .22);
+  background: rgba(6, 9, 14, .62);
+  color: #dbe8ff;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+}
+.id-copy-chip:hover, .id-copy-chip:focus-visible {
+  border-color: rgba(216, 180, 91, .68);
+  background: rgba(216, 180, 91, .18);
+  color: #fff;
+  outline: none;
+}
+.id-copy-chip.is-copied {
+  border-color: rgba(118, 227, 154, .75);
+  background: rgba(28, 82, 49, .78);
+  color: #e6fff0;
+}
 .location-equipped { color: var(--gold); }
 .location-vault { color: #d8dde7; }
 .location-inventory { color: #9fd0ff; }

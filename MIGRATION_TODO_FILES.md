@@ -28,6 +28,8 @@ Use this as the live scratchpad for what changed, what still needs parity work, 
 - `src/components/ArmorGrid.tsx` - slot stack grouping.
 - `src/components/Header.tsx` - old command bar parity.
 - `src/components/ItemFeed.tsx` - right rail latest items.
+- `src/components/ActiveFilterChips.tsx` - React replacement for old `#activeChips` rendering.
+- `src/components/CopyItemIdButton.tsx` - React replacement for old `id-copy-patch.js` copy control.
 
 ## In-Progress Data/API Files
 
@@ -49,7 +51,6 @@ Use this as the live scratchpad for what changed, what still needs parity work, 
   - exotic intrinsic/catalyst rows.
   - tuning markers in stat rows.
 - Revisit `src/data/armorBonuses.ts` set selector matching with real inventories if any rows miss expected set bonuses.
-- Add active filter chips parity from archived `#activeChips`.
-- Add optional item ID copy/debug control parity from archived `id-copy-patch.js`.
+- Consider whether item ID copy should be hidden behind a debug/display option or remain visible like the archived patch.
 - Consider DIM CSV import only as an explicit later feature, not default runtime.
 - Run `npm run build` before every push.

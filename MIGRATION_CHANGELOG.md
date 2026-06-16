@@ -24,6 +24,14 @@ This file tracks migration decisions and larger changes while porting the archiv
   - old card side rail, stat bars, tooltips, and set-bonus rows.
   - old background, summary strip spacing, panel/feed proportions, and palette tokens.
 - Verified `npm run build` passes.
+- Added React active filter chips with clear actions for search, slot, rarity, sort, duplicate tolerance, and display-only filters.
+- Tightened archetype fallback so missing plug metadata still resolves to the six Destiny armor archetype names.
+- Reworked card meta controls toward archived InGame behavior:
+  - compact SVG lock chip.
+  - compact SVG location/action chip.
+  - React item ID copy chip.
+- Reworked item feed rows toward archived layout with rarity/group left borders, meta chips, grade, and ID copy.
+- Verified `npm run build` passes after the second parity pass.
 
 ## Prior Completed Migration Work
 

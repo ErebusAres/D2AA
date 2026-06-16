@@ -113,17 +113,43 @@
 .feed-list { display: grid; gap: 8px; padding: 10px; overflow: auto; max-height: calc(100% - 45px); }
 .feed-card {
   display: grid;
-  grid-template-columns: 42px 1fr auto auto;
+  grid-template-columns: 48px minmax(0, 1fr) auto;
   gap: 8px;
   align-items: center;
-  padding: 8px;
+  position: relative;
+  padding: 7px;
   border: 1px solid var(--line);
+  border-left: 4px solid var(--legendary);
   background: rgba(255, 255, 255, .04);
 }
-.feed-card img { width: 42px; height: 42px; object-fit: cover; }
+.feed-card.rarity-exotic { border-left-color: var(--exotic); }
+.feed-card.rarity-rare { border-left-color: var(--rare); }
+.feed-card.group-1 { border-left-color: var(--group1); }
+.feed-card.group-2 { border-left-color: var(--group2); }
+.feed-card.group-3 { border-left-color: var(--group3); }
+.feed-card.group-4 { border-left-color: var(--group4); }
+.feed-card.group-5 { border-left-color: var(--group5); }
+.feed-card.group-6 { border-left-color: var(--group6); }
+.feed-card img { width: 48px; height: 48px; object-fit: cover; }
 .feed-card strong, .feed-card small { display: block; }
+.feed-card strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .feed-card small { color: var(--muted); }
 .feed-card button { border: 1px solid var(--line); background: rgba(255, 255, 255, .05); }
+.feed-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 3px 0;
+}
+.feed-meta .tag-chip, .feed-meta .id-copy-chip, .feed-meta .grade-chip {
+  width: 26px;
+  min-width: 26px;
+  height: 22px;
+  max-width: 26px;
+  padding: 0;
+  overflow: hidden;
+}
+.feed-meta .grade-chip { width: 24px; min-width: 24px; }
 @media (max-width: 1120px) {
   .item-feed {
     position: relative;
