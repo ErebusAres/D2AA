@@ -4,7 +4,9 @@ import { CLASS_ITEM_BY_CLASS, ITEM_STATE_LOCKED, VAULT_BUCKET_HASH } from '../ut
 import { bungieFetch, bungieIconUrl, getMembership, mapLimit, toUint32 } from './bungieApi';
 import { isSignedIn, startLogin } from './bungieAuth';
 import { getInventoryItemDefinition, getPlugSetDefinition } from './bungieManifest';
-import { auditArmorStats } from './armorStatAudit';
+import { ARMOR_STAT_HASH_TO_KEY, auditArmorStats } from './armorStatAudit';
+import { resolveArmorArchetype } from './armorArchetype';
+import { ARMOR_SET_SELECTOR_HASHES, resolveArmorBonusPerks, resolveExoticArmorPerks, resolvePotentialSetBonuses } from './armorBonuses';
 import { saveBungieInventory } from './inventoryCache';
 
 const PROFILE_COMPONENTS = [100, 102, 200, 201, 205, 300, 304, 305, 307].join(',');
@@ -43,8 +45,9 @@ async function buildArmorRows(profile: BungieProfileResponse, membershipType: nu
 
   const plugSetHashes = unique(armorItems.flatMap((item) => plugSetHashesForItem(itemDefs.get(toUint32(item.itemHash)), socketComponents[item.itemInstanceId || ''])).filter(Boolean));
   const plugSetDefs = new Map((await mapLimit(plugSetHashes, 8, (hash) => getPlugSetDefinition(hash))).map((def, index) => [plugSetHashes[index], def]));
-  const plugHashes = unique(armorItems.flatMap((item) => allPlugHashes(itemDefs.get(toUint32(item.itemHash)), socketComponents[item.itemInstanceId || ''], plugSetDefs)).filter(Boolean));
+  const plugHashes = unique([...armorItems.flatMap((item) => allPlugHashes(itemDefs.get(toUint32(item.itemHash)), socketComponents[item.itemInstanceId || ''], plugSetDefs)), ...ARMOR_SET_SELECTOR_HASHES].filter(Boolean));
   const plugDefs = new Map((await mapLimit(plugHashes, 8, (hash) => getInventoryItemDefinition(hash), (done, total) => setStatus(`Resolving armor plugs: ${done}/${total}`))).map((def, index) => [plugHashes[index], def]));
+  const selectorPlugDefs = ARMOR_SET_SELECTOR_HASHES.map((hash) => plugDefs.get(toUint32(hash))).filter(isDefinition);
 
   const rows: ArmorItem[] = [];
   const seen = new Set<string>();
@@ -64,9 +67,10 @@ async function buildArmorRows(profile: BungieProfileResponse, membershipType: nu
     const instance = instanceComponents[instanceId];
     const stateValue = Number(stateComponents[instanceId]?.state ?? item.state ?? 0);
     const ornament = activeOrnament(activePlugDefs);
-    const armorBonuses = rarity === 'Exotic' ? [] : armorBonusPerks(activePlugDefs, audit.row.ArchetypeHash);
-    const setBonuses = rarity === 'Exotic' ? [] : armorSetBonuses(activePlugDefs);
-    const exoticPerks = rarity === 'Exotic' ? exoticArmorPerks(activePlugDefs, def) : [];
+    const archetype = resolveArmorArchetype({ itemDefinition: def, plugDefs: allPlugDefs, hashToColumn: ARMOR_STAT_HASH_TO_KEY, iconUrl: bungieIconUrl });
+    const setBonuses = rarity === 'Exotic' ? [] : resolvePotentialSetBonuses({ itemDefinition: def, activePlugDefs, allPlugDefs, selectorPlugDefs, archetypeHash: archetype.hash, iconUrl: bungieIconUrl });
+    const armorBonuses = rarity === 'Exotic' ? [] : resolveArmorBonusPerks({ activePlugDefs, archetypeHash: archetype.hash, iconUrl: bungieIconUrl, setBonuses });
+    const exoticPerks = rarity === 'Exotic' ? resolveExoticArmorPerks({ itemDefinition: def, activePlugDefs, allPlugDefs, archetypeHash: archetype.hash, iconUrl: bungieIconUrl }) : [];
     const exoticPerk = exoticPerks[0] || null;
     rows.push({
       Id: instanceId,
@@ -81,7 +85,11 @@ async function buildArmorRows(profile: BungieProfileResponse, membershipType: nu
       TierMax: 5,
       Power: getLightLevel(instance, item),
       Light: getLightLevel(instance, item),
-      Archetype: deriveArchetype(audit.row),
+      Archetype: archetype.name,
+      ArchetypeIcon: archetype.icon,
+      ArchetypeDescription: archetype.description,
+      ArchetypeHash: archetype.hash,
+      ArchetypeTrait: archetype.trait,
       ArmorSetBonuses: setBonuses,
       SetBonuses: setBonuses,
       ArmorBonuses: armorBonuses,
@@ -216,100 +224,6 @@ function activeOrnament(activePlugDefs: DestinyInventoryItemDefinition[]): { nam
     }
   }
   return null;
-}
-
-function armorSetBonuses(activePlugDefs: DestinyInventoryItemDefinition[]): Array<{ name: string; description: string; icon: string; hash: number | string; kind: 'set'; label: string }> {
-  return uniquePerks(activePlugDefs.filter(isDisplayableSetBonus).map((plug) => ({
-    name: plug.displayProperties?.name || 'Armor Set Bonus',
-    description: plug.displayProperties?.description || '',
-    icon: bungieIconUrl(displayIconPath(plug)),
-    hash: plug.hash || '',
-    kind: 'set' as const,
-    label: setBonusLabelFromText(`${plug.displayProperties?.name || ''} ${plug.displayProperties?.description || ''}`)
-  })));
-}
-
-function armorBonusPerks(activePlugDefs: DestinyInventoryItemDefinition[], archetypeHash: unknown): Array<{ name: string; description: string; icon: string; hash: number | string; kind: 'armor' }> {
-  return uniquePerks(activePlugDefs.filter((plug) => isDisplayableArmorBonus(plug, archetypeHash)).map((plug) => ({
-    name: plug.displayProperties?.name || 'Armor Bonus',
-    description: plug.displayProperties?.description || '',
-    icon: bungieIconUrl(displayIconPath(plug)),
-    hash: plug.hash || '',
-    kind: 'armor' as const
-  }))).slice(0, 5);
-}
-
-function exoticArmorPerks(activePlugDefs: DestinyInventoryItemDefinition[], itemDef: DestinyInventoryItemDefinition): Array<{ name: string; description: string; icon: string; hash: number | string; kind: 'exotic' }> {
-  const candidates = activePlugDefs.filter((plug) => {
-    const text = normalize(`${plug.displayProperties?.name || ''} ${plug.displayProperties?.description || ''} ${plug.itemTypeDisplayName || ''} ${plug.plug?.plugCategoryIdentifier || ''}`);
-    return text.includes('exotic') || text.includes('intrinsic') || text.includes('trait');
-  });
-  const perks = uniquePerks(candidates.map((plug) => ({
-    name: plug.displayProperties?.name || itemDef.displayProperties?.name || 'Exotic Perk',
-    description: plug.displayProperties?.description || '',
-    icon: bungieIconUrl(displayIconPath(plug)),
-    hash: plug.hash || '',
-    kind: 'exotic' as const
-  })));
-  if (perks.length) return perks;
-  return [{
-    name: itemDef.displayProperties?.name || 'Exotic Intrinsic',
-    description: itemDef.displayProperties?.description || 'Exotic armor perk.',
-    icon: bungieIconUrl(itemDef.displayProperties?.icon),
-    hash: itemDef.hash || '',
-    kind: 'exotic'
-  }];
-}
-
-function isDisplayableSetBonus(plug: DestinyInventoryItemDefinition): boolean {
-  const text = normalize(`${plug.displayProperties?.name || ''} ${plug.displayProperties?.description || ''} ${plug.itemTypeDisplayName || ''} ${plug.plug?.plugCategoryIdentifier || ''}`);
-  if (!plug.displayProperties?.name || text.includes('deprecated') || text.includes('empty mod socket')) return false;
-  const hasSet = text.includes(' set ') || text.startsWith('set ') || text.includes('armor set') || text.includes('setbonus');
-  const hasBonus = text.includes('bonus') || text.includes('perk') || text.includes('trait') || text.includes('piece') || text.includes('pieces');
-  return text.includes('set bonus') || text.includes('armor set bonus') || (hasSet && hasBonus) || text.includes('2 piece') || text.includes('4 piece') || text.includes('wearing 2') || text.includes('wearing 4');
-}
-
-function isDisplayableArmorBonus(plug: DestinyInventoryItemDefinition, archetypeHash: unknown): boolean {
-  const name = normalize(plug.displayProperties?.name);
-  const text = normalize(`${plug.displayProperties?.name || ''} ${plug.displayProperties?.description || ''} ${plug.itemTypeDisplayName || ''} ${plug.plug?.plugCategoryIdentifier || ''}`);
-  if (!name || name === 'empty mod socket' || name === 'default ornament' || name.includes('deprecated')) return false;
-  if (String(plug.hash || '') === String(archetypeHash || '') || ['paragon', 'grenadier', 'specialist', 'brawler', 'bulwark', 'gunner'].includes(name) || isDisplayableSetBonus(plug)) return false;
-  return text.includes('armor bonus') || text.includes('origin trait') || text.includes('intrinsic') || text.includes('wearing');
-}
-
-function setBonusLabelFromText(text: string): string {
-  const value = normalize(text);
-  if (/\b2\b/.test(value) || value.includes('two')) return '2-Piece Set Bonus';
-  if (/\b4\b/.test(value) || value.includes('four')) return '4-Piece Set Bonus';
-  return 'Armor Set Bonus';
-}
-
-function displayIconPath(plug: DestinyInventoryItemDefinition): string {
-  const category = normalize(plug.plug?.plugCategoryIdentifier);
-  const tuningOverlay = category.includes('tuning') ? plug.displayProperties?.iconSequences?.[1]?.frames?.[0] : '';
-  return tuningOverlay || plug.displayProperties?.icon || plug.displayProperties?.iconSequences?.[0]?.frames?.[0] || '';
-}
-
-function uniquePerks<T extends { name: string; description: string; hash: number | string }>(perks: T[]): T[] {
-  const seen = new Set<string>();
-  return perks.filter((perk) => {
-    const key = normalize(`${perk.hash} ${perk.name} ${perk.description}`);
-    if (!key || seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
-}
-
-function deriveArchetype(row: Record<string, unknown>): string {
-  const entries = [
-    ['Health', 'Bulwark'],
-    ['Melee', 'Brawler'],
-    ['Grenade', 'Grenadier'],
-    ['Super', 'Paragon'],
-    ['Weapon', 'Specialist'],
-    ['ClassAbility', 'Gunner']
-  ] as const;
-  return entries.slice().sort((a, b) => Number(row[b[0]] || 0) - Number(row[a[0]] || 0))[0][1];
 }
 
 function buildCharacterMap(profile: BungieProfileResponse): Record<string, string> {

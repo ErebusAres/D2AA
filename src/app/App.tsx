@@ -16,6 +16,8 @@ import { useArmorInventory } from '../hooks/useArmorInventory';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { defaultFilterState, normalizeFilterState } from '../state/filterState';
 import { STORAGE_KEYS } from '../utils/constants';
+import { runItemAction } from '../data/actions';
+import type { ArmorItem } from '../types/armor';
 import type { FilterState } from '../types/filters';
 
 interface AppErrorBoundaryState {
@@ -79,6 +81,14 @@ function D2AAApp() {
     }
   }, []);
 
+  const runArmorAction = useCallback((row: ArmorItem) => {
+    runAction(async () => {
+      const result = await runItemAction(row);
+      setStatus(result.message);
+      if (result.needsRefresh) await inventory.sync();
+    });
+  }, [inventory, runAction]);
+
   return (
     <div className={`app-shell ${optionsOpen ? 'options-open' : ''}`}>
       <Header
@@ -100,7 +110,7 @@ function D2AAApp() {
       {loading ? <LoadingState label="Working" /> : null}
       <main>
         {filteredRows.length ? (
-          <ArmorGrid rows={filteredRows} onTag={inventory.updateTag} />
+          <ArmorGrid rows={filteredRows} onTag={inventory.updateTag} onAction={runArmorAction} />
         ) : (
           <EmptyState hasRows={inventory.rows.length > 0} />
         )}

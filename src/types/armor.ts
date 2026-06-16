@@ -12,6 +12,9 @@ export interface ArmorPerk {
   hash?: number | string;
   kind?: 'armor' | 'set' | 'exotic' | string;
   label?: string;
+  potential?: boolean;
+  category?: string;
+  type?: string;
 }
 
 export type ArmorStats = Record<StatKey, number>;
@@ -22,6 +25,7 @@ export interface ArmorStatAudit {
   base?: ArmorStats;
   totals?: { base: number; current: number; bonus: number };
   bonusBreakdown?: Partial<ArmorBonusBreakdown>;
+  tuning?: Partial<ArmorStats>;
   activePlugs?: ArmorPerk[];
   warnings?: Array<Record<string, unknown>>;
   baseSource?: string;

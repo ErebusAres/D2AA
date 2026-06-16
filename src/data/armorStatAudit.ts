@@ -37,6 +37,7 @@ export interface ArmorStatAuditResult {
     base: ArmorStats;
     totals: { base: number; current: number; bonus: number };
     bonusBreakdown: Record<BonusType, ArmorStats>;
+    tuning: ArmorStats;
     activePlugs: AuditPlug[];
     allPlugs: AuditPlug[];
     classifiedPlugs: Record<string, Array<{ hash: number | string; name: string; category: string; stats: ArmorStats; reason: string }>>;
@@ -66,6 +67,7 @@ export function auditArmorStats(args: {
   const baseResolution = resolveBase({ current, socketBase, definitionBase, classified, warnings });
   const base = baseResolution.stats;
   const displayBreakdown = displayBreakdownFor({ current, base, classified });
+  const tuning = sumPlugStats(classified.tuning);
   const row = buildStatRow({ current, base, displayBreakdown, source: baseResolution.source });
   const expectedCurrent = addStats(base, signedBonusStats(classified));
 
@@ -82,6 +84,7 @@ export function auditArmorStats(args: {
       base,
       totals: { base: totalStats(base), current: totalStats(current), bonus: totalStats(current) - totalStats(base) },
       bonusBreakdown: displayBreakdown,
+      tuning,
       activePlugs,
       allPlugs,
       classifiedPlugs: Object.fromEntries(Object.entries(classified).map(([key, plugs]) => [key, plugs.map(compactPlug)])),

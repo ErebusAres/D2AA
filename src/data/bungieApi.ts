@@ -26,6 +26,10 @@ export async function bungieFetch<T>(path: string, auth = false, options: Reques
   return json.Response;
 }
 
+export async function bungiePost<T>(path: string, body: unknown): Promise<T> {
+  return bungieFetch<T>(path, true, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+}
+
 export async function getMembership(): Promise<BungieMembership> {
   const data = await bungieFetch<{ destinyMemberships?: BungieMembership[]; primaryMembershipId?: string }>('/User/GetMembershipsForCurrentUser/', true);
   const memberships = data.destinyMemberships || [];

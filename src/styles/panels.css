@@ -1,10 +1,10 @@
 .side-panel {
   position: fixed;
-  top: 72px;
+  top: 59px;
   left: 0;
   bottom: 0;
   z-index: 15;
-  width: 300px;
+  width: min(360px, 92vw);
   overflow: auto;
   padding: 16px;
   background: linear-gradient(180deg, rgba(13, 16, 22, .98), rgba(7, 9, 13, .98));
@@ -73,7 +73,7 @@
 .display-toggle input { accent-color: var(--gold); }
 .item-feed {
   position: fixed;
-  top: 72px;
+  top: 59px;
   right: 0;
   bottom: 0;
   z-index: 10;
