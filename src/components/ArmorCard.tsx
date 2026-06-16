@@ -8,9 +8,10 @@ interface ArmorCardProps {
   row: ArmorItem;
   onTag: (id: string, tag: string) => void;
   onAction: (row: ArmorItem) => void;
+  onCompareGroup: (groupKey: string) => void;
 }
 
-export default function ArmorCard({ row, onTag, onAction }: ArmorCardProps) {
+export default function ArmorCard({ row, onTag, onAction, onCompareGroup }: ArmorCardProps) {
   const grade = gradeFor(row);
   const perks = displayPerks(row);
   return (
@@ -25,7 +26,11 @@ export default function ArmorCard({ row, onTag, onAction }: ArmorCardProps) {
           <strong title={displayName(row)}>{displayName(row)}</strong>
           <ArmorBadges row={row} grade={grade} location={locationText(row)} onTag={onTag} onAction={onAction} />
         </div>
-        {row.Is_Dupe ? <span className={`group-badge ${row.GroupColor || ''}`}>{row.Group}</span> : null}
+        {row.Is_Dupe ? (
+          <button type="button" className={`group-badge ${row.GroupColor || ''}`} title={`Compare group ${row.Group || ''}`} onClick={() => onCompareGroup(String(row.GroupActionKey || ''))}>
+            {row.Group}
+          </button>
+        ) : null}
         <div className="power-badge">{row.Power || row.Light || ''}</div>
       </div>
       <div className="card-body">

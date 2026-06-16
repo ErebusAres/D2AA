@@ -7,6 +7,7 @@ import DisplayOptionsPanel from '../components/DisplayOptionsPanel';
 import StatsSummary from '../components/StatsSummary';
 import ActiveFilterChips from '../components/ActiveFilterChips';
 import ArmorGrid from '../components/ArmorGrid';
+import DuplicateCompareModal from '../components/DuplicateCompareModal';
 import ItemFeed from '../components/ItemFeed';
 import EmptyState from '../components/EmptyState';
 import ErrorState from '../components/ErrorState';
@@ -63,6 +64,7 @@ function D2AAApp() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [optionsOpen, setOptionsOpen] = useState(false);
+  const [compareGroupKey, setCompareGroupKey] = useState('');
   const [filters, setFilters] = useLocalStorage<FilterState>(STORAGE_KEYS.settings, defaultFilterState, normalizeFilterState);
   const auth = useAuth(setStatus);
   const inventory = useArmorInventory(setStatus);
@@ -90,6 +92,10 @@ function D2AAApp() {
     });
   }, [inventory, runAction]);
 
+  const compareRows = compareGroupKey
+    ? groupedRows.filter((row) => row.Is_Dupe && row.GroupActionKey === compareGroupKey)
+    : [];
+
   return (
     <div className={`app-shell ${optionsOpen ? 'options-open' : ''}`}>
       <Header
@@ -112,12 +118,21 @@ function D2AAApp() {
       {loading ? <LoadingState label="Working" /> : null}
       <main>
         {filteredRows.length ? (
-          <ArmorGrid rows={filteredRows} onTag={inventory.updateTag} onAction={runArmorAction} />
+          <ArmorGrid rows={filteredRows} onTag={inventory.updateTag} onAction={runArmorAction} onCompareGroup={setCompareGroupKey} />
         ) : (
           <EmptyState hasRows={inventory.rows.length > 0} />
         )}
       </main>
       <ItemFeed rows={groupedRows} onDismiss={inventory.dismissRecent} onRefresh={() => runAction(inventory.sync)} onTag={inventory.updateTag} />
+      {compareRows.length ? (
+        <DuplicateCompareModal
+          groupKey={compareGroupKey}
+          rows={compareRows}
+          onClose={() => setCompareGroupKey('')}
+          onTag={inventory.updateTag}
+          onAction={runArmorAction}
+        />
+      ) : null}
     </div>
   );
 }

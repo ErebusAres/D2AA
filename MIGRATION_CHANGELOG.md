@@ -32,6 +32,12 @@ This file tracks migration decisions and larger changes while porting the archiv
   - React item ID copy chip.
 - Reworked item feed rows toward archived layout with rarity/group left borders, meta chips, grade, and ID copy.
 - Verified `npm run build` passes after the second parity pass.
+- Added React duplicate group comparison workflow:
+  - group badges now open a compare modal.
+  - compare modal shows all items in the duplicate group in base-stat order.
+  - compare cards reuse armor stat bars and show archetype, totals, grade score, tags, item ID copy, and per-item pull/vault action.
+  - compare modal styling follows the archived InGame overlay/card language without old DOM scripts.
+- Verified `npm run build` passes after duplicate compare parity.
 
 ## Prior Completed Migration Work
 
