@@ -105,6 +105,7 @@ This file tracks migration decisions and larger changes while porting the archiv
   - masterwork styling now requires audited masterwork bonuses or an active masterwork plug signal.
   - replaced diagonal stripe imagery with a subtler in-game-style gold edge, icon border, and title glow.
 - Unified small card/feed action chip backgrounds so tag, ID, group, rank, and dismiss controls share the same filled badge language.
+- Adjusted the latest-items refresh control so the button background stays static while only the refresh arrow spins during sync.
   - tightened slot headings to include the archived count label plus right-aligned count badge.
   - improved mobile command bar wrapping so sign-in/sync controls stay compact instead of crowding the header.
 

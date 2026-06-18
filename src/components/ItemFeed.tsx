@@ -25,7 +25,9 @@ export default function ItemFeed({ rows, onDismiss, onRefresh, onTag, isRefreshi
         <div className="feed-head">
           <strong>Latest Items</strong>
           <span>{active.length}</span>
-          <button type="button" className="feed-refresh-button" title="Check latest drops now" aria-label="Check latest drops now" onClick={onRefresh} disabled={isRefreshing}>{'\u21bb'}</button>
+          <button type="button" className="feed-refresh-button" title="Check latest drops now" aria-label="Check latest drops now" onClick={onRefresh} disabled={isRefreshing}>
+            <span aria-hidden="true">{'\u21bb'}</span>
+          </button>
         </div>
         <div className="feed-list">
           {active.length ? active.map((row) => (

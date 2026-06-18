@@ -167,6 +167,10 @@
   color: var(--gold);
   outline: none;
 }
+.feed-refresh-button span {
+  display: block;
+  line-height: 1;
+}
 .feed-refresh-button:disabled {
   cursor: wait;
   opacity: .58;
@@ -175,7 +179,7 @@
   border-color: rgba(216, 180, 91, .55);
   color: var(--gold);
 }
-.feed-shell.is-refreshing .feed-refresh-button {
+.feed-shell.is-refreshing .feed-refresh-button span {
   animation: spinSync .85s linear infinite;
 }
 .feed-list { display: grid; gap: 8px; padding: 10px; overflow: auto; max-height: calc(100% - 45px); }
