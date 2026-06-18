@@ -19,10 +19,12 @@ export default function TagPicker({ id, value = '', onChange, compact = false }:
     if (!open || !rootRef.current) return;
     const rect = rootRef.current.getBoundingClientRect();
     const menuWidth = 210;
+    const menuHeight = 260;
     const left = Math.min(rect.left, window.innerWidth - menuWidth - 10);
+    const top = Math.min(rect.bottom + 8, window.innerHeight - menuHeight - 10);
     setMenuStyle({
       left: Math.max(10, left),
-      top: Math.min(rect.bottom + 8, window.innerHeight - 220)
+      top: Math.max(10, top)
     });
   }, [open]);
 

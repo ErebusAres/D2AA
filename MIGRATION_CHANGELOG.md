@@ -130,6 +130,8 @@ This file tracks migration decisions and larger changes while porting the archiv
 - Bumped the displayed app version to `v.02` and added `npm run version:bump` to increment `APP_VERSION` before future commits.
   - tightened slot headings to include the archived count label plus right-aligned count badge.
   - improved mobile command bar wrapping so sign-in/sync controls stay compact instead of crowding the header.
+- Bumped the displayed app version to `v.03`.
+- Clamped floating UI placement so the tag picker and latest-item stat popout stay inside the viewport on narrow or short screens.
 
 ## Prior Completed Migration Work
 

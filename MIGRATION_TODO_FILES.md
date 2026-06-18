@@ -27,6 +27,7 @@ Use this as the live scratchpad for what changed, what still needs parity work, 
 - `src/components/ArmorBadges.tsx` - tags, location/action chip, grade chip.
   - includes optimistic lock/unlock control with pending and failed states.
 - `src/components/TagPicker.tsx` - floating React emoji tag picker used by cards and feed rows.
+  - clamps menu placement into the viewport for shorter/narrower screens.
 - `src/components/ArmorGrid.tsx` - slot stack grouping.
 - `src/components/Header.tsx` - old command bar parity.
   - includes live/manual/syncing status indicator.
@@ -38,6 +39,7 @@ Use this as the live scratchpad for what changed, what still needs parity work, 
 - `scripts/bump-version.mjs` - local helper for incrementing `APP_VERSION`.
   - run `npm run version:bump` before commits that change app behavior or visuals.
 - `src/components/ItemFeed.tsx` - right rail latest items, empty states, and icon stat popouts.
+  - clamps stat popouts into the viewport and switches to full-width popouts on narrower layouts.
 - `src/components/ActiveFilterChips.tsx` - React replacement for old `#activeChips` rendering.
 - `src/components/CopyItemIdButton.tsx` - React replacement for old `id-copy-patch.js` copy control.
 - `src/components/DuplicateCompareModal.tsx` - React replacement for old duplicate compare overlay.
@@ -73,7 +75,7 @@ Use this as the live scratchpad for what changed, what still needs parity work, 
   - exotic intrinsic/catalyst rows.
   - tuning markers in stat rows.
   - stat calculation titles/tooltip text explaining base source, visible bonus parts, and absolute totals.
-  - item feed popouts show the same stat breakdowns and do not clip at desktop/mobile widths.
+  - item feed popouts show the same stat breakdowns; viewport clamping is implemented, but still needs browser verification at desktop/mobile widths.
   - masterwork styling only appears on armor with audited masterwork stat bonuses after cache restore or Bungie sync.
 - Verify live sync behavior with a real account:
   - cache should render first.

@@ -95,12 +95,15 @@ function FeedCard({
 }
 
 function FeedPopout({ row, anchor }: { row: ArmorItem; anchor: DOMRect }) {
-  const width = 330;
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+  const narrow = viewportWidth <= 1120;
+  const width = Math.min(330, Math.max(280, viewportWidth - 16));
   const gap = 12;
   const leftSide = anchor.left >= width + gap + 8;
-  const left = leftSide ? anchor.left - width - gap : anchor.right + gap;
-  const top = Math.max(8, Math.min(window.innerHeight - 300, anchor.top + anchor.height / 2 - 150));
-  const style: CSSProperties = { left, top, width };
+  const left = Math.max(8, Math.min(viewportWidth - width - 8, leftSide ? anchor.left - width - gap : anchor.right + gap));
+  const top = Math.max(8, Math.min(viewportHeight - 300, anchor.top + anchor.height / 2 - 150));
+  const style: CSSProperties = narrow ? { left: 8, right: 8, top, width: 'auto' } : { left, top, width };
   return (
     <span className={`feed-stat-popout is-visible ${leftSide ? 'is-left-of-icon' : 'is-right-of-icon'}`} role="tooltip" style={style}>
       <span className="feed-popout-head">
