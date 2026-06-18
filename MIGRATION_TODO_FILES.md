@@ -35,6 +35,8 @@ Use this as the live scratchpad for what changed, what still needs parity work, 
   - shows `APP_VERSION` in the top-right of the D2 Armor Analyzer brand block.
 - `src/utils/constants.ts` - shared constants.
   - `APP_VERSION` must be bumped for every new commit: `v.01` through `v.99`, then `v1.00`, `v1.01`, and so on.
+- `scripts/bump-version.mjs` - local helper for incrementing `APP_VERSION`.
+  - run `npm run version:bump` before commits that change app behavior or visuals.
 - `src/components/ItemFeed.tsx` - right rail latest items, empty states, and icon stat popouts.
 - `src/components/ActiveFilterChips.tsx` - React replacement for old `#activeChips` rendering.
 - `src/components/CopyItemIdButton.tsx` - React replacement for old `id-copy-patch.js` copy control.

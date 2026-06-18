@@ -23,7 +23,7 @@
   background: linear-gradient(180deg, rgba(30, 34, 43, .94), rgba(10, 12, 17, .88));
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08), 0 1px 5px rgba(0, 0, 0, .22);
   color: var(--gold);
-  clip-path: polygon(5px 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%, 0 5px);
+  clip-path: var(--clip-chip);
 }
 .gear-button:hover, .gear-button:focus-visible {
   border-color: rgba(216, 180, 91, .55);
@@ -31,7 +31,7 @@
   outline: none;
 }
 .live-chip, .brand-lockup, .class-toggle, .search-wrap, .command-button {
-  clip-path: polygon(5px 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%, 0 5px);
+  clip-path: var(--clip-chip);
 }
 .live-chip {
   display: flex;
@@ -121,7 +121,7 @@
   border: 1px solid rgba(255, 255, 255, .18);
   background: rgba(5, 7, 10, .86);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, .06);
-  clip-path: polygon(4px 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%, 0 4px);
+  clip-path: var(--clip-chip);
 }
 .status-progress::before {
   content: "";
@@ -182,7 +182,7 @@
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08), 0 1px 5px rgba(0, 0, 0, .22);
   padding: 8px 12px;
   white-space: nowrap;
-  clip-path: polygon(5px 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%, 0 5px);
+  clip-path: var(--clip-chip);
   transition: border-color .14s ease, background .14s ease;
 }
 .class-toggle button.is-active {
@@ -265,7 +265,7 @@
   color: #f1f3f6;
   padding: 2px 8px;
   font-size: 12px;
-  clip-path: polygon(5px 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%, 0 5px);
+  clip-path: var(--clip-chip);
 }
 .active-chips button:hover, .active-chips button:focus-visible {
   border-color: rgba(216, 180, 91, .58);
@@ -281,7 +281,7 @@
   border: 1px solid var(--line);
   background: rgba(255, 255, 255, 0.035);
   padding: 22px;
-  clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+  clip-path: var(--clip-panel);
 }
 .loading-state {
   display: flex;

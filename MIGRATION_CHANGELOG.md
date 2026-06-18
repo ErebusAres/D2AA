@@ -127,6 +127,7 @@ This file tracks migration decisions and larger changes while porting the archiv
 - Widened the masterwork sweep highlight and disabled repeat tiling so only one larger flash travels across the bar at a time.
 - Moved the masterwork underglow behind the card body instead of over the rarity header, keeping icon/title content unobstructed.
 - Added an app version label to the D2 Armor Analyzer command-bar brand block, starting at `v.01`.
+- Bumped the displayed app version to `v.02` and added `npm run version:bump` to increment `APP_VERSION` before future commits.
   - tightened slot headings to include the archived count label plus right-aligned count badge.
   - improved mobile command bar wrapping so sign-in/sync controls stay compact instead of crowding the header.
 
