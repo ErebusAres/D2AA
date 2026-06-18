@@ -147,6 +147,8 @@ This file tracks migration decisions and larger changes while porting the archiv
   - official Bungie manifest set-bonus plugs now win before local catalog fallbacks.
   - local catalog fallback no longer guesses from armor item names.
   - local catalog rows require active set-selector evidence, reducing incorrect Aion Adapter `Force Absorption` / `Reactive Shock` rows on unrelated gear.
+- Bumped the displayed app version to `v.08`.
+- Adjusted the masterwork sheen so it fully enters and exits the gold cap before the animation loops.
 
 ## Prior Completed Migration Work
 
