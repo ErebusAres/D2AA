@@ -251,6 +251,7 @@
   color: #f1f3f6;
   padding: 2px 8px;
   font-size: 12px;
+  clip-path: polygon(5px 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%, 0 5px);
 }
 .active-chips button:hover, .active-chips button:focus-visible {
   border-color: rgba(216, 180, 91, .58);
