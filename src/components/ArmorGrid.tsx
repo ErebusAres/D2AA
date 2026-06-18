@@ -17,7 +17,7 @@ export default function ArmorGrid({ rows, onTag, onAction, onCompareGroup }: Arm
         if (!items.length) return null;
         return (
           <section className="slot-section" key={slot}>
-            <div className="slot-heading"><span className="slot-caret">⌄</span><strong>{slot}</strong><b>{items.length}</b></div>
+            <div className="slot-heading"><span className="slot-caret">◆</span><strong>{slot}</strong><span>{items.length} items</span><b>{items.length}</b></div>
             <div className="card-grid">
               {items.map((row) => <ArmorCard key={row.Id} row={row} onTag={onTag} onAction={onAction} onCompareGroup={onCompareGroup} />)}
             </div>

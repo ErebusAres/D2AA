@@ -134,7 +134,7 @@ function D2AAApp() {
           <EmptyState hasRows={inventory.rows.length > 0} />
         )}
       </main>
-      <ItemFeed rows={groupedRows} onDismiss={inventory.dismissRecent} onRefresh={() => runAction(inventory.sync)} onTag={inventory.updateTag} />
+      <ItemFeed rows={groupedRows} onDismiss={inventory.dismissRecent} onRefresh={() => runAction(inventory.sync)} onTag={inventory.updateTag} isRefreshing={loading || inventory.syncing || liveSync.isSyncing} />
       {compareRows.length ? (
         <DuplicateCompareModal
           groupKey={compareGroupKey}

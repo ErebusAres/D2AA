@@ -13,18 +13,19 @@ interface ItemFeedProps {
   onDismiss: (id: string) => void;
   onRefresh: () => void;
   onTag: (id: string, tag: string) => void;
+  isRefreshing: boolean;
 }
 
-export default function ItemFeed({ rows, onDismiss, onRefresh, onTag }: ItemFeedProps) {
+export default function ItemFeed({ rows, onDismiss, onRefresh, onTag, isRefreshing }: ItemFeedProps) {
   const active = getActiveFeedRows(rows);
   const [popout, setPopout] = useState<{ row: ArmorItem; rect: DOMRect } | null>(null);
   return (
     <aside className="item-feed is-open">
-      <div className="feed-shell">
+      <div className={`feed-shell ${isRefreshing ? 'is-refreshing' : ''}`}>
         <div className="feed-head">
           <strong>Latest Items</strong>
           <span>{active.length}</span>
-          <button type="button" className="feed-refresh-button" title="Check latest drops now" aria-label="Check latest drops now" onClick={onRefresh}>{'\u21bb'}</button>
+          <button type="button" className="feed-refresh-button" title="Check latest drops now" aria-label="Check latest drops now" onClick={onRefresh} disabled={isRefreshing}>{'\u21bb'}</button>
         </div>
         <div className="feed-list">
           {active.length ? active.map((row) => (

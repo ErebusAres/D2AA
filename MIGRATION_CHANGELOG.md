@@ -95,6 +95,13 @@ This file tracks migration decisions and larger changes while porting the archiv
   - added angular cuts and accent rails to slot headers, armor cards, feed cards, and empty feed panels.
   - restored a subtle masterwork stripe treatment on card title bars.
   - tightened command bar, feed refresh, group badge, set bonus row, and stat bar hover/focus styling toward archived `D2AA.html`.
+- Continued basic visual overpass against archived `D2AA.html`:
+  - added archived-style scrollbars, panel heading density, select/toggle focus states, and action-card hover states.
+  - added live-chip state metadata and signed-out/manual/current/syncing dot colors.
+  - restored the archived feed head spinner treatment and masterworked feed row striping.
+  - wired the feed refresh control to the real sync state so it disables and animates while manual/live sync is active.
+  - tightened slot headings to include the archived count label plus right-aligned count badge.
+  - improved mobile command bar wrapping so sign-in/sync controls stay compact instead of crowding the header.
 
 ## Prior Completed Migration Work
 

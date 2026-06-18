@@ -13,6 +13,21 @@ button, input, select { font: inherit; }
 button { color: inherit; cursor: pointer; }
 img { display: block; max-width: 100%; }
 main { padding: 0 360px 48px 16px; }
+::selection {
+  background: rgba(216, 180, 91, .34);
+  color: #fff;
+}
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, .04);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(216, 180, 91, .42);
+  border: 2px solid rgba(8, 10, 14, .9);
+}
 @media (max-width: 1120px) {
   main { padding: 0 16px 0; }
 }

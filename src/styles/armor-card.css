@@ -4,7 +4,7 @@
   position: relative;
   width: 100%;
   display: grid;
-  grid-template-columns: 22px minmax(120px, 1fr) auto;
+  grid-template-columns: 22px minmax(120px, auto) minmax(0, 1fr) auto;
   gap: 8px;
   align-items: center;
   padding: 10px 13px;
@@ -26,12 +26,23 @@
 }
 .slot-caret { display: grid; place-items: center; width: 18px; height: 18px; color: var(--gold); }
 .slot-heading strong { font-size: 13px; color: #e7ebf2; }
+.slot-heading span:not(.slot-caret) {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .slot-heading b { color: var(--gold); font-variant-numeric: tabular-nums; }
 .card-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
   gap: 12px;
   margin-top: 10px;
+}
+.armor-card:hover, .armor-card:focus-within {
+  border-color: rgba(216, 180, 91, .42);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, .34), inset 0 1px 0 rgba(255, 255, 255, .055);
 }
 .armor-card {
   position: relative;
@@ -302,6 +313,9 @@
   gap: 7px;
   min-height: 28px;
 }
+.archetype:hover .archetype-img, .archetype:focus-visible .archetype-img {
+  filter: drop-shadow(0 0 9px rgba(216, 180, 91, .48));
+}
 .archetype span {
   display: grid;
   place-items: center;
@@ -479,6 +493,8 @@
   margin-top: 3px;
   padding-top: 7px;
   border-top: 1px solid rgba(255, 255, 255, .12);
+  background: linear-gradient(90deg, rgba(255, 255, 255, .025), transparent);
+  padding-left: 4px;
 }
 .stat-total .total-label {
   grid-column: auto;
@@ -528,6 +544,7 @@
   background: linear-gradient(180deg, rgba(17, 22, 31, .98), rgba(8, 10, 14, .98));
   box-shadow: 0 22px 70px rgba(0, 0, 0, .65);
   padding: 14px;
+  clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
 }
 .compare-head {
   display: flex;

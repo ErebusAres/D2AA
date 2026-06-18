@@ -10,7 +10,9 @@
   min-height: 59px;
   padding: 10px 14px;
   border-bottom: 1px solid var(--line);
-  background: rgba(8, 10, 14, .88);
+  background:
+    linear-gradient(180deg, rgba(13, 16, 22, .94), rgba(7, 9, 13, .91)),
+    rgba(8, 10, 14, .88);
   backdrop-filter: blur(18px);
   box-shadow: 0 12px 40px rgba(0, 0, 0, .35);
 }
@@ -50,6 +52,23 @@
   background: #67e8b9;
   box-shadow: 0 0 12px #67e8b9;
 }
+.live-chip[data-live-state="signed-out"] span {
+  background: var(--danger);
+  box-shadow: 0 0 12px rgba(217, 97, 97, .65);
+}
+.live-chip[data-live-state="manual"] span {
+  background: #9aa3b2;
+  box-shadow: 0 0 8px rgba(154, 163, 178, .55);
+}
+.live-chip[data-live-state="current"] span {
+  background: #59d68d;
+  box-shadow: 0 0 12px rgba(89, 214, 141, .7);
+}
+.live-chip[data-live-state="syncing"] span {
+  background: var(--gold);
+  box-shadow: 0 0 14px rgba(216, 180, 91, .8);
+  animation: livePulse 900ms ease-in-out infinite;
+}
 .live-chip.is-manual span {
   background: #9aa3b2;
   box-shadow: 0 0 8px rgba(154, 163, 178, .55);
@@ -72,6 +91,7 @@
   border: 0;
   background: transparent;
 }
+.brand-lockup > div { min-width: 0; }
 .brand-lockup strong { display: block; color: var(--text); text-transform: uppercase; letter-spacing: .08em; }
 .brand-lockup span:last-child { display: block; color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .brand-diamond { color: var(--gold); }
@@ -80,6 +100,11 @@
   gap: 6px;
   border: 0;
   overflow: visible;
+}
+.class-toggle b {
+  color: var(--gold);
+  margin-left: 5px;
+  font-variant-numeric: tabular-nums;
 }
 .class-toggle button {
   min-height: 38px;
@@ -180,6 +205,7 @@
   border: 1px solid var(--line);
   background: rgba(255, 255, 255, 0.035);
   padding: 22px;
+  clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
 }
 .loading-state {
   display: flex;
@@ -217,4 +243,31 @@
   .class-toggle button { flex: 1; }
   .search-wrap { grid-column: 1 / -1; }
   .active-chips { display: none; }
+}
+@media (max-width: 720px) {
+  .command-bar {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 8px;
+    padding: 8px;
+  }
+  .gear-button, .live-chip { height: 34px; }
+  .brand-lockup {
+    grid-column: 2 / 3;
+  }
+  .live-chip {
+    justify-self: end;
+    max-width: 88px;
+    overflow: hidden;
+  }
+  .command-button {
+    min-width: 0;
+    grid-template-columns: 24px minmax(0, auto);
+    padding: 7px 8px;
+  }
+  .command-button small { display: none; }
+  .command-button b {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 }

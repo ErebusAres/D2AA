@@ -56,7 +56,7 @@ Use this as the live scratchpad for what changed, what still needs parity work, 
 ## Next Todo
 
 - Continue visual parity against archived InGame after a browser screenshot pass:
-  - compare command bar spacing, card proportions, right feed, and side panel controls at desktop width after the angular/accent-rail pass.
+  - compare command bar spacing, card proportions, right feed, and side panel controls at desktop width after the angular/accent-rail and basic-control polish passes.
   - compare mobile wrapping for command bar, cards, feed, and tooltips.
 - Verify real synced Bungie rows show:
   - archetype API icon and tooltip.
