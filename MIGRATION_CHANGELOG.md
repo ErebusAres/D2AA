@@ -118,6 +118,9 @@ This file tracks migration decisions and larger changes while porting the archiv
   - added tier diamonds to the compare item icon.
   - made the rank badge use the same chip language as normal armor cards.
   - hardened archetype tooltips so tooltip text is no longer squashed by icon wrapper styles.
+- Tuned the masterwork and progress visuals:
+  - reduced the masterwork cap height and added a softer gold glow.
+  - improved progress-fill text contrast over white and green completion fills.
   - tightened slot headings to include the archived count label plus right-aligned count badge.
   - improved mobile command bar wrapping so sign-in/sync controls stay compact instead of crowding the header.
 

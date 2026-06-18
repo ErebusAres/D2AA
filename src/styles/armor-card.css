@@ -76,13 +76,16 @@
   position: absolute;
   inset: 0 0 auto 0;
   z-index: 3;
-  height: 6px;
+  height: 4px;
   pointer-events: none;
   background:
-    linear-gradient(105deg, transparent 0 34%, rgba(255, 255, 255, .72) 44%, transparent 55%),
-    linear-gradient(180deg, #f7e6a2, #b9862b 58%, #6c4418);
+    linear-gradient(105deg, transparent 0 35%, rgba(255, 255, 255, .78) 45%, transparent 56%),
+    linear-gradient(180deg, #fff0b0 0%, #d9aa45 55%, #7d541f 100%);
   background-size: 220% 100%, 100% 100%;
-  box-shadow: 0 1px 0 rgba(255, 245, 199, .48), 0 0 8px rgba(216, 180, 91, .24);
+  box-shadow:
+    0 1px 0 rgba(255, 250, 210, .58),
+    0 0 7px rgba(245, 203, 97, .42),
+    0 0 16px rgba(216, 180, 91, .22);
   animation: masterworkSweep 2.6s ease-in-out infinite;
 }
 .armor-card.is-masterworked .card-title {

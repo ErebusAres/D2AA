@@ -83,7 +83,7 @@ Use this as the live scratchpad for what changed, what still needs parity work, 
   - tier 3-4 active diamonds are all purple.
   - tier 5 active diamonds are all gold.
 - Revisit `src/data/armorSetCatalog.ts` with real inventories if new set names appear or Bungie exposes better official icons/details.
-- Revisit masterwork visuals against a real in-game screenshot if provided; current pass uses a thin Bray.tech-style animated gold cap instead of the old diagonal stripe overlay.
+- Revisit masterwork visuals against a real in-game screenshot if provided; current pass uses a thinner Bray.tech-style animated gold cap with a soft glow instead of the old diagonal stripe overlay.
 - Consider whether item ID copy should be hidden behind a debug/display option or remain visible like the archived patch.
 - DIM CSV import is implemented as an explicit side-panel fallback; keep Bungie sync as the default live path.
 - Run `npm run build` before every push.
