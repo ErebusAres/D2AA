@@ -24,6 +24,7 @@ Use this as the live scratchpad for what changed, what still needs parity work, 
 - `src/styles/armor-card.css` - armor card, title blocks, stat bars, tooltips, set bonus rows.
 - `src/components/ArmorCard.tsx` - archetype, perk rows, card composition.
 - `src/components/ArmorStats.tsx` - stat/tuning visual display.
+  - uses an inline DIM-style tuned-stat glyph for non-zero armor tuning adjustments, including negative values.
 - `src/components/ArmorBadges.tsx` - tags, location/action chip, grade chip.
   - includes optimistic lock/unlock control with pending and failed states.
 - `src/components/TagPicker.tsx` - floating React emoji tag picker used by cards and feed rows.

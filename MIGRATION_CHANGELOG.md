@@ -134,6 +134,8 @@ This file tracks migration decisions and larger changes while porting the archiv
 - Clamped floating UI placement so the tag picker and latest-item stat popout stay inside the viewport on narrow or short screens.
 - Bumped the displayed app version to `v.04`.
 - Pulled the header version label inline with `D2 Armor Analyzer` so it reads as a compact title/version pair instead of spreading across the brand block.
+- Bumped the displayed app version to `v.05`.
+- Added the DIM-style tuned-stat glyph beside tuned stat rows and show it for any non-zero tuning value, including negative tuning like `Weapons -6`.
 
 ## Prior Completed Migration Work
 

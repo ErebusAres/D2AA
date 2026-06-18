@@ -393,7 +393,7 @@
 }
 .feed-stat-popout .stat-bars { gap: 6px; }
 .feed-stat-popout .stat-row { grid-template-columns: 20px minmax(0, 1fr) 28px; gap: 7px; }
-.feed-stat-popout .stat-row.has-positive-tuning { grid-template-columns: 20px 14px minmax(0, 1fr) 28px; gap: 5px; }
+.feed-stat-popout .stat-row.has-tuning { grid-template-columns: 20px 14px minmax(0, 1fr) 28px; gap: 5px; }
 .feed-stat-popout .stat-row > img { width: 17px; height: 17px; }
 @media (max-width: 1120px) {
   .item-feed {

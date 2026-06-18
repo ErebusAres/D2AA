@@ -516,7 +516,7 @@
   gap: 8px;
   align-items: center;
 }
-.stat-row.has-positive-tuning { grid-template-columns: 22px 14px minmax(0, 1fr) 28px; gap: 5px; }
+.stat-row.has-tuning { grid-template-columns: 22px 14px minmax(0, 1fr) 28px; gap: 5px; }
 .stat-row > img { width: 18px; height: 18px; opacity: .86; }
 .stat-tuning-marker {
   position: relative;
@@ -528,7 +528,12 @@
   cursor: help;
   opacity: .95;
 }
-.stat-tuning-marker img { width: 14px; height: 14px; object-fit: contain; filter: drop-shadow(0 0 5px rgba(255, 255, 255, .22)); }
+.stat-tuning-marker svg {
+  width: 14px;
+  height: 14px;
+  color: #dce2ea;
+  filter: drop-shadow(0 0 5px rgba(255, 255, 255, .22));
+}
 .stat-tuning-marker .d2-tooltip { left: -18px; bottom: calc(100% + 10px); }
 .bar {
   position: relative;

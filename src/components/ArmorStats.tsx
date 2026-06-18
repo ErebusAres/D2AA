@@ -17,14 +17,15 @@ export default function ArmorStats({ row }: ArmorStatsProps) {
       {STAT_KEYS.map((key) => {
         const model = statModel(row, key);
         const tuningValue = Number(tuning?.stats?.[key] || 0);
+        const hasTuning = tuningValue !== 0;
         const title = statCalculationTitle(key, model, row);
         let left = Math.min(100, Math.max(0, model.base));
         return (
-          <div className={`stat-row has-tooltip ${tuningValue > 0 ? 'has-positive-tuning' : ''}`} key={key} title={title}>
+          <div className={`stat-row has-tooltip ${hasTuning ? 'has-tuning' : ''}`} key={key} title={title}>
             <img src={STAT_ICONS[key]} alt="" />
-            {tuningValue > 0 ? (
+            {hasTuning ? (
               <span className="stat-tuning-marker" tabIndex={0} title={tuningTitle(tuning, key)}>
-                {tuning?.icon ? <img src={tuning.icon} alt="" /> : '◆'}
+                <TunedStatIcon />
                 <span className="d2-tooltip">
                   <b>{tuning?.name || 'Armor Tuning'}</b>
                   <em>{tuningValue > 0 ? `+${tuningValue}` : tuningValue} {STAT_LABELS[key]}</em>
@@ -59,6 +60,14 @@ export default function ArmorStats({ row }: ArmorStatsProps) {
         <strong className="absolute-total">{totalCurrent}</strong>
       </div>
     </div>
+  );
+}
+
+function TunedStatIcon() {
+  return (
+    <svg viewBox="0 0 32 32" aria-hidden="true">
+      <path fill="currentColor" d="M2,14.25 h28 v3.5 h-28zM2,10.5 l7,-7 l7,7 h-4.5 l-2.5,-2.5 l-2.5,2.5 zM30,21.5 l-7,7 l-7,-7 h4.5 l2.5,2.5 l2.5,-2.5 z" />
+    </svg>
   );
 }
 
