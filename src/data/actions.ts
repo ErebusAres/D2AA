@@ -71,12 +71,12 @@ export async function runGroupPull(rows: ArmorItem[]): Promise<{ message: string
 
 async function pullFromVault(row: ArmorItem): Promise<{ message: string; needsRefresh: boolean }> {
   await transferItem(row, false, row.TargetCharacterId);
-  return { message: `Pulled ${row.Name} from vault. Refresh to confirm location.`, needsRefresh: true };
+  return { message: `Pulled ${row.Name} from vault. Verifying in background.`, needsRefresh: true };
 }
 
 async function moveToVault(row: ArmorItem): Promise<{ message: string; needsRefresh: boolean }> {
   await transferItem(row, true, row.OwnerCharacterId);
-  return { message: `Moved ${row.Name} to vault. Refresh to confirm location.`, needsRefresh: true };
+  return { message: `Moved ${row.Name} to vault. Verifying in background.`, needsRefresh: true };
 }
 
 async function transferItem(row: ArmorItem, transferToVault: boolean, characterId: unknown): Promise<void> {

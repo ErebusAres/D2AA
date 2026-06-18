@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { MutableRefObject } from 'react';
 import type { ArmorItem } from '../types/armor';
-import { canRunLockAction, runGroupPull, runItemAction, runLockAction } from '../data/actions';
+import { canRunAction, canRunLockAction, runGroupPull, runItemAction, runLockAction } from '../data/actions';
 
 type QueueKind = 'transfer' | 'group-pull' | 'lock';
 type QueueReason = 'manual-lock' | 'auto-lock';
@@ -30,8 +30,23 @@ interface ActionQueueOptions {
 export function useActionQueue({ rows, externalSyncing, sync, patchRow, setStatus, setError, setLoading }: ActionQueueOptions) {
   const [queue, setQueue] = useState<QueuedAction[]>([]);
   const runningRef = useRef(false);
+  const verifyTimerRef = useRef<number | null>(null);
   const rowsRef = useRef(rows);
   rowsRef.current = rows;
+
+  const scheduleVerifySync = useCallback(() => {
+    if (verifyTimerRef.current) window.clearTimeout(verifyTimerRef.current);
+    verifyTimerRef.current = window.setTimeout(() => {
+      verifyTimerRef.current = null;
+      if (runningRef.current || externalSyncing) {
+        scheduleVerifySync();
+        return;
+      }
+      void sync({ reason: 'queued-action-verify', background: true }).catch((error: unknown) => {
+        setStatus(error instanceof Error ? error.message : String(error));
+      });
+    }, 3500);
+  }, [externalSyncing, setStatus, sync]);
 
   const enqueue = useCallback((action: QueuedAction) => {
     setQueue((current) => sortQueue(dedupeQueue([...current, action])));
@@ -71,7 +86,7 @@ export function useActionQueue({ rows, externalSyncing, sync, patchRow, setStatu
     runningRef.current = true;
     setLoading(true);
     setError('');
-    void runQueuedAction(next, { rowsRef, sync, patchRow, setStatus })
+    void runQueuedAction(next, { rowsRef, patchRow, setStatus, scheduleVerifySync })
       .catch((error: unknown) => {
         const message = error instanceof Error ? error.message : String(error);
         if (next.kind === 'lock' && next.row) patchRow(next.row.Id, { LockActionState: 'failed' });
@@ -82,49 +97,64 @@ export function useActionQueue({ rows, externalSyncing, sync, patchRow, setStatu
         runningRef.current = false;
         setLoading(false);
       });
-  }, [externalSyncing, patchRow, queue, setError, setLoading, setStatus, sync]);
+  }, [externalSyncing, patchRow, queue, scheduleVerifySync, setError, setLoading, setStatus]);
+
+  useEffect(() => () => {
+    if (verifyTimerRef.current) window.clearTimeout(verifyTimerRef.current);
+  }, []);
 
   return useMemo(() => ({ enqueueTransfer, enqueueGroupPull, enqueueLock, queuedCount: queue.length }), [enqueueGroupPull, enqueueLock, enqueueTransfer, queue.length]);
 }
 
-async function runQueuedAction(action: QueuedAction, options: { rowsRef: MutableRefObject<ArmorItem[]>; sync: ActionQueueOptions['sync']; patchRow: ActionQueueOptions['patchRow']; setStatus: ActionQueueOptions['setStatus'] }): Promise<void> {
-  const { rowsRef, sync, patchRow, setStatus } = options;
+async function runQueuedAction(action: QueuedAction, options: { rowsRef: MutableRefObject<ArmorItem[]>; patchRow: ActionQueueOptions['patchRow']; setStatus: ActionQueueOptions['setStatus']; scheduleVerifySync: () => void }): Promise<void> {
+  const { rowsRef, patchRow, setStatus, scheduleVerifySync } = options;
   setStatus(`Running queued ${action.label}...`);
   if (action.kind === 'transfer' && action.row) {
     const row = latestRow(action.row, rowsRef.current);
     const result = await runItemAction(row);
+    if (row.Source === 'Bungie' && result.needsRefresh) patchRow(row.Id, optimisticTransferPatch(row));
     setStatus(result.message);
-    if (result.needsRefresh) await sync({ reason: 'queued-transfer' });
+    if (result.needsRefresh) scheduleVerifySync();
     return;
   }
   if (action.kind === 'group-pull') {
-    const result = await runGroupPull((action.rows || []).map((row) => latestRow(row, rowsRef.current)));
+    const latestRows = (action.rows || []).map((row) => latestRow(row, rowsRef.current));
+    const pullable = latestRows.filter((row) => row.Source === 'Bungie' && row.IsInVault && canRunAction(row));
+    const result = await runGroupPull(latestRows);
+    if (result.needsRefresh) {
+      for (const row of pullable) patchRow(row.Id, optimisticTransferPatch(row));
+    }
     setStatus(result.message);
-    if (result.needsRefresh) await sync({ reason: 'queued-group-pull' });
+    if (result.needsRefresh) scheduleVerifySync();
     return;
   }
   if (action.kind === 'lock' && action.row && typeof action.desiredLock === 'boolean') {
     const row = latestRow(action.row, rowsRef.current);
-    for (let attempt = 1; attempt <= 3; attempt += 1) {
-      try {
-        await runLockAction(row, action.desiredLock);
-      } catch (error) {
-        if (attempt >= 3) throw error;
-      }
-
-      await wait(1000 * attempt);
-      const synced = await sync({ reason: action.reason || 'queued-lock' });
-      const confirmed = synced.find((item) => item.Id === row.Id);
-      if (confirmed?.IsLocked === action.desiredLock) {
-        patchRow(row.Id, { IsLocked: action.desiredLock, LockActionState: '' });
-        setStatus(`${action.desiredLock ? 'Locked' : 'Unlocked'} ${row.Name}.`);
-        return;
-      }
-      patchRow(row.Id, { IsLocked: action.desiredLock, LockActionState: attempt >= 3 ? 'failed' : 'pending' });
-      setStatus(`Verifying ${action.desiredLock ? 'lock' : 'unlock'} for ${row.Name}...`);
-    }
-    throw new Error(`Could not confirm ${action.desiredLock ? 'lock' : 'unlock'} for ${row.Name}.`);
+    await runLockAction(row, action.desiredLock);
+    patchRow(row.Id, { IsLocked: action.desiredLock, LockActionState: '' });
+    setStatus(`${action.desiredLock ? 'Locked' : 'Unlocked'} ${row.Name}.`);
+    scheduleVerifySync();
   }
+}
+
+function optimisticTransferPatch(row: ArmorItem): Partial<ArmorItem> {
+  const now = Date.now();
+  if (row.IsInVault) {
+    return {
+      IsInVault: false,
+      IsEquipped: false,
+      OwnerCharacterId: String(row.TargetCharacterId || row.OwnerCharacterId || ''),
+      ActivityAt: now,
+      LocationSignature: ['inventory', row.TargetCharacterId || row.OwnerCharacterId || '', row.BucketHash || ''].join('|')
+    };
+  }
+  return {
+    IsInVault: true,
+    IsEquipped: false,
+    OwnerCharacterId: '',
+    ActivityAt: now,
+    LocationSignature: ['vault', '', row.BucketHash || ''].join('|')
+  };
 }
 
 function latestRow(row: ArmorItem, rows: ArmorItem[]): ArmorItem {
@@ -146,8 +176,4 @@ function dedupeQueue(queue: QueuedAction[]): QueuedAction[] {
     out.unshift(item);
   }
   return out;
-}
-
-function wait(ms: number): Promise<void> {
-  return new Promise((resolve) => window.setTimeout(resolve, ms));
 }

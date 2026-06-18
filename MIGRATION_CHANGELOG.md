@@ -158,6 +158,11 @@ This file tracks migration decisions and larger changes while porting the archiv
   - catalog fallback now renders the verified 2-piece and 4-piece rows for the selected set, with set/source context in rows and tooltips.
 - Bumped the displayed app version to `v.11`.
 - Fixed archetype tooltip sizing by replacing broad archetype `span` icon styling with a dedicated `.archetype-icon` wrapper in normal and compare cards.
+- Bumped the displayed app version to `v.12`.
+- Made queued Bungie actions feel instant:
+  - lock/unlock clears pending after the action POST succeeds instead of waiting on a full inventory sync.
+  - pull/vault actions optimistically patch item location locally after Bungie accepts the transfer.
+  - queued actions now schedule one delayed background verification sync instead of forcing a full sync after every item action.
 
 ## Prior Completed Migration Work
 

@@ -41,6 +41,7 @@ Use this as the live scratchpad for what changed, what still needs parity work, 
 - `src/hooks/useActionQueue.ts` - queued Bungie action orchestration.
   - queues transfer/group-pull actions above lock actions.
   - waits for active sync before running queued Bungie mutations.
+  - patches lock/location state optimistically and schedules a delayed background verification sync instead of full-syncing after every action.
   - auto-locks synced Bungie armor when tagged `favorite` or `keep`.
   - exposes queue count for the command-bar live chip.
 - `src/utils/constants.ts` - shared constants.
@@ -92,6 +93,7 @@ Use this as the live scratchpad for what changed, what still needs parity work, 
 - Verify live sync behavior with a real account:
   - cache should render first.
   - background sync should not overlap manual sync.
+  - queued lock/pull/vault actions should feel instant, then settle with one delayed verification sync.
   - tab-hidden/offline states should not keep polling.
   - large inventories should not visibly lock the browser while rows normalize.
 - Preserve card icon-only controls where practical:
