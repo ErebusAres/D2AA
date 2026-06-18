@@ -34,7 +34,12 @@ Use this as the live scratchpad for what changed, what still needs parity work, 
   - includes live/manual/syncing status indicator.
   - top controls now share the clipped filled badge shape and matching 38px height.
   - parses `done/total` status text into a temporary command-bar progress fill.
-  - shows `APP_VERSION` in the top-right of the D2 Armor Analyzer brand block.
+  - shows `APP_VERSION` inline with the D2 Armor Analyzer title.
+- `src/app/App.tsx` - main app orchestration.
+- `src/hooks/useActionQueue.ts` - queued Bungie action orchestration.
+  - queues transfer/group-pull actions above lock actions.
+  - waits for active sync before running queued Bungie mutations.
+  - auto-locks synced Bungie armor when tagged `favorite` or `keep`.
 - `src/utils/constants.ts` - shared constants.
   - `APP_VERSION` must be bumped for every new commit: `v.01` through `v.99`, then `v1.00`, `v1.01`, and so on.
 - `scripts/bump-version.mjs` - local helper for incrementing `APP_VERSION`.

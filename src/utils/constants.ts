@@ -1,7 +1,7 @@
 import type { DisplayOptions } from '../types/filters';
 import type { StatKey } from '../types/armor';
 
-export const APP_VERSION = 'v.05';
+export const APP_VERSION = 'v.06';
 
 export const STORAGE_KEYS = {
   rows: 'd2aa_clean_rows_v1',

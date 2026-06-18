@@ -13,11 +13,12 @@ import ErrorState from '../components/ErrorState';
 import { useAuth } from '../hooks/useAuth';
 import { useArmorFilters } from '../hooks/useArmorFilters';
 import { useArmorInventory } from '../hooks/useArmorInventory';
+import { useActionQueue } from '../hooks/useActionQueue';
 import { useLiveSync } from '../hooks/useLiveSync';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { defaultFilterState, normalizeFilterState } from '../state/filterState';
 import { STORAGE_KEYS } from '../utils/constants';
-import { runGroupPull, runItemAction } from '../data/actions';
+import { canRunLockAction } from '../data/actions';
 import type { ArmorItem } from '../types/armor';
 import type { FilterState } from '../types/filters';
 
@@ -69,6 +70,16 @@ function D2AAApp() {
   const inventory = useArmorInventory(setStatus);
   const liveSync = useLiveSync({ enabled: auth.isSignedIn, sync: inventory.sync, onStatus: setStatus });
   const { groupedRows, filteredRows } = useArmorFilters(inventory.rows, filters);
+  const externalSyncing = inventory.syncing || liveSync.isSyncing;
+  const actionQueue = useActionQueue({
+    rows: inventory.rows,
+    externalSyncing,
+    sync: inventory.sync,
+    patchRow: inventory.patchRow,
+    setStatus,
+    setError,
+    setLoading
+  });
 
   const runAction = useCallback(async (action: () => Promise<void>) => {
     setLoading(true);
@@ -85,20 +96,19 @@ function D2AAApp() {
   }, []);
 
   const runArmorAction = useCallback((row: ArmorItem) => {
-    runAction(async () => {
-      const result = await runItemAction(row);
-      setStatus(result.message);
-      if (result.needsRefresh) await inventory.sync();
-    });
-  }, [inventory, runAction]);
+    actionQueue.enqueueTransfer(row);
+  }, [actionQueue]);
 
   const runGroupAction = useCallback((rows: ArmorItem[]) => {
-    runAction(async () => {
-      const result = await runGroupPull(rows);
-      setStatus(result.message);
-      if (result.needsRefresh) await inventory.sync();
-    });
-  }, [inventory, runAction]);
+    actionQueue.enqueueGroupPull(rows);
+  }, [actionQueue]);
+
+  const updateTag = useCallback((id: string, tag: string) => {
+    inventory.updateTag(id, tag);
+    if (tag !== 'favorite' && tag !== 'keep') return;
+    const row = inventory.rows.find((item) => item.Id === id);
+    if (row && !row.IsLocked && canRunLockAction(row)) actionQueue.enqueueLock(row, true, 'auto-lock');
+  }, [actionQueue, inventory]);
 
   const compareRows = compareGroupKey
     ? groupedRows.filter((row) => row.Is_Dupe && row.GroupActionKey === compareGroupKey)
@@ -113,8 +123,8 @@ function D2AAApp() {
         allRows={groupedRows}
         onFiltersChange={setFilters}
         onOptionsToggle={() => setOptionsOpen((open) => !open)}
-        onSync={() => runAction(inventory.sync)}
-        isSyncing={loading || inventory.syncing || liveSync.isSyncing}
+        onSync={() => runAction(async () => { await inventory.sync(); })}
+        isSyncing={loading || externalSyncing}
         liveEnabled={liveSync.enabled}
         lastSyncAt={liveSync.lastSyncAt || inventory.lastSyncAt}
       />
@@ -127,18 +137,18 @@ function D2AAApp() {
       {error ? <ErrorState message={error} /> : null}
       <main>
         {filteredRows.length ? (
-          <ArmorGrid rows={filteredRows} onTag={inventory.updateTag} onAction={runArmorAction} onLock={inventory.toggleLock} onCompareGroup={setCompareGroupKey} />
+          <ArmorGrid rows={filteredRows} onTag={updateTag} onAction={runArmorAction} onLock={(row) => actionQueue.enqueueLock(row, !row.IsLocked, 'manual-lock')} onCompareGroup={setCompareGroupKey} />
         ) : (
           <EmptyState hasRows={inventory.rows.length > 0} />
         )}
       </main>
-      <ItemFeed rows={groupedRows} onDismiss={inventory.dismissRecent} onRefresh={() => runAction(inventory.sync)} onTag={inventory.updateTag} isRefreshing={loading || inventory.syncing || liveSync.isSyncing} />
+      <ItemFeed rows={groupedRows} onDismiss={inventory.dismissRecent} onRefresh={() => runAction(async () => { await inventory.sync(); })} onTag={updateTag} isRefreshing={loading || externalSyncing} />
       {compareRows.length ? (
         <DuplicateCompareModal
           groupKey={compareGroupKey}
           rows={compareRows}
           onClose={() => setCompareGroupKey('')}
-          onTag={inventory.updateTag}
+          onTag={updateTag}
           onAction={runArmorAction}
           onGroupAction={runGroupAction}
         />

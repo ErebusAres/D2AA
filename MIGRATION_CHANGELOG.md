@@ -136,6 +136,12 @@ This file tracks migration decisions and larger changes while porting the archiv
 - Pulled the header version label inline with `D2 Armor Analyzer` so it reads as a compact title/version pair instead of spreading across the brand block.
 - Bumped the displayed app version to `v.05`.
 - Added the DIM-style tuned-stat glyph beside tuned stat rows and show it for any non-zero tuning value, including negative tuning like `Weapons -6`.
+- Bumped the displayed app version to `v.06`.
+- Added a client-side Bungie action queue:
+  - transfer/group pull actions are queued ahead of lock/unlock actions.
+  - queued actions wait for active inventory sync to finish instead of racing sync.
+  - lock/unlock keeps optimistic pending state, retries, verifies with a fresh sync, and marks failed if Bungie does not confirm.
+  - tagging synced Bungie armor as `favorite` or `keep` automatically queues a lock when the item is not already locked.
 
 ## Prior Completed Migration Work
 

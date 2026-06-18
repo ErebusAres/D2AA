@@ -8,7 +8,7 @@ interface LiveSyncState {
 
 interface LiveSyncOptions {
   enabled: boolean;
-  sync: (options?: { reason?: string; background?: boolean }) => Promise<void>;
+  sync: (options?: { reason?: string; background?: boolean }) => Promise<unknown>;
   onStatus: (status: string) => void;
   intervalMs?: number;
 }

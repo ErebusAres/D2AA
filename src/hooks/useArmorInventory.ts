@@ -13,7 +13,8 @@ export function useArmorInventory(setStatus: (status: string) => void): {
   syncing: boolean;
   lastSyncAt: number;
   setRows: (rows: ArmorItem[], status?: string) => void;
-  sync: (options?: { reason?: string; background?: boolean }) => Promise<void>;
+  patchRow: (id: string, patch: Partial<ArmorItem>) => void;
+  sync: (options?: { reason?: string; background?: boolean }) => Promise<ArmorItem[]>;
   importCsv: (file: File) => Promise<void>;
   restoreCache: () => Promise<void>;
   clearCache: () => Promise<void>;
@@ -61,7 +62,7 @@ export function useArmorInventory(setStatus: (status: string) => void): {
   const sync = useCallback(async (options: { reason?: string; background?: boolean } = {}) => {
     if (syncInFlight.current) {
       if (!options.background) setStatus('A Bungie sync is already running.');
-      return;
+      return [];
     }
     syncInFlight.current = true;
     setSyncing(true);
@@ -71,6 +72,7 @@ export function useArmorInventory(setStatus: (status: string) => void): {
         setRows(synced, `${options.background ? 'Live sync' : 'Loaded'} ${synced.length} Bungie armor items.`);
         setLastSyncAt(Date.now());
       }
+      return synced;
     } finally {
       syncInFlight.current = false;
       setSyncing(false);
@@ -172,7 +174,7 @@ export function useArmorInventory(setStatus: (status: string) => void): {
     });
   }, []);
 
-  return { rows, syncing, lastSyncAt, setRows, sync, importCsv, restoreCache, clearCache, updateTag, toggleLock, dismissRecent };
+  return { rows, syncing, lastSyncAt, setRows, patchRow, sync, importCsv, restoreCache, clearCache, updateTag, toggleLock, dismissRecent };
 }
 
 function wait(ms: number): Promise<void> {
