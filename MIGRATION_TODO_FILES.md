@@ -57,7 +57,8 @@ Use this as the live scratchpad for what changed, what still needs parity work, 
 - `src/data/armorArchetype.ts` - resolves canonical archetype names/icons/descriptions from Bungie plug definitions.
 - `src/data/armorBonuses.ts` - resolves set bonus, armor bonus, exotic perk, and catalyst display rows.
 - `src/data/armorSetCatalog.ts` - local Armor 3.0 set bonus catalog used when Bungie plugs only provide weak selector/name data.
-  - matches only item names and active selector plugs; do not include all reusable selector options or every set resolves to the first catalog entry.
+  - official Bungie set-bonus plugs are preferred before local catalog rows.
+  - local fallback now requires active selector plug evidence; do not infer from item names or all reusable selector options.
   - prefers Bungie selector icons when active plug metadata exposes them.
 - `src/data/armorTuning.ts` - isolates tuning icon/stat presentation.
 - `src/data/actions.ts` - Bungie item transfer actions and fallback copy behavior.
@@ -96,7 +97,8 @@ Use this as the live scratchpad for what changed, what still needs parity work, 
   - tier 1-2 active diamonds are all white.
   - tier 3-4 active diamonds are all purple.
   - tier 5 active diamonds are all gold.
-- Revisit `src/data/armorSetCatalog.ts` with real inventories if new set names appear or Bungie exposes better official icons/details.
+- Revisit `src/data/armorSetCatalog.ts` with real inventories and/or a trusted source for accurate Armor 3.0 set names, icons, 2-piece text, and 4-piece text.
+  - current local catalog is a guarded fallback only; it should be treated as incomplete until verified against real Bungie/DIM data.
 - Revisit masterwork visuals against a real in-game screenshot if provided; current pass uses a thinner Bray.tech-style animated gold cap with a soft glow instead of the old diagonal stripe overlay.
 - Consider whether item ID copy should be hidden behind a debug/display option or remain visible like the archived patch.
 - DIM CSV import is implemented as an explicit side-panel fallback; keep Bungie sync as the default live path.

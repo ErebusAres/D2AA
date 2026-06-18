@@ -10,6 +10,12 @@ interface ArmorSetBonusCatalogEntry {
   icon: string;
 }
 
+const ARMOR_SET_SELECTOR_HASHES = new Set([
+  139044974, 139044987, 721111598, 721111611, 1012508294, 1012508307, 1220635053,
+  1220635064, 1404854454, 1530138662, 1841728090, 2824493179, 2872740129,
+  3573256294, 3573256307, 3782433407, 3834187337, 3874641219, 4119627352
+]);
+
 const SETS: ArmorSetBonusCatalogEntry[] = [
   {
     key: 'aion-adapter',
@@ -102,11 +108,10 @@ const SETS: ArmorSetBonusCatalogEntry[] = [
 ];
 
 export function resolveCatalogSetBonuses(args: {
-  itemDefinition: DestinyInventoryItemDefinition;
   activePlugDefs: DestinyInventoryItemDefinition[];
   iconUrl: (value: unknown) => string;
 }): ArmorPerk[] {
-  const match = findCatalogEntry(args.itemDefinition, args.activePlugDefs, args.iconUrl);
+  const match = findCatalogEntry(args.activePlugDefs, args.iconUrl);
   if (!match) return [];
   return match.entry.bonuses.map((bonus) => ({
     kind: 'set',
@@ -122,16 +127,11 @@ export function resolveCatalogSetBonuses(args: {
 }
 
 function findCatalogEntry(
-  itemDefinition: DestinyInventoryItemDefinition,
   activePlugDefs: DestinyInventoryItemDefinition[],
   iconUrl: (value: unknown) => string
 ): { entry: ArmorSetBonusCatalogEntry; icon: string } | null {
-  const itemText = normalize(`${itemDefinition.displayProperties?.name || ''} ${itemDefinition.itemTypeDisplayName || ''}`);
-  const itemEntry = SETS.find((entry) => entry.aliases.some((alias) => itemText.includes(normalize(alias))));
-  if (itemEntry) return { entry: itemEntry, icon: '' };
-
-  // Set selectors expose the selected Armor 3.0 set and icon. Do not inspect all reusable selector plugs here:
-  // those include every possible set option and make unrelated armor look like the first catalog entry.
+  // Set selectors expose the selected Armor 3.0 set and icon. Do not infer from armor item names here:
+  // weak name matches caused unrelated sets to render the same local catalog bonus rows.
   for (const plug of activePlugDefs) {
     const plugText = normalize([
       plug.displayProperties?.name,
@@ -139,10 +139,22 @@ function findCatalogEntry(
       plug.itemTypeDisplayName,
       plug.plug?.plugCategoryIdentifier
     ].join(' '));
+    if (!isActiveSetSelector(plug, plugText)) continue;
     const entry = SETS.find((candidate) => candidate.aliases.some((alias) => plugText.includes(normalize(alias))));
     if (entry) return { entry, icon: iconUrl(plug.displayProperties?.icon) };
   }
   return null;
+}
+
+function isActiveSetSelector(plug: DestinyInventoryItemDefinition, text: string): boolean {
+  const hash = Number(plug.hash || 0);
+  const category = normalize(plug.plug?.plugCategoryIdentifier);
+  const name = normalize(plug.displayProperties?.name);
+  return Boolean(
+    ARMOR_SET_SELECTOR_HASHES.has(hash) ||
+    category.includes('item sets selectors') ||
+    (name.includes('set bonus') && text.includes('converts this armor'))
+  );
 }
 
 function catalogIcon(color: string, label: string): string {

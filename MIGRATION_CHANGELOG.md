@@ -142,6 +142,11 @@ This file tracks migration decisions and larger changes while porting the archiv
   - queued actions wait for active inventory sync to finish instead of racing sync.
   - lock/unlock keeps optimistic pending state, retries, verifies with a fresh sync, and marks failed if Bungie does not confirm.
   - tagging synced Bungie armor as `favorite` or `keep` automatically queues a lock when the item is not already locked.
+- Bumped the displayed app version to `v.07`.
+- Tightened Armor 3.0 set bonus resolution:
+  - official Bungie manifest set-bonus plugs now win before local catalog fallbacks.
+  - local catalog fallback no longer guesses from armor item names.
+  - local catalog rows require active set-selector evidence, reducing incorrect Aion Adapter `Force Absorption` / `Reactive Shock` rows on unrelated gear.
 
 ## Prior Completed Migration Work
 

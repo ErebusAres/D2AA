@@ -18,19 +18,18 @@ export function resolvePotentialSetBonuses(args: {
   archetypeHash: unknown;
   iconUrl: (value: unknown) => string;
 }): ArmorPerk[] {
-  const catalogBonuses = resolveCatalogSetBonuses({
-    itemDefinition: args.itemDefinition,
-    activePlugDefs: args.activePlugDefs,
-    iconUrl: args.iconUrl
-  });
-  if (catalogBonuses.length) return catalogBonuses;
-
   const activeHashes = new Set(args.activePlugDefs.map((plug) => String(plug.hash || '')));
-  return uniquePerks([...args.activePlugDefs, ...args.allPlugDefs, ...args.selectorPlugDefs]
+  const officialBonuses = uniquePerks([...args.activePlugDefs, ...args.allPlugDefs, ...args.selectorPlugDefs]
     .filter((plug) => isSetBonus(plug, args.archetypeHash))
     .filter((plug) => !isSetSelector(plug) || activeHashes.has(String(plug.hash || '')) || matchesArmorSet(plug, args.itemDefinition))
     .map((plug) => ({ ...perkInfo(plug, 'set', args.iconUrl), label: setBonusLabel(plug), potential: true })))
     .slice(0, 4);
+  if (officialBonuses.length) return officialBonuses;
+
+  return resolveCatalogSetBonuses({
+    activePlugDefs: args.activePlugDefs,
+    iconUrl: args.iconUrl
+  });
 }
 
 export function resolveExoticArmorPerks(args: {
