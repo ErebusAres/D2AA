@@ -108,6 +108,7 @@ This file tracks migration decisions and larger changes while porting the archiv
 - Adjusted the latest-items refresh control so the button background stays static while only the refresh arrow spins during sync.
 - Removed the redundant floating `Working...` status bar; detailed sync progress remains in the command bar status text.
 - Normalized top command-bar controls to the same filled clipped badge shape used by rank/tag chips, with matching heights for options, live, title, class, search, sign-in, and sync controls.
+- Added a clipped command-bar progress fill for statuses like `Resolving armor plugs: 12/48`; the fill uses a white stat-bar style, flashes green on completion, then disappears back to normal status text.
   - tightened slot headings to include the archived count label plus right-aligned count badge.
   - improved mobile command bar wrapping so sign-in/sync controls stay compact instead of crowding the header.
 

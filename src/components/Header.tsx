@@ -1,3 +1,5 @@
+import { useEffect, useMemo, useState } from 'react';
+import type { CSSProperties } from 'react';
 import AuthButtons from './AuthButtons';
 import type { ArmorItem } from '../types/armor';
 import type { AuthState } from '../types/auth';
@@ -22,13 +24,35 @@ export default function Header({ status, auth, filters, allRows, onFiltersChange
   const liveLabel = isSyncing ? 'Syncing' : liveEnabled ? 'Live' : 'Manual';
   const lastSyncLabel = lastSyncAt ? `Last sync ${new Date(lastSyncAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}` : status;
   const liveState = isSyncing ? 'syncing' : auth.isSignedIn ? liveEnabled ? 'current' : 'manual' : 'signed-out';
+  const activeProgress = useMemo(() => parseProgressStatus(status), [status]);
+  const [recentProgress, setRecentProgress] = useState<ProgressStatus | null>(null);
+  const [showCompleteFlash, setShowCompleteFlash] = useState(false);
+
+  useEffect(() => {
+    if (activeProgress) {
+      setRecentProgress(activeProgress);
+      setShowCompleteFlash(activeProgress.percent >= 100);
+      return;
+    }
+    if (!isSyncing && recentProgress) {
+      setShowCompleteFlash(true);
+      const timeout = window.setTimeout(() => {
+        setRecentProgress(null);
+        setShowCompleteFlash(false);
+      }, 650);
+      return () => window.clearTimeout(timeout);
+    }
+    if (!isSyncing) setShowCompleteFlash(false);
+  }, [activeProgress, isSyncing, recentProgress]);
+
+  const shownProgress = activeProgress || (showCompleteFlash ? recentProgress : null);
   return (
     <header className="command-bar">
       <button type="button" className="gear-button" aria-label="Options" onClick={onOptionsToggle}>⚙</button>
       <div className={`live-chip ${isSyncing ? 'is-syncing' : ''} ${liveEnabled ? 'is-live' : 'is-manual'}`} data-live-state={liveState} title={lastSyncLabel}><span />{liveLabel}</div>
       <div className="brand-lockup">
         <span className="brand-diamond">◆</span>
-        <div><strong>D2 Armor Analyzer</strong><span>{status}</span></div>
+        <div><strong>D2 Armor Analyzer</strong><StatusLine status={status} progress={shownProgress} complete={showCompleteFlash} /></div>
       </div>
       <nav className="class-toggle" aria-label="Class filter">
         {CLASS_ORDER.map((className) => (
@@ -54,4 +78,35 @@ export default function Header({ status, auth, filters, allRows, onFiltersChange
       <AuthButtons auth={auth} onSync={onSync} isSyncing={isSyncing} />
     </header>
   );
+}
+
+interface ProgressStatus {
+  label: string;
+  current: number;
+  total: number;
+  percent: number;
+}
+
+function StatusLine({ status, progress, complete }: { status: string; progress: ProgressStatus | null; complete: boolean }) {
+  if (!progress) return <span>{status}</span>;
+  const style = { '--progress': `${progress.percent}%` } as CSSProperties;
+  return (
+    <span className={`status-progress ${complete ? 'is-complete' : ''}`} style={style}>
+      <span>{progress.label}: {progress.current}/{progress.total}</span>
+    </span>
+  );
+}
+
+function parseProgressStatus(status: string): ProgressStatus | null {
+  const match = /^(.+?):\s*(\d+)\s*\/\s*(\d+)/.exec(status.trim());
+  if (!match) return null;
+  const current = Number(match[2]);
+  const total = Number(match[3]);
+  if (!Number.isFinite(current) || !Number.isFinite(total) || total <= 0) return null;
+  return {
+    label: match[1],
+    current,
+    total,
+    percent: Math.max(0, Math.min(100, (current / total) * 100))
+  };
 }

@@ -30,6 +30,7 @@ Use this as the live scratchpad for what changed, what still needs parity work, 
 - `src/components/Header.tsx` - old command bar parity.
   - includes live/manual/syncing status indicator.
   - top controls now share the clipped filled badge shape and matching 38px height.
+  - parses `done/total` status text into a temporary command-bar progress fill.
 - `src/components/ItemFeed.tsx` - right rail latest items, empty states, and icon stat popouts.
 - `src/components/ActiveFilterChips.tsx` - React replacement for old `#activeChips` rendering.
 - `src/components/CopyItemIdButton.tsx` - React replacement for old `id-copy-patch.js` copy control.
