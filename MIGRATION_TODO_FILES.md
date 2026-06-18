@@ -41,6 +41,8 @@ Use this as the live scratchpad for what changed, what still needs parity work, 
 - `src/data/armorArchetype.ts` - resolves canonical archetype names/icons/descriptions from Bungie plug definitions.
 - `src/data/armorBonuses.ts` - resolves set bonus, armor bonus, exotic perk, and catalyst display rows.
 - `src/data/armorSetCatalog.ts` - local Armor 3.0 set bonus catalog used when Bungie plugs only provide weak selector/name data.
+  - matches only item names and active selector plugs; do not include all reusable selector options or every set resolves to the first catalog entry.
+  - prefers Bungie selector icons when active plug metadata exposes them.
 - `src/data/armorTuning.ts` - isolates tuning icon/stat presentation.
 - `src/data/actions.ts` - Bungie item transfer actions and fallback copy behavior.
   - includes typed duplicate group pull/copy behavior.

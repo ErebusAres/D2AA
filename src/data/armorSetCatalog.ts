@@ -103,35 +103,46 @@ const SETS: ArmorSetBonusCatalogEntry[] = [
 
 export function resolveCatalogSetBonuses(args: {
   itemDefinition: DestinyInventoryItemDefinition;
-  plugDefs: DestinyInventoryItemDefinition[];
+  activePlugDefs: DestinyInventoryItemDefinition[];
+  iconUrl: (value: unknown) => string;
 }): ArmorPerk[] {
-  const entry = findCatalogEntry(args.itemDefinition, args.plugDefs);
-  if (!entry) return [];
-  return entry.bonuses.map((bonus) => ({
+  const match = findCatalogEntry(args.itemDefinition, args.activePlugDefs, args.iconUrl);
+  if (!match) return [];
+  return match.entry.bonuses.map((bonus) => ({
     kind: 'set',
     label: `${bonus.pieces}-Piece Set Bonus`,
     name: bonus.name,
-    description: `${entry.name}: ${bonus.description}`,
-    icon: entry.icon,
-    hash: `catalog:${entry.key}:${bonus.pieces}`,
-    source: entry.source,
-    setName: entry.name,
+    description: `${match.entry.name}: ${bonus.description}`,
+    icon: match.icon || match.entry.icon,
+    hash: `catalog:${match.entry.key}:${bonus.pieces}`,
+    source: match.entry.source,
+    setName: match.entry.name,
     pieces: bonus.pieces
   }));
 }
 
-function findCatalogEntry(itemDefinition: DestinyInventoryItemDefinition, plugDefs: DestinyInventoryItemDefinition[]): ArmorSetBonusCatalogEntry | null {
-  const text = normalize([
-    itemDefinition.displayProperties?.name,
-    itemDefinition.itemTypeDisplayName,
-    ...plugDefs.flatMap((plug) => [
+function findCatalogEntry(
+  itemDefinition: DestinyInventoryItemDefinition,
+  activePlugDefs: DestinyInventoryItemDefinition[],
+  iconUrl: (value: unknown) => string
+): { entry: ArmorSetBonusCatalogEntry; icon: string } | null {
+  const itemText = normalize(`${itemDefinition.displayProperties?.name || ''} ${itemDefinition.itemTypeDisplayName || ''}`);
+  const itemEntry = SETS.find((entry) => entry.aliases.some((alias) => itemText.includes(normalize(alias))));
+  if (itemEntry) return { entry: itemEntry, icon: '' };
+
+  // Set selectors expose the selected Armor 3.0 set and icon. Do not inspect all reusable selector plugs here:
+  // those include every possible set option and make unrelated armor look like the first catalog entry.
+  for (const plug of activePlugDefs) {
+    const plugText = normalize([
       plug.displayProperties?.name,
       plug.displayProperties?.description,
       plug.itemTypeDisplayName,
       plug.plug?.plugCategoryIdentifier
-    ])
-  ].join(' '));
-  return SETS.find((entry) => entry.aliases.some((alias) => text.includes(normalize(alias)))) || null;
+    ].join(' '));
+    const entry = SETS.find((candidate) => candidate.aliases.some((alias) => plugText.includes(normalize(alias))));
+    if (entry) return { entry, icon: iconUrl(plug.displayProperties?.icon) };
+  }
+  return null;
 }
 
 function catalogIcon(color: string, label: string): string {

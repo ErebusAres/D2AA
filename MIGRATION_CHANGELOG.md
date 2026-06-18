@@ -87,6 +87,10 @@ This file tracks migration decisions and larger changes while porting the archiv
   - added a background live-sync hook that runs only when signed in, online, and visible, with overlap protection.
   - added animated sync indicators in the command bar and loading state.
   - added browser-yield points during large Bungie row normalization so the UI can keep painting.
+- Fixed Armor 3.0 set catalog matching:
+  - catalog detection now uses item name and active set selector plugs only, not every reusable/global selector option.
+  - set rows now use the matched Bungie selector icon when available instead of always using local placeholder SVG icons.
+  - prevents unrelated armor sets from all rendering Aion Adapter's `Force Absorption` / `Reactive Shock` bonuses.
 
 ## Prior Completed Migration Work
 

@@ -20,7 +20,8 @@ export function resolvePotentialSetBonuses(args: {
 }): ArmorPerk[] {
   const catalogBonuses = resolveCatalogSetBonuses({
     itemDefinition: args.itemDefinition,
-    plugDefs: [...args.activePlugDefs, ...args.allPlugDefs, ...args.selectorPlugDefs]
+    activePlugDefs: args.activePlugDefs,
+    iconUrl: args.iconUrl
   });
   if (catalogBonuses.length) return catalogBonuses;
 
