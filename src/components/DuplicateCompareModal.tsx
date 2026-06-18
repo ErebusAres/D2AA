@@ -57,29 +57,34 @@ export default function DuplicateCompareModal({ groupKey, rows, onClose, onTag, 
 
 function CompareCard({ row, isBest, onTag, onAction }: { row: ArmorItem; isBest: boolean; onTag: (id: string, tag: string) => void; onAction: (row: ArmorItem) => void }) {
   const grade = gradeFor(row);
+  const tier = Number(row.Tier || row.GearTier || 0);
   return (
     <article className={`compare-card ${isBest ? 'is-best' : ''} rarity-${rarityClass(row.Rarity)} ${row.GroupColor || ''}`}>
       <div className="compare-item-head">
         <div className="compare-icon">
           {row.IconUrl || row.Icon ? <img src={row.IconUrl || row.Icon} alt="" /> : null}
+          <div className={`tier-rail compare-tier-rail ${tierColorClass(tier)}`}>{Array.from({ length: 5 }, (_, index) => {
+            const level = 5 - index;
+            return <span key={level} className={`tier-mark ${level <= tier ? 'is-on' : ''}`}>◆</span>;
+          })}</div>
           <b>{row.Power || row.Light || ''}</b>
         </div>
         <div>
           <h3 title={displayName(row)}>{displayName(row)}</h3>
           <p>{row.Slot} - {row.Archetype || '—'}</p>
         </div>
-        <div className="compare-score"><span>{grade.letter}</span>{grade.score}</div>
+        <div className={`grade-chip compare-score grade-${grade.letter}`} title={`Rank ${grade.letter} · ${grade.score}`}><span>{grade.letter}</span>{grade.score}</div>
       </div>
       <div className="compare-card-body">
         <aside className="compare-card-side">
-          <div className="compare-archetype">
+          <div className="compare-archetype has-tooltip" tabIndex={0}>
             {row.ArchetypeIcon ? <img className="archetype-img" src={row.ArchetypeIcon} alt="" /> : <span>◇</span>}
             <b>{row.Archetype || '—'}</b>
-          </div>
-          <div className="compare-total-split">
-            <span>Totals</span>
-            <div><b>{baseTotal(row)}</b><em>base</em></div>
-            <strong>{currentTotal(row)}</strong>
+            <span className="d2-tooltip">
+              <b>{row.Archetype || 'Armor Archetype'}</b>
+              <em>Archetype</em>
+              <p>{String(row.ArchetypeDescription || row.ArchetypeTrait || 'Bungie armor archetype.')}</p>
+            </span>
           </div>
         </aside>
         <ArmorStats row={row} />
@@ -99,4 +104,11 @@ function CompareCard({ row, isBest, onTag, onAction }: { row: ArmorItem; isBest:
       </div>
     </article>
   );
+}
+
+function tierColorClass(tier: number): string {
+  if (tier >= 5) return 'tier-color-gold';
+  if (tier >= 3) return 'tier-color-purple';
+  if (tier >= 1) return 'tier-color-white';
+  return 'tier-color-empty';
 }

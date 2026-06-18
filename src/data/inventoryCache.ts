@@ -44,10 +44,10 @@ export async function saveBungieInventory(rows: ArmorItem[], reason = 'sync'): P
 export async function loadBungieInventoryFromCache(): Promise<{ rows: ArmorItem[]; meta: InventoryCacheMeta } | null> {
   const idbRows = await idbGet<ArmorItem[]>(IDB_ROWS_KEY).catch(() => null);
   const idbMeta = await idbGet<InventoryCacheMeta>(IDB_META_KEY).catch(() => null);
-  if (Array.isArray(idbRows) && idbRows.length) return { rows: idbRows.map((row) => ({ ...row, Source: row.Source || 'Bungie', FromCache: true })), meta: idbMeta || {} };
+  if (Array.isArray(idbRows) && idbRows.length) return { rows: idbRows.map(normalizeCachedArmorRow), meta: idbMeta || {} };
   const rows = readJson<ArmorItem[]>(STORAGE_KEYS.bungieRows, []);
   const meta = readJson<InventoryCacheMeta>(STORAGE_KEYS.bungieMeta, {});
-  return rows.length ? { rows: rows.map((row) => ({ ...row, Source: row.Source || 'Bungie', FromCache: true })), meta } : null;
+  return rows.length ? { rows: rows.map(normalizeCachedArmorRow), meta } : null;
 }
 
 export async function clearBungieInventoryCache(): Promise<void> {
@@ -140,6 +140,15 @@ function summarizeChanges(rows: ArmorItem[], previousById: Map<string, ArmorItem
 
 function itemSignature(row: Partial<ArmorItem>): string {
   return [row.Name, row.BaseTotal, row.CurrentTotal, row.StatBonusTotal, row.Power, row.Tier, row.GearTier, row.IsMasterworked, row.IsLocked].join('|');
+}
+
+function normalizeCachedArmorRow(row: ArmorItem): ArmorItem {
+  return {
+    ...row,
+    Source: row.Source || 'Bungie',
+    FromCache: true,
+    IsMasterworked: Number(row.MasterworkBonusTotal || 0) >= 10
+  };
 }
 
 function locationSignature(row: Partial<ArmorItem>): string {

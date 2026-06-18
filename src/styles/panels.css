@@ -197,11 +197,22 @@
   transition: border-color .14s ease, background .14s ease, transform .14s ease;
 }
 .feed-card.is-masterworked {
-  border-color: rgba(242, 205, 111, .40);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 231, 168, .26),
-    inset 0 -1px 0 rgba(116, 81, 22, .38),
-    inset 0 0 18px rgba(216, 180, 91, .08);
+  border-color: rgba(242, 205, 111, .34);
+  box-shadow: inset 0 0 0 1px rgba(242, 205, 111, .14), inset 0 1px 0 rgba(255, 231, 168, .18);
+}
+.feed-card.is-masterworked::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  z-index: 2;
+  height: 4px;
+  pointer-events: none;
+  background:
+    linear-gradient(105deg, transparent 0 34%, rgba(255, 255, 255, .66) 44%, transparent 55%),
+    linear-gradient(180deg, #f7e6a2, #b9862b 58%, #6c4418);
+  background-size: 220% 100%, 100% 100%;
+  box-shadow: 0 1px 0 rgba(255, 245, 199, .38);
+  animation: masterworkSweep 2.6s ease-in-out infinite;
 }
 .feed-card:hover, .feed-card:focus-within {
   border-color: rgba(216, 180, 91, .38);
