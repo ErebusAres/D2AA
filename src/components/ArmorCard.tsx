@@ -8,10 +8,11 @@ interface ArmorCardProps {
   row: ArmorItem;
   onTag: (id: string, tag: string) => void;
   onAction: (row: ArmorItem) => void;
+  onLock: (row: ArmorItem) => void;
   onCompareGroup: (groupKey: string) => void;
 }
 
-export default function ArmorCard({ row, onTag, onAction, onCompareGroup }: ArmorCardProps) {
+export default function ArmorCard({ row, onTag, onAction, onLock, onCompareGroup }: ArmorCardProps) {
   const grade = gradeFor(row);
   const perks = displayPerks(row);
   const tier = Number(row.Tier || row.GearTier || 0);
@@ -25,7 +26,7 @@ export default function ArmorCard({ row, onTag, onAction, onCompareGroup }: Armo
         })}</div>
         <div className="title-copy">
           <strong title={displayName(row)}>{displayName(row)}</strong>
-          <ArmorBadges row={row} grade={grade} location={locationText(row)} onTag={onTag} onAction={onAction} />
+          <ArmorBadges row={row} grade={grade} location={locationText(row)} onTag={onTag} onAction={onAction} onLock={onLock} />
         </div>
         {row.Is_Dupe ? (
           <button type="button" className={`group-badge ${row.GroupColor || ''}`} title={`Compare group ${row.Group || ''}`} onClick={() => onCompareGroup(String(row.GroupActionKey || ''))}>

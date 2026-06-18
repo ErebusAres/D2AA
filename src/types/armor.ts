@@ -64,6 +64,7 @@ export interface ArmorItem extends Partial<Record<StatKey, number>> {
   ExoticIcon?: string;
   IsMasterworked?: boolean;
   IsLocked?: boolean;
+  LockActionState?: 'pending' | 'failed' | '';
   IsInVault?: boolean;
   IsEquipped?: boolean;
   RecentlyFound?: boolean;

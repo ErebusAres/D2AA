@@ -25,6 +25,7 @@ Use this as the live scratchpad for what changed, what still needs parity work, 
 - `src/components/ArmorCard.tsx` - archetype, perk rows, card composition.
 - `src/components/ArmorStats.tsx` - stat/tuning visual display.
 - `src/components/ArmorBadges.tsx` - tags, location/action chip, grade chip.
+  - includes optimistic lock/unlock control with pending and failed states.
 - `src/components/TagPicker.tsx` - floating React emoji tag picker used by cards and feed rows.
 - `src/components/ArmorGrid.tsx` - slot stack grouping.
 - `src/components/Header.tsx` - old command bar parity.

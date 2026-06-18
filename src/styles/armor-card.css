@@ -263,6 +263,22 @@
   stroke-linejoin: round;
 }
 .lock-chip svg { width: 14px; height: 14px; }
+.lock-chip.is-unlocked { color: #aeb7c6; }
+.lock-chip.is-pending {
+  color: var(--gold);
+  cursor: wait;
+}
+.lock-chip.is-failed {
+  color: #ff8f8f;
+}
+.lock-pending {
+  width: 13px;
+  height: 13px;
+  border: 2px solid rgba(216, 180, 91, .24);
+  border-top-color: var(--gold);
+  border-radius: 999px;
+  animation: spinSync .85s linear infinite;
+}
 .id-copy-chip {
   border-color: rgba(255, 255, 255, .22);
   color: #dbe8ff;

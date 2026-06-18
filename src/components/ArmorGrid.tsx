@@ -6,10 +6,11 @@ interface ArmorGridProps {
   rows: ArmorItem[];
   onTag: (id: string, tag: string) => void;
   onAction: (row: ArmorItem) => void;
+  onLock: (row: ArmorItem) => void;
   onCompareGroup: (groupKey: string) => void;
 }
 
-export default function ArmorGrid({ rows, onTag, onAction, onCompareGroup }: ArmorGridProps) {
+export default function ArmorGrid({ rows, onTag, onAction, onLock, onCompareGroup }: ArmorGridProps) {
   return (
     <section className="slot-stack">
       {SLOT_ORDER.map((slot) => {
@@ -19,7 +20,7 @@ export default function ArmorGrid({ rows, onTag, onAction, onCompareGroup }: Arm
           <section className="slot-section" key={slot}>
             <div className="slot-heading"><span className="slot-caret">◆</span><strong>{slot}</strong><span>{items.length} items</span><b>{items.length}</b></div>
             <div className="card-grid">
-              {items.map((row) => <ArmorCard key={row.Id} row={row} onTag={onTag} onAction={onAction} onCompareGroup={onCompareGroup} />)}
+              {items.map((row) => <ArmorCard key={row.Id} row={row} onTag={onTag} onAction={onAction} onLock={onLock} onCompareGroup={onCompareGroup} />)}
             </div>
           </section>
         );

@@ -25,6 +25,20 @@ export async function runItemAction(row: ArmorItem): Promise<{ message: string; 
   return moveToVault(row);
 }
 
+export function canRunLockAction(row: ArmorItem): boolean {
+  return Boolean(row?.Source === 'Bungie' && row.Id && row.MembershipType && (row.OwnerCharacterId || row.TargetCharacterId));
+}
+
+export async function runLockAction(row: ArmorItem, locked: boolean): Promise<void> {
+  if (!canRunLockAction(row)) throw new Error('Missing Bungie item data for lock action.');
+  await bungiePost('/Destiny2/Actions/Items/SetLockState/', {
+    state: locked,
+    itemId: String(row.Id),
+    characterId: String(row.OwnerCharacterId || row.TargetCharacterId),
+    membershipType: Number(row.MembershipType)
+  });
+}
+
 export async function runGroupPull(rows: ArmorItem[]): Promise<{ message: string; needsRefresh: boolean }> {
   const groupRows = Array.isArray(rows) ? rows : [];
   const bungieRows = groupRows.filter((row) => row.Source === 'Bungie');

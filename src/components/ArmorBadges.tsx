@@ -1,5 +1,5 @@
 import type { ArmorItem } from '../types/armor';
-import { actionLabel, canRunAction } from '../data/actions';
+import { actionLabel, canRunAction, canRunLockAction } from '../data/actions';
 import CopyItemIdButton from './CopyItemIdButton';
 import TagPicker from './TagPicker';
 
@@ -9,14 +9,26 @@ interface ArmorBadgesProps {
   location: string;
   onTag: (id: string, tag: string) => void;
   onAction: (row: ArmorItem) => void;
+  onLock: (row: ArmorItem) => void;
 }
 
-export default function ArmorBadges({ row, grade, location, onTag, onAction }: ArmorBadgesProps) {
+export default function ArmorBadges({ row, grade, location, onTag, onAction, onLock }: ArmorBadgesProps) {
   const label = actionLabel(row);
+  const lockLabel = row.IsLocked ? 'Unlock' : 'Lock';
+  const lockDisabled = row.LockActionState === 'pending' || !canRunLockAction(row);
   return (
     <div className="meta-line">
       <TagPicker id={row.Id} value={row.Tag || ''} onChange={onTag} />
-      {row.IsLocked ? <span className="lock-chip" title="Locked in game" aria-label="Locked in game"><LockIcon /></span> : null}
+      <button
+        type="button"
+        className={`lock-chip ${row.IsLocked ? 'is-locked' : 'is-unlocked'} ${row.LockActionState ? `is-${row.LockActionState}` : ''}`}
+        title={`${lockLabel} ${row.Name}`}
+        aria-label={`${lockLabel} ${row.Name}`}
+        disabled={lockDisabled}
+        onClick={() => onLock(row)}
+      >
+        {row.LockActionState === 'failed' ? '⛔' : row.LockActionState === 'pending' ? <span className="lock-pending" aria-hidden="true" /> : row.IsLocked ? <LockIcon /> : <UnlockIcon />}
+      </button>
       <button
         type="button"
         className={`location-chip location-${location.toLowerCase()} ${canRunAction(row) ? 'is-action' : ''}`}
@@ -38,6 +50,15 @@ function LockIcon() {
     <svg viewBox="0 0 24 24" aria-hidden="true">
       <rect x="6" y="10" width="12" height="10" rx="1.5" />
       <path d="M8.5 10V7a3.5 3.5 0 017 0v3" />
+    </svg>
+  );
+}
+
+function UnlockIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <rect x="6" y="10" width="12" height="10" rx="1.5" />
+      <path d="M8.5 10V7a3.5 3.5 0 016.1-2.3" />
     </svg>
   );
 }

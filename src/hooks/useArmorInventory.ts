@@ -4,6 +4,7 @@ import { normalizeArmorRow } from '../data/armorNormalization';
 import { clearBungieInventoryCache, loadBungieInventoryFromCache, formatCacheTime } from '../data/inventoryCache';
 import { syncBungieInventory } from '../data/bungieSync';
 import { parseDimCsvFile } from '../data/dimCsv';
+import { canRunLockAction, runLockAction } from '../data/actions';
 import { STORAGE_KEYS } from '../utils/constants';
 import { readJson, removeStorage, writeJson } from '../utils/storage';
 
@@ -17,6 +18,7 @@ export function useArmorInventory(setStatus: (status: string) => void): {
   restoreCache: () => Promise<void>;
   clearCache: () => Promise<void>;
   updateTag: (id: string, tag: string) => void;
+  toggleLock: (row: ArmorItem) => Promise<void>;
   dismissRecent: (id: string) => void;
 } {
   const [tags, setTags] = useState<Record<string, string>>(() => readJson(STORAGE_KEYS.tags, {}));
@@ -114,6 +116,54 @@ export function useArmorInventory(setStatus: (status: string) => void): {
     });
   }, []);
 
+  const patchRow = useCallback((id: string, patch: Partial<ArmorItem>) => {
+    setRawRows((current) => current.map((row) => row.Id === id ? { ...row, ...patch } : row));
+  }, []);
+
+  const toggleLock = useCallback(async (row: ArmorItem) => {
+    if (!canRunLockAction(row)) {
+      patchRow(row.Id, { LockActionState: 'failed' });
+      setStatus('Lock action is only available for synced Bungie armor.');
+      return;
+    }
+    if (syncInFlight.current) {
+      setStatus('Wait for the current sync to finish before changing lock state.');
+      return;
+    }
+
+    const desired = !row.IsLocked;
+    patchRow(row.Id, { IsLocked: desired, LockActionState: 'pending' });
+    syncInFlight.current = true;
+    setSyncing(true);
+    try {
+      for (let attempt = 1; attempt <= 3; attempt += 1) {
+        try {
+          await runLockAction(row, desired);
+        } catch (error) {
+          if (attempt >= 3) throw error;
+        }
+
+        await wait(1200 * attempt);
+        const synced = await syncBungieInventory(setStatus, 'lock-verify');
+        const confirmed = synced.find((item) => item.Id === row.Id);
+        if (confirmed?.IsLocked === desired) {
+          setRows(synced.map((item) => item.Id === row.Id ? { ...item, LockActionState: '' } : item), `${desired ? 'Locked' : 'Unlocked'} ${row.Name}.`);
+          setLastSyncAt(Date.now());
+          return;
+        }
+        setRows(synced.map((item) => item.Id === row.Id ? { ...item, IsLocked: desired, LockActionState: attempt >= 3 ? 'failed' : 'pending' } : item), `Verifying ${desired ? 'lock' : 'unlock'} for ${row.Name}...`);
+      }
+      patchRow(row.Id, { IsLocked: desired, LockActionState: 'failed' });
+      setStatus(`Could not confirm ${desired ? 'lock' : 'unlock'} for ${row.Name}.`);
+    } catch (error: unknown) {
+      patchRow(row.Id, { IsLocked: desired, LockActionState: 'failed' });
+      setStatus(error instanceof Error ? error.message : String(error));
+    } finally {
+      syncInFlight.current = false;
+      setSyncing(false);
+    }
+  }, [patchRow, setRows, setStatus]);
+
   const dismissRecent = useCallback((id: string) => {
     setDismissed((current) => {
       const next = { ...current, [id]: Date.now() };
@@ -122,5 +172,9 @@ export function useArmorInventory(setStatus: (status: string) => void): {
     });
   }, []);
 
-  return { rows, syncing, lastSyncAt, setRows, sync, importCsv, restoreCache, clearCache, updateTag, dismissRecent };
+  return { rows, syncing, lastSyncAt, setRows, sync, importCsv, restoreCache, clearCache, updateTag, toggleLock, dismissRecent };
+}
+
+function wait(ms: number): Promise<void> {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
 }

@@ -127,7 +127,7 @@ function D2AAApp() {
       {error ? <ErrorState message={error} /> : null}
       <main>
         {filteredRows.length ? (
-          <ArmorGrid rows={filteredRows} onTag={inventory.updateTag} onAction={runArmorAction} onCompareGroup={setCompareGroupKey} />
+          <ArmorGrid rows={filteredRows} onTag={inventory.updateTag} onAction={runArmorAction} onLock={inventory.toggleLock} onCompareGroup={setCompareGroupKey} />
         ) : (
           <EmptyState hasRows={inventory.rows.length > 0} />
         )}
