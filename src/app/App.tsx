@@ -17,7 +17,7 @@ import { useArmorInventory } from '../hooks/useArmorInventory';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { defaultFilterState, normalizeFilterState } from '../state/filterState';
 import { STORAGE_KEYS } from '../utils/constants';
-import { runItemAction } from '../data/actions';
+import { runGroupPull, runItemAction } from '../data/actions';
 import type { ArmorItem } from '../types/armor';
 import type { FilterState } from '../types/filters';
 
@@ -91,6 +91,14 @@ function D2AAApp() {
     });
   }, [inventory, runAction]);
 
+  const runGroupAction = useCallback((rows: ArmorItem[]) => {
+    runAction(async () => {
+      const result = await runGroupPull(rows);
+      setStatus(result.message);
+      if (result.needsRefresh) await inventory.sync();
+    });
+  }, [inventory, runAction]);
+
   const compareRows = compareGroupKey
     ? groupedRows.filter((row) => row.Is_Dupe && row.GroupActionKey === compareGroupKey)
     : [];
@@ -129,6 +137,7 @@ function D2AAApp() {
           onClose={() => setCompareGroupKey('')}
           onTag={inventory.updateTag}
           onAction={runArmorAction}
+          onGroupAction={runGroupAction}
         />
       ) : null}
     </div>

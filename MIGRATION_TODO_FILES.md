@@ -32,6 +32,7 @@ Use this as the live scratchpad for what changed, what still needs parity work, 
 - `src/components/ActiveFilterChips.tsx` - React replacement for old `#activeChips` rendering.
 - `src/components/CopyItemIdButton.tsx` - React replacement for old `id-copy-patch.js` copy control.
 - `src/components/DuplicateCompareModal.tsx` - React replacement for old duplicate compare overlay.
+  - includes group-level pull/copy action parity.
 
 ## In-Progress Data/API Files
 
@@ -41,6 +42,7 @@ Use this as the live scratchpad for what changed, what still needs parity work, 
 - `src/data/armorSetCatalog.ts` - local Armor 3.0 set bonus catalog used when Bungie plugs only provide weak selector/name data.
 - `src/data/armorTuning.ts` - isolates tuning icon/stat presentation.
 - `src/data/actions.ts` - Bungie item transfer actions and fallback copy behavior.
+  - includes typed duplicate group pull/copy behavior.
 - `src/data/bungieApi.ts` - shared Bungie GET/POST helpers.
 - `src/data/dimCsv.ts` - dependency-free DIM CSV parser and mapper for local import fallback.
 - `vite.config.ts` - Vite production build config; uses relative `base: './'` and stable `assets/app.js` / `assets/app.css` output so branch-root Pages hosting can load the built app.
@@ -67,7 +69,6 @@ Use this as the live scratchpad for what changed, what still needs parity work, 
   - tier 3-4 active diamonds are all purple.
   - tier 5 active diamonds are all gold.
 - Revisit `src/data/armorSetCatalog.ts` with real inventories if new set names appear or Bungie exposes better official icons/details.
-- Decide whether compare modal should add the archived bulk "Pull Group" action or stay per-item only.
 - Consider whether item ID copy should be hidden behind a debug/display option or remain visible like the archived patch.
 - DIM CSV import is implemented as an explicit side-panel fallback; keep Bungie sync as the default live path.
 - Run `npm run build` before every push.

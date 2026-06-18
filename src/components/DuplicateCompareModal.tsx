@@ -13,12 +13,14 @@ interface DuplicateCompareModalProps {
   onClose: () => void;
   onTag: (id: string, tag: string) => void;
   onAction: (row: ArmorItem) => void;
+  onGroupAction: (rows: ArmorItem[]) => void;
 }
 
-export default function DuplicateCompareModal({ groupKey, rows, onClose, onTag, onAction }: DuplicateCompareModalProps) {
+export default function DuplicateCompareModal({ groupKey, rows, onClose, onTag, onAction, onGroupAction }: DuplicateCompareModalProps) {
   const sorted = rows.slice().sort((a, b) => baseTotal(b) - baseTotal(a) || currentTotal(b) - currentTotal(a) || displayName(a).localeCompare(displayName(b)));
   const bestId = sorted[0]?.Id || '';
   const groupLabel = sorted[0]?.Group || groupKey;
+  const pullableCount = sorted.filter((row) => row.Source === 'Bungie' && row.IsInVault && canRunAction(row)).length;
   if (!sorted.length) return null;
 
   return (
@@ -32,6 +34,9 @@ export default function DuplicateCompareModal({ groupKey, rows, onClose, onTag, 
             <span>{sorted.length} items - base-stat order - {sorted[0]?.Slot || 'Armor'}</span>
           </div>
           <div className="compare-head-actions">
+            <button type="button" className="compare-group-button" onClick={() => onGroupAction(sorted)}>
+              {sorted.some((row) => row.Source === 'Bungie') ? `Pull Group${pullableCount ? ` (${pullableCount})` : ''}` : 'Copy Group IDs'}
+            </button>
             <button type="button" className="compare-close" onClick={onClose}>×</button>
           </div>
         </header>

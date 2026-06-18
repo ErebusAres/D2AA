@@ -505,6 +505,16 @@
   background: rgba(255, 255, 255, .06);
   padding: 8px 12px;
 }
+.compare-group-button {
+  min-width: 118px;
+  color: var(--gold);
+  border-color: rgba(216, 180, 91, .42) !important;
+  background: linear-gradient(180deg, rgba(216, 180, 91, .15), rgba(255, 255, 255, .035)) !important;
+}
+.compare-group-button:hover {
+  border-color: rgba(216, 180, 91, .74) !important;
+  color: #ffe7a5;
+}
 .compare-close { font-size: 22px; line-height: 1; }
 .compare-summary {
   display: flex;

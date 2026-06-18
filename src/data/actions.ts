@@ -9,6 +9,7 @@ export function actionLabel(row: ArmorItem): string {
 }
 
 export function canRunAction(row: ArmorItem): boolean {
+  if (!row) return false;
   if (row.Source !== 'Bungie') return Boolean(row.Id);
   if (row.IsEquipped) return false;
   return Boolean(row.ItemHash && row.Id && row.MembershipType && (row.IsInVault ? row.TargetCharacterId : row.OwnerCharacterId));
@@ -22,6 +23,36 @@ export async function runItemAction(row: ArmorItem): Promise<{ message: string; 
   if (row.IsEquipped) throw new Error('Equipped items must be unequipped before they can be vaulted.');
   if (row.IsInVault) return pullFromVault(row);
   return moveToVault(row);
+}
+
+export async function runGroupPull(rows: ArmorItem[]): Promise<{ message: string; needsRefresh: boolean }> {
+  const groupRows = Array.isArray(rows) ? rows : [];
+  const bungieRows = groupRows.filter((row) => row.Source === 'Bungie');
+  if (!bungieRows.length) {
+    await copyText(groupRows.map((row) => `id:${row.Id}`).join(' or '));
+    return { message: `Copied ${groupRows.length} DIM item IDs.`, needsRefresh: false };
+  }
+
+  const pullable = bungieRows.filter((row) => row.IsInVault && canRunAction(row));
+  const alreadyOut = bungieRows.length - pullable.length;
+  if (!pullable.length) return { message: 'No vault items in this group need pulling.', needsRefresh: false };
+
+  const results: Array<{ row: ArmorItem; ok: boolean; error?: unknown }> = [];
+  for (const row of pullable) {
+    try {
+      await pullFromVault(row);
+      results.push({ row, ok: true });
+    } catch (error: unknown) {
+      console.error('D2AA group pull failed for item', row, error);
+      results.push({ row, ok: false, error });
+    }
+  }
+
+  const ok = results.filter((item) => item.ok).length;
+  const failed = results.length - ok;
+  const skipped = alreadyOut > 0 ? ` ${alreadyOut} already not in vault/skipped.` : '';
+  const failText = failed ? ` ${failed} failed.` : '';
+  return { message: `Pulled ${ok}/${pullable.length} vault items from group.${skipped}${failText}`, needsRefresh: ok > 0 };
 }
 
 async function pullFromVault(row: ArmorItem): Promise<{ message: string; needsRefresh: boolean }> {

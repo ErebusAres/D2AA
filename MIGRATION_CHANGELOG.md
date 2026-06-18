@@ -79,6 +79,10 @@ This file tracks migration decisions and larger changes while porting the archiv
 - Added a branch-root static fallback:
   - Vite now emits stable `assets/app.js` and `assets/app.css` files.
   - root `index.html` loads those built assets when hosted on `github.io`, while keeping the normal Vite dev entry for local `npm run dev`.
+- Ported archived duplicate group pull behavior into React:
+  - added typed `runGroupPull`.
+  - duplicate compare modal now exposes a group-level `Pull Group` / `Copy Group IDs` action.
+  - Bungie group pulls skip equipped/non-vault items and sync after successful pulls; DIM/CSV groups copy a combined DIM ID filter.
 
 ## Prior Completed Migration Work
 

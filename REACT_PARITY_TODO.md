@@ -26,10 +26,13 @@ These are remaining user-facing parity items from `D2AA-Archived` that should be
   - Old reference: `D2AA-Archived/InGame/stable-dom-fixes.js` (`fixFeedStatPopouts`, `renderFeedPopout`)
   - React implementation: `src/components/ItemFeed.tsx`, `src/styles/panels.css`
   - Notes: feed rows now have empty states, tier rails, and hover/focus stat popouts without DOM patching.
+- Duplicate Group Pull
+  - Old reference: `D2AA-Archived/src/app/main.js` (`pullGroup`), `D2AA-Archived/src/data/actions.js` (`runGroupPull`)
+  - React implementation: `src/data/actions.ts`, `src/app/App.tsx`, `src/components/DuplicateCompareModal.tsx`
+  - Notes: duplicate compare modal now has a group-level action; Bungie rows pull vault items, while DIM/CSV-only groups copy `id:... or id:...` filters.
 
 ## Remaining Parity Checks
 
 - Browser screenshot pass against archived `D2AA.html`.
 - Real Bungie account verification for archetype icons, set bonus rows, exotic rows, tuning markers, and transfer actions.
-- Decide whether the compare modal should add archived-style bulk "Pull Group".
 - Decide whether item ID copy should remain always visible or move behind a debug/display option.
