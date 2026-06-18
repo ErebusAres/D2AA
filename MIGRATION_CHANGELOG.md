@@ -91,6 +91,10 @@ This file tracks migration decisions and larger changes while porting the archiv
   - catalog detection now uses item name and active set selector plugs only, not every reusable/global selector option.
   - set rows now use the matched Bungie selector icon when available instead of always using local placeholder SVG icons.
   - prevents unrelated armor sets from all rendering Aion Adapter's `Force Absorption` / `Reactive Shock` bonuses.
+- Continued archived InGame visual parity pass:
+  - added angular cuts and accent rails to slot headers, armor cards, feed cards, and empty feed panels.
+  - restored a subtle masterwork stripe treatment on card title bars.
+  - tightened command bar, feed refresh, group badge, set bonus row, and stat bar hover/focus styling toward archived `D2AA.html`.
 
 ## Prior Completed Migration Work
 

@@ -1,6 +1,7 @@
 .slot-stack { display: grid; gap: 16px; }
 .slot-section { margin-bottom: 2px; }
 .slot-heading {
+  position: relative;
   width: 100%;
   display: grid;
   grid-template-columns: 22px minmax(120px, 1fr) auto;
@@ -12,6 +13,16 @@
   color: var(--text);
   text-transform: uppercase;
   letter-spacing: .1em;
+  clip-path: polygon(9px 0, 100% 0, 100% calc(100% - 9px), calc(100% - 9px) 100%, 0 100%, 0 9px);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .06), 0 8px 18px rgba(0, 0, 0, .18);
+}
+.slot-heading::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: linear-gradient(180deg, transparent, var(--gold), transparent);
+  opacity: .85;
 }
 .slot-caret { display: grid; place-items: center; width: 18px; height: 18px; color: var(--gold); }
 .slot-heading strong { font-size: 13px; color: #e7ebf2; }
@@ -30,15 +41,32 @@
   background: linear-gradient(180deg, rgba(255, 255, 255, .065), rgba(255, 255, 255, .025));
   box-shadow: 0 12px 28px rgba(0, 0, 0, .28);
 }
+.armor-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  z-index: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(216, 180, 91, .34), transparent);
+  pointer-events: none;
+}
 .armor-card.group-1 { border-color: color-mix(in srgb, var(--group1), transparent 42%); }
 .armor-card.group-2 { border-color: color-mix(in srgb, var(--group2), transparent 42%); }
 .armor-card.group-3 { border-color: color-mix(in srgb, var(--group3), transparent 42%); }
 .armor-card.group-4 { border-color: color-mix(in srgb, var(--group4), transparent 42%); }
 .armor-card.group-5 { border-color: color-mix(in srgb, var(--group5), transparent 42%); }
 .armor-card.group-6 { border-color: color-mix(in srgb, var(--group6), transparent 42%); }
-.armor-card.is-masterworked { box-shadow: 0 12px 28px rgba(0, 0, 0, .28), inset 0 0 0 1px rgba(216, 180, 91, .38); }
+.armor-card.is-masterworked {
+  box-shadow: 0 12px 28px rgba(0, 0, 0, .28), inset 0 0 0 1px rgba(216, 180, 91, .38);
+}
+.armor-card.is-masterworked .card-title {
+  background-image:
+    repeating-linear-gradient(135deg, rgba(255, 226, 135, .22) 0 2px, transparent 2px 8px),
+    linear-gradient(90deg, rgba(255, 255, 255, .08), transparent 44%);
+}
 .card-title {
   position: relative;
+  z-index: 0;
   display: grid;
   grid-template-columns: 72px minmax(0, 1fr) auto;
   gap: 10px;
@@ -48,6 +76,14 @@
   overflow: hidden;
   background: var(--legendary);
   color: #fff;
+}
+.card-title::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0;
+  height: 1px;
+  background: rgba(255, 255, 255, .18);
+  pointer-events: none;
 }
 .rarity-exotic .card-title { background: var(--exotic); }
 .rarity-rare .card-title { background: var(--rare); }
@@ -108,6 +144,7 @@
   color: #f1f3f6;
   padding: 2px 7px;
   font-size: 12px;
+  clip-path: polygon(5px 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%, 0 5px);
 }
 .tag-chip { max-width: 94px; cursor: pointer; }
 .tag-picker {
@@ -220,6 +257,12 @@
   border-color: rgba(255, 255, 255, .42);
   background: rgba(0, 0, 0, .28);
   font-weight: 900;
+  transition: border-color .14s ease, background .14s ease, transform .14s ease;
+}
+.group-badge:hover, .group-badge:focus-visible {
+  background: rgba(0, 0, 0, .42);
+  transform: translateY(-1px);
+  outline: none;
 }
 .group-badge.group-1 { color: var(--group1); border-color: var(--group1); box-shadow: inset 0 -2px 0 var(--group1); }
 .group-badge.group-2 { color: var(--group2); border-color: var(--group2); box-shadow: inset 0 -2px 0 var(--group2); }
@@ -339,7 +382,12 @@
   box-shadow: inset 2px 0 0 rgba(216, 180, 91, .85);
 }
 .set-bonus-row.is-catalyst { border-color: rgba(255, 221, 121, .62); box-shadow: inset 2px 0 0 #ffe07a, 0 0 12px rgba(216, 180, 91, .12); }
-.set-bonus-row:hover, .set-bonus-row:focus-visible, .archetype:hover, .archetype:focus-visible { outline: none; }
+.set-bonus-row:hover, .set-bonus-row:focus-visible {
+  border-color: rgba(216, 180, 91, .72);
+  background: linear-gradient(90deg, rgba(216, 180, 91, .12), rgba(255, 255, 255, .035));
+  outline: none;
+}
+.archetype:hover, .archetype:focus-visible { outline: none; }
 .d2-tooltip {
   position: absolute;
   z-index: 200;
@@ -401,6 +449,7 @@
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, .11);
   background: rgba(255, 255, 255, .09);
+  clip-path: polygon(4px 0, 100% 0, 100% 100%, 0 100%, 0 4px);
 }
 .bar-base, .bar-bonus {
   position: absolute;
