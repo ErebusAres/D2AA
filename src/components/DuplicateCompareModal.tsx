@@ -78,7 +78,7 @@ function CompareCard({ row, isBest, onTag, onAction }: { row: ArmorItem; isBest:
       <div className="compare-card-body">
         <aside className="compare-card-side">
           <div className="compare-archetype has-tooltip" tabIndex={0}>
-            {row.ArchetypeIcon ? <img className="archetype-img" src={row.ArchetypeIcon} alt="" /> : <span>◇</span>}
+            <span className="archetype-icon">{row.ArchetypeIcon ? <img className="archetype-img" src={row.ArchetypeIcon} alt="" /> : '◇'}</span>
             <b>{row.Archetype || '—'}</b>
             <span className="d2-tooltip">
               <b>{row.Archetype || 'Armor Archetype'}</b>

@@ -23,6 +23,7 @@ Use this as the live scratchpad for what changed, what still needs parity work, 
 - `src/styles/panels.css` - side options panel, filter controls, display toggles.
 - `src/styles/armor-card.css` - armor card, title blocks, stat bars, tooltips, set bonus rows.
 - `src/components/ArmorCard.tsx` - archetype, perk rows, card composition.
+  - archetype icon uses a dedicated wrapper so tooltip spans are not forced into icon dimensions.
 - `src/components/ArmorStats.tsx` - stat/tuning visual display.
   - uses an inline DIM-style tuned-stat glyph for non-zero armor tuning adjustments, including negative values.
 - `src/components/ArmorBadges.tsx` - tags, location/action chip, grade chip.

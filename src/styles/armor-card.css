@@ -359,10 +359,11 @@
 .archetype:hover .archetype-img, .archetype:focus-visible .archetype-img {
   filter: drop-shadow(0 0 9px rgba(216, 180, 91, .48));
 }
-.archetype span {
+.archetype-icon {
   display: grid;
   place-items: center;
   width: 24px;
+  min-width: 24px;
   height: 24px;
   color: var(--gold);
   font-size: 20px;
@@ -404,6 +405,10 @@
   border: 7px solid transparent;
   border-right-color: rgb(18, 22, 30);
   border-top-color: transparent;
+}
+.archetype .d2-tooltip, .compare-archetype .d2-tooltip {
+  height: auto;
+  min-height: 0;
 }
 .archetype .d2-tooltip b, .archetype .d2-tooltip em, .archetype .d2-tooltip p,
 .compare-archetype .d2-tooltip b, .compare-archetype .d2-tooltip em, .compare-archetype .d2-tooltip p {

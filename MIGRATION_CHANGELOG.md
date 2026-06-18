@@ -156,6 +156,8 @@ This file tracks migration decisions and larger changes while porting the archiv
   - active set-selector plugs now identify the selected armor set but are never rendered as bonus rows.
   - official manifest set-bonus plugs render only when they are real bonus perks, not selector/conversion plugs.
   - catalog fallback now renders the verified 2-piece and 4-piece rows for the selected set, with set/source context in rows and tooltips.
+- Bumped the displayed app version to `v.11`.
+- Fixed archetype tooltip sizing by replacing broad archetype `span` icon styling with a dedicated `.archetype-icon` wrapper in normal and compare cards.
 
 ## Prior Completed Migration Work
 

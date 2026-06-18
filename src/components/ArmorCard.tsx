@@ -38,7 +38,7 @@ export default function ArmorCard({ row, onTag, onAction, onLock, onCompareGroup
       <div className="card-body">
         <aside className="card-side">
           <div className="archetype has-tooltip" tabIndex={0}>
-            <span>{row.ArchetypeIcon ? <img className="archetype-img" src={row.ArchetypeIcon} alt="" /> : '◇'}</span>
+            <span className="archetype-icon">{row.ArchetypeIcon ? <img className="archetype-img" src={row.ArchetypeIcon} alt="" /> : '◇'}</span>
             <b>{row.Archetype || '—'}</b>
             <Tooltip title={String(row.Archetype || 'Armor Archetype')} label="Archetype" description={String(row.ArchetypeDescription || row.ArchetypeTrait || 'Bungie armor archetype.')} />
           </div>
