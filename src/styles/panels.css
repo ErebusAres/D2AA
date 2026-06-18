@@ -212,10 +212,11 @@
   height: 3px;
   pointer-events: none;
   background:
-    linear-gradient(100deg, transparent 0 40%, rgba(255, 255, 255, .86) 49%, transparent 58%),
+    linear-gradient(100deg, transparent 0 16%, rgba(255, 255, 255, .16) 28%, rgba(255, 255, 255, .88) 48%, rgba(255, 255, 255, .18) 68%, transparent 84%),
     linear-gradient(180deg, #fff0b0 0%, #d9aa45 55%, #7d541f 100%);
-  background-size: 34% 100%, 100% 100%;
-  background-position: -45% 0, 0 0;
+  background-repeat: no-repeat, no-repeat;
+  background-size: 74% 100%, 100% 100%;
+  background-position: -95% 0, 0 0;
   box-shadow: 0 1px 0 rgba(255, 250, 210, .48), 0 0 9px rgba(245, 203, 97, .28);
   animation: masterworkSweep 2.6s ease-in-out infinite;
 }

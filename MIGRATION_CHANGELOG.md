@@ -124,6 +124,7 @@ This file tracks migration decisions and larger changes while porting the archiv
 - Normalized remaining small controls and modal buttons to the same clipped rank-chip shape.
 - Updated the masterwork cap animation so the gold bar stays static while a narrow sheen visibly sweeps left-to-right, with a subtle top underglow like the reference.
 - Added a lock/unlock control for every synced Bungie armor card with optimistic UI, verification sync, retry, and a `⛔` failed state.
+- Widened the masterwork sweep highlight and disabled repeat tiling so only one larger flash travels across the bar at a time.
   - tightened slot headings to include the archived count label plus right-aligned count badge.
   - improved mobile command bar wrapping so sign-in/sync controls stay compact instead of crowding the header.
 
