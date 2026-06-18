@@ -151,6 +151,11 @@ This file tracks migration decisions and larger changes while porting the archiv
 - Adjusted the masterwork sheen so it fully enters and exits the gold cap before the animation loops.
 - Bumped the displayed app version to `v.09`.
 - Added a queued-action indicator to the command-bar live chip so pending Bungie transfers/locks are visible while waiting behind sync.
+- Bumped the displayed app version to `v.10`.
+- Reworked Armor 3.0 set bonus display:
+  - active set-selector plugs now identify the selected armor set but are never rendered as bonus rows.
+  - official manifest set-bonus plugs render only when they are real bonus perks, not selector/conversion plugs.
+  - catalog fallback now renders the verified 2-piece and 4-piece rows for the selected set, with set/source context in rows and tooltips.
 
 ## Prior Completed Migration Work
 

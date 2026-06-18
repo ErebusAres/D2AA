@@ -61,14 +61,16 @@ function tierColorClass(tier: number): string {
 
 function SetBonusRow({ perk }: { perk: ArmorPerk }) {
   const kind = String(perk.kind || 'armor').toLowerCase();
+  const label = perk.label || labelForKind(kind);
+  const setContext = perk.setName && perk.source ? `${perk.setName} - ${perk.source}` : String(perk.setName || perk.source || label);
   return (
     <div className={`set-bonus-row is-${kind}`} tabIndex={0}>
       {perk.icon ? <img src={perk.icon} alt="" /> : <span className="set-bonus-fallback">✦</span>}
       <span className="set-bonus-copy">
         <b>{perk.name || 'Armor Bonus'}</b>
-        <em>{perk.label || labelForKind(kind)}</em>
+        <em>{kind === 'set' ? setContext : label}</em>
       </span>
-      <Tooltip title={perk.name || 'Armor Bonus'} label={perk.label || labelForKind(kind)} description={perk.description || ''} />
+      <Tooltip title={perk.name || 'Armor Bonus'} label={kind === 'set' ? `${label}${perk.setName ? ` - ${perk.setName}` : ''}` : label} description={perk.description || ''} />
     </div>
   );
 }

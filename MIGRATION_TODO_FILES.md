@@ -58,6 +58,8 @@ Use this as the live scratchpad for what changed, what still needs parity work, 
 - `src/data/bungieSync.ts` - real Bungie armor row normalization and manifest plug collection.
 - `src/data/armorArchetype.ts` - resolves canonical archetype names/icons/descriptions from Bungie plug definitions.
 - `src/data/armorBonuses.ts` - resolves set bonus, armor bonus, exotic perk, and catalyst display rows.
+  - active set-selector plugs identify selected set identity only and are not rendered as bonus rows.
+  - official real set-bonus plugs are preferred; catalog rows fill in selected-set 2-piece/4-piece text when Bungie exposes only selector metadata.
 - `src/data/armorSetCatalog.ts` - local Armor 3.0 set bonus catalog used when Bungie plugs only provide weak selector/name data.
   - official Bungie set-bonus plugs are preferred before local catalog rows.
   - local fallback now requires active selector plug evidence; do not infer from item names or all reusable selector options.
@@ -100,7 +102,7 @@ Use this as the live scratchpad for what changed, what still needs parity work, 
   - tier 3-4 active diamonds are all purple.
   - tier 5 active diamonds are all gold.
 - Revisit `src/data/armorSetCatalog.ts` with real inventories and/or a trusted source for accurate Armor 3.0 set names, icons, 2-piece text, and 4-piece text.
-  - current local catalog is a guarded fallback only; it should be treated as incomplete until verified against real Bungie/DIM data.
+  - current local catalog covers the eight known Edge of Fate sets from the public set-bonus table; verify against real Bungie/DIM data as new sets are added.
 - Revisit masterwork visuals against a real in-game screenshot if provided; current pass uses a thinner Bray.tech-style animated gold cap with a soft glow instead of the old diagonal stripe overlay.
 - Consider whether item ID copy should be hidden behind a debug/display option or remain visible like the archived patch.
 - DIM CSV import is implemented as an explicit side-panel fallback; keep Bungie sync as the default live path.

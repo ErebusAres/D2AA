@@ -15,6 +15,9 @@ export interface ArmorPerk {
   potential?: boolean;
   category?: string;
   type?: string;
+  source?: string;
+  setName?: string;
+  pieces?: 2 | 4 | number;
 }
 
 export type ArmorStats = Record<StatKey, number>;

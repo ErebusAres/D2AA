@@ -1,6 +1,6 @@
 import type { ArmorPerk } from '../types/armor';
 import type { DestinyInventoryItemDefinition } from '../types/bungie';
-import { resolveCatalogSetBonuses } from './armorSetCatalog';
+import { resolveCatalogSetBonuses, resolveSelectedArmorSet } from './armorSetCatalog';
 
 const ARCHETYPE_NAMES = new Set(['paragon', 'grenadier', 'specialist', 'brawler', 'bulwark', 'gunner']);
 
@@ -18,18 +18,16 @@ export function resolvePotentialSetBonuses(args: {
   archetypeHash: unknown;
   iconUrl: (value: unknown) => string;
 }): ArmorPerk[] {
-  const activeHashes = new Set(args.activePlugDefs.map((plug) => String(plug.hash || '')));
-  const officialBonuses = uniquePerks([...args.activePlugDefs, ...args.allPlugDefs, ...args.selectorPlugDefs]
+  const selectedSet = resolveSelectedArmorSet({ activePlugDefs: args.activePlugDefs, iconUrl: args.iconUrl });
+  const officialBonuses = uniquePerks([...args.activePlugDefs, ...args.allPlugDefs]
     .filter((plug) => isSetBonus(plug, args.archetypeHash))
-    .filter((plug) => !isSetSelector(plug) || activeHashes.has(String(plug.hash || '')) || matchesArmorSet(plug, args.itemDefinition))
-    .map((plug) => ({ ...perkInfo(plug, 'set', args.iconUrl), label: setBonusLabel(plug), potential: true })))
+    .filter((plug) => !isSetSelector(plug))
+    .filter((plug) => !selectedSet || matchesSelectedSet(plug, selectedSet.entry.name))
+    .map((plug) => ({ ...perkInfo(plug, 'set', args.iconUrl), label: setBonusLabel(plug), potential: true, setName: selectedSet?.entry.name || '' })))
     .slice(0, 4);
   if (officialBonuses.length) return officialBonuses;
 
-  return resolveCatalogSetBonuses({
-    activePlugDefs: args.activePlugDefs,
-    iconUrl: args.iconUrl
-  });
+  return selectedSet ? resolveCatalogSetBonuses({ selectedSet }) : [];
 }
 
 export function resolveExoticArmorPerks(args: {
@@ -60,20 +58,26 @@ export function resolveArmorBonusPerks(args: {
     .slice(0, 5);
 }
 
-function matchesArmorSet(plug: DestinyInventoryItemDefinition, itemDefinition: DestinyInventoryItemDefinition): boolean {
-  const itemName = normalize(itemDefinition.displayProperties?.name);
-  const setName = normalize(String(plug.displayProperties?.name || '').replace(/^set bonus\s*/i, ''));
-  return Boolean(itemName && setName && itemName.includes(setName));
+function isSetSelector(plug: DestinyInventoryItemDefinition): boolean {
+  const text = searchableText(plug);
+  return normalize(plug.plug?.plugCategoryIdentifier).includes('item sets selectors') || text.includes('converts this armor to');
 }
 
-function isSetSelector(plug: DestinyInventoryItemDefinition): boolean {
-  return normalize(plug.plug?.plugCategoryIdentifier).includes('item sets selectors');
+function matchesSelectedSet(plug: DestinyInventoryItemDefinition, setName: string): boolean {
+  const selected = normalize(setName);
+  if (!selected) return true;
+  const text = searchableText(plug);
+  return text.includes(selected) || !knownSetNameInText(text);
+}
+
+function knownSetNameInText(text: string): boolean {
+  return ['aion adapter', 'aion renewal', 'bushido', 'techsec', 'tech sec', 'twofold crown', 'last discipline', 'last disciple', 'collective psyche', 'lustrous'].some((name) => text.includes(name));
 }
 
 function isSetBonus(plug: DestinyInventoryItemDefinition, archetypeHash: unknown): boolean {
   const name = normalize(plug.displayProperties?.name);
   const text = searchableText(plug);
-  if (!name || isIgnoredPlug(plug) || String(plug.hash || '') === String(archetypeHash || '')) return false;
+  if (!name || isSetSelector(plug) || isIgnoredPlug(plug) || String(plug.hash || '') === String(archetypeHash || '')) return false;
   const hasSet = text.includes(' set ') || text.startsWith('set ') || text.includes('armor set') || text.includes('setbonus');
   const hasBonus = text.includes('bonus') || text.includes('perk') || text.includes('trait') || text.includes('piece') || text.includes('pieces');
   return (hasSet && hasBonus) || /\b[24]\s*piece\b/.test(text) || text.includes('wearing 2') || text.includes('wearing 4') || text.includes('while wearing');

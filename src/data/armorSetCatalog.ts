@@ -10,6 +10,11 @@ interface ArmorSetBonusCatalogEntry {
   icon: string;
 }
 
+export interface SelectedArmorSet {
+  entry: ArmorSetBonusCatalogEntry;
+  icon: string;
+}
+
 const ARMOR_SET_SELECTOR_HASHES = new Set([
   139044974, 139044987, 721111598, 721111611, 1012508294, 1012508307, 1220635053,
   1220635064, 1404854454, 1530138662, 1841728090, 2824493179, 2872740129,
@@ -108,31 +113,28 @@ const SETS: ArmorSetBonusCatalogEntry[] = [
 ];
 
 export function resolveCatalogSetBonuses(args: {
-  activePlugDefs: DestinyInventoryItemDefinition[];
-  iconUrl: (value: unknown) => string;
+  selectedSet: SelectedArmorSet;
 }): ArmorPerk[] {
-  const match = findCatalogEntry(args.activePlugDefs, args.iconUrl);
-  if (!match) return [];
-  return match.entry.bonuses.map((bonus) => ({
+  return args.selectedSet.entry.bonuses.map((bonus) => ({
     kind: 'set',
     label: `${bonus.pieces}-Piece Set Bonus`,
     name: bonus.name,
-    description: `${match.entry.name}: ${bonus.description}`,
-    icon: match.icon || match.entry.icon,
-    hash: `catalog:${match.entry.key}:${bonus.pieces}`,
-    source: match.entry.source,
-    setName: match.entry.name,
+    description: `${args.selectedSet.entry.name}: ${bonus.description}`,
+    icon: args.selectedSet.icon || args.selectedSet.entry.icon,
+    hash: `catalog:${args.selectedSet.entry.key}:${bonus.pieces}`,
+    source: args.selectedSet.entry.source,
+    setName: args.selectedSet.entry.name,
     pieces: bonus.pieces
   }));
 }
 
-function findCatalogEntry(
-  activePlugDefs: DestinyInventoryItemDefinition[],
-  iconUrl: (value: unknown) => string
-): { entry: ArmorSetBonusCatalogEntry; icon: string } | null {
+export function resolveSelectedArmorSet(args: {
+  activePlugDefs: DestinyInventoryItemDefinition[];
+  iconUrl: (value: unknown) => string;
+}): SelectedArmorSet | null {
   // Set selectors expose the selected Armor 3.0 set and icon. Do not infer from armor item names here:
   // weak name matches caused unrelated sets to render the same local catalog bonus rows.
-  for (const plug of activePlugDefs) {
+  for (const plug of args.activePlugDefs) {
     const plugText = normalize([
       plug.displayProperties?.name,
       plug.displayProperties?.description,
@@ -141,7 +143,7 @@ function findCatalogEntry(
     ].join(' '));
     if (!isActiveSetSelector(plug, plugText)) continue;
     const entry = SETS.find((candidate) => candidate.aliases.some((alias) => plugText.includes(normalize(alias))));
-    if (entry) return { entry, icon: iconUrl(plug.displayProperties?.icon) };
+    if (entry) return { entry, icon: args.iconUrl(plug.displayProperties?.icon) };
   }
   return null;
 }
