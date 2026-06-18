@@ -13,13 +13,18 @@ interface HeaderProps {
   onFiltersChange: (value: FilterState | ((current: FilterState) => FilterState)) => void;
   onOptionsToggle: () => void;
   onSync: () => void;
+  isSyncing: boolean;
+  liveEnabled: boolean;
+  lastSyncAt: number;
 }
 
-export default function Header({ status, auth, filters, allRows, onFiltersChange, onOptionsToggle, onSync }: HeaderProps) {
+export default function Header({ status, auth, filters, allRows, onFiltersChange, onOptionsToggle, onSync, isSyncing, liveEnabled, lastSyncAt }: HeaderProps) {
+  const liveLabel = isSyncing ? 'Syncing' : liveEnabled ? 'Live' : 'Manual';
+  const lastSyncLabel = lastSyncAt ? `Last sync ${new Date(lastSyncAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}` : status;
   return (
     <header className="command-bar">
       <button type="button" className="gear-button" aria-label="Options" onClick={onOptionsToggle}>⚙</button>
-      <div className="live-chip"><span />Live</div>
+      <div className={`live-chip ${isSyncing ? 'is-syncing' : ''} ${liveEnabled ? 'is-live' : 'is-manual'}`} title={lastSyncLabel}><span />{liveLabel}</div>
       <div className="brand-lockup">
         <span className="brand-diamond">◆</span>
         <div><strong>D2 Armor Analyzer</strong><span>{status}</span></div>
@@ -45,7 +50,7 @@ export default function Header({ status, auth, filters, allRows, onFiltersChange
           onChange={(event) => onFiltersChange((current) => ({ ...current, search: event.target.value }))}
         />
       </label>
-      <AuthButtons auth={auth} onSync={onSync} />
+      <AuthButtons auth={auth} onSync={onSync} isSyncing={isSyncing} />
     </header>
   );
 }

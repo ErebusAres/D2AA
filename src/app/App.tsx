@@ -14,6 +14,7 @@ import LoadingState from '../components/LoadingState';
 import { useAuth } from '../hooks/useAuth';
 import { useArmorFilters } from '../hooks/useArmorFilters';
 import { useArmorInventory } from '../hooks/useArmorInventory';
+import { useLiveSync } from '../hooks/useLiveSync';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { defaultFilterState, normalizeFilterState } from '../state/filterState';
 import { STORAGE_KEYS } from '../utils/constants';
@@ -67,6 +68,7 @@ function D2AAApp() {
   const [filters, setFilters] = useLocalStorage<FilterState>(STORAGE_KEYS.settings, defaultFilterState, normalizeFilterState);
   const auth = useAuth(setStatus);
   const inventory = useArmorInventory(setStatus);
+  const liveSync = useLiveSync({ enabled: auth.isSignedIn, sync: inventory.sync, onStatus: setStatus });
   const { groupedRows, filteredRows } = useArmorFilters(inventory.rows, filters);
 
   const runAction = useCallback(async (action: () => Promise<void>) => {
@@ -113,6 +115,9 @@ function D2AAApp() {
         onFiltersChange={setFilters}
         onOptionsToggle={() => setOptionsOpen((open) => !open)}
         onSync={() => runAction(inventory.sync)}
+        isSyncing={loading || inventory.syncing || liveSync.isSyncing}
+        liveEnabled={liveSync.enabled}
+        lastSyncAt={liveSync.lastSyncAt || inventory.lastSyncAt}
       />
       <aside className={`side-panel ${optionsOpen ? 'is-open' : ''}`} aria-label="Options panel">
         <Toolbar onImportCsv={(file) => runAction(() => inventory.importCsv(file))} onRestore={() => runAction(inventory.restoreCache)} onClear={() => runAction(inventory.clearCache)} />

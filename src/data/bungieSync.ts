@@ -1,6 +1,7 @@
 import type { ArmorItem } from '../types/armor';
 import type { BungieInventoryItem, BungieItemInstance, BungieProfileResponse, BungieSocketComponent, DestinyInventoryItemDefinition } from '../types/bungie';
 import { CLASS_ITEM_BY_CLASS, ITEM_STATE_LOCKED, VAULT_BUCKET_HASH } from '../utils/itemIds';
+import { yieldToBrowser } from '../utils/scheduler';
 import { bungieFetch, bungieIconUrl, getMembership, mapLimit, toUint32 } from './bungieApi';
 import { isSignedIn, startLogin } from './bungieAuth';
 import { getInventoryItemDefinition, getPlugSetDefinition } from './bungieManifest';
@@ -51,7 +52,9 @@ async function buildArmorRows(profile: BungieProfileResponse, membershipType: nu
 
   const rows: ArmorItem[] = [];
   const seen = new Set<string>();
-  for (const item of allItems) {
+  for (let itemIndex = 0; itemIndex < allItems.length; itemIndex += 1) {
+    if (itemIndex > 0 && itemIndex % 24 === 0) await yieldToBrowser();
+    const item = allItems[itemIndex];
     const instanceId = item.itemInstanceId;
     if (!instanceId || seen.has(instanceId)) continue;
     seen.add(instanceId);

@@ -83,6 +83,10 @@ This file tracks migration decisions and larger changes while porting the archiv
   - added typed `runGroupPull`.
   - duplicate compare modal now exposes a group-level `Pull Group` / `Copy Group IDs` action.
   - Bungie group pulls skip equipped/non-vault items and sync after successful pulls; DIM/CSV groups copy a combined DIM ID filter.
+- Started DIM-inspired live sync/performance pass:
+  - added a background live-sync hook that runs only when signed in, online, and visible, with overlap protection.
+  - added animated sync indicators in the command bar and loading state.
+  - added browser-yield points during large Bungie row normalization so the UI can keep painting.
 
 ## Prior Completed Migration Work
 

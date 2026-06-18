@@ -28,6 +28,7 @@ Use this as the live scratchpad for what changed, what still needs parity work, 
 - `src/components/TagPicker.tsx` - floating React emoji tag picker used by cards and feed rows.
 - `src/components/ArmorGrid.tsx` - slot stack grouping.
 - `src/components/Header.tsx` - old command bar parity.
+  - includes live/manual/syncing status indicator.
 - `src/components/ItemFeed.tsx` - right rail latest items, empty states, and icon stat popouts.
 - `src/components/ActiveFilterChips.tsx` - React replacement for old `#activeChips` rendering.
 - `src/components/CopyItemIdButton.tsx` - React replacement for old `id-copy-patch.js` copy control.
@@ -45,6 +46,8 @@ Use this as the live scratchpad for what changed, what still needs parity work, 
   - includes typed duplicate group pull/copy behavior.
 - `src/data/bungieApi.ts` - shared Bungie GET/POST helpers.
 - `src/data/dimCsv.ts` - dependency-free DIM CSV parser and mapper for local import fallback.
+- `src/hooks/useLiveSync.ts` - DIM-inspired background refresh loop for signed-in, visible, online sessions.
+- `src/utils/scheduler.ts` - browser-yield helper for long client-side inventory work.
 - `vite.config.ts` - Vite production build config; uses relative `base: './'` and stable `assets/app.js` / `assets/app.css` output so branch-root Pages hosting can load the built app.
 - `index.html` - Vite dev entry plus a GitHub Pages static fallback loader for committed root `assets/app.js` and `assets/app.css`.
 
@@ -60,6 +63,11 @@ Use this as the live scratchpad for what changed, what still needs parity work, 
   - tuning markers in stat rows.
   - stat calculation titles/tooltip text explaining base source, visible bonus parts, and absolute totals.
   - item feed popouts show the same stat breakdowns and do not clip at desktop/mobile widths.
+- Verify live sync behavior with a real account:
+  - cache should render first.
+  - background sync should not overlap manual sync.
+  - tab-hidden/offline states should not keep polling.
+  - large inventories should not visibly lock the browser while rows normalize.
 - Preserve card icon-only controls where practical:
   - tag chips should show compact archived emoji symbols, not words like `Favorite` or `Keep`.
   - tag chips should open the floating React picker, not a native select/dropdown arrow.

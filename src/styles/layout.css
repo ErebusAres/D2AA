@@ -44,6 +44,19 @@
   background: #67e8b9;
   box-shadow: 0 0 12px #67e8b9;
 }
+.live-chip.is-manual span {
+  background: #9aa3b2;
+  box-shadow: 0 0 8px rgba(154, 163, 178, .55);
+}
+.live-chip.is-syncing {
+  color: var(--gold-bright);
+  border-color: rgba(216, 180, 91, .42);
+}
+.live-chip.is-syncing span {
+  background: var(--gold);
+  box-shadow: 0 0 14px rgba(216, 180, 91, .8);
+  animation: livePulse 900ms ease-in-out infinite;
+}
 .brand-lockup {
   display: flex;
   gap: 10px;
@@ -109,6 +122,13 @@
 .command-button b { font-size: 13px; }
 .command-button small { color: var(--muted); font-size: 11px; }
 .command-button--gold { border-color: rgba(216, 180, 91, 0.42); background: rgba(216, 180, 91, 0.12); }
+.command-button:disabled {
+  cursor: wait;
+  opacity: .78;
+}
+.command-button.is-syncing {
+  border-color: rgba(216, 180, 91, .45);
+}
 .bungie-mark img { width: 20px; height: 20px; filter: brightness(0) invert(1); }
 .active-chips {
   display: flex;
@@ -143,9 +163,32 @@
   background: rgba(255, 255, 255, 0.035);
   padding: 22px;
 }
+.loading-state {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--gold-bright);
+}
+.sync-spinner {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(216, 180, 91, .18);
+  border-top-color: var(--gold-bright);
+  border-right-color: rgba(216, 180, 91, .72);
+  border-radius: 999px;
+  animation: spinSync 850ms linear infinite;
+}
 .empty-state h2 { margin: 0 0 8px; color: var(--gold-bright); }
 .empty-state p { margin: 0; color: var(--muted); }
 .error-state { border-color: rgba(217, 97, 97, 0.42); color: #ffb4b4; }
+@keyframes spinSync {
+  to { transform: rotate(360deg); }
+}
+@keyframes livePulse {
+  0%, 100% { transform: scale(1); opacity: .78; }
+  50% { transform: scale(1.45); opacity: 1; }
+}
 @media (max-width: 1120px) {
   .command-bar { grid-template-columns: auto auto minmax(0, 1fr) auto; }
   .class-toggle {

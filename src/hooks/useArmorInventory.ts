@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ArmorItem } from '../types/armor';
 import { normalizeArmorRow } from '../data/armorNormalization';
 import { clearBungieInventoryCache, loadBungieInventoryFromCache, formatCacheTime } from '../data/inventoryCache';
@@ -9,8 +9,10 @@ import { readJson, removeStorage, writeJson } from '../utils/storage';
 
 export function useArmorInventory(setStatus: (status: string) => void): {
   rows: ArmorItem[];
+  syncing: boolean;
+  lastSyncAt: number;
   setRows: (rows: ArmorItem[], status?: string) => void;
-  sync: () => Promise<void>;
+  sync: (options?: { reason?: string; background?: boolean }) => Promise<void>;
   importCsv: (file: File) => Promise<void>;
   restoreCache: () => Promise<void>;
   clearCache: () => Promise<void>;
@@ -20,6 +22,9 @@ export function useArmorInventory(setStatus: (status: string) => void): {
   const [tags, setTags] = useState<Record<string, string>>(() => readJson(STORAGE_KEYS.tags, {}));
   const [dismissed, setDismissed] = useState<Record<string, number>>(() => readJson(STORAGE_KEYS.dismissedRecent, {}));
   const [rawRows, setRawRows] = useState<ArmorItem[]>([]);
+  const [syncing, setSyncing] = useState(false);
+  const [lastSyncAt, setLastSyncAt] = useState(0);
+  const syncInFlight = useRef(false);
 
   const rows = useMemo(() => rawRows.map((row, index) => {
     const normalized = normalizeArmorRow(row, index, tags[row.Id]);
@@ -35,6 +40,7 @@ export function useArmorInventory(setStatus: (status: string) => void): {
   const restoreCache = useCallback(async () => {
     const cached = await loadBungieInventoryFromCache();
     if (cached?.rows.length) {
+      setLastSyncAt(new Date(cached.meta.savedAt || '').getTime() || 0);
       setRows(cached.rows, `Loaded Bungie cache: ${cached.rows.length} armor from ${formatCacheTime(cached.meta)}.`);
       return;
     }
@@ -50,9 +56,23 @@ export function useArmorInventory(setStatus: (status: string) => void): {
     restoreCache().catch((error: unknown) => setStatus(error instanceof Error ? error.message : String(error)));
   }, [restoreCache, setStatus]);
 
-  const sync = useCallback(async () => {
-    const synced = await syncBungieInventory(setStatus, 'manual-sync');
-    if (synced.length) setRows(synced, `Loaded ${synced.length} Bungie armor items.`);
+  const sync = useCallback(async (options: { reason?: string; background?: boolean } = {}) => {
+    if (syncInFlight.current) {
+      if (!options.background) setStatus('A Bungie sync is already running.');
+      return;
+    }
+    syncInFlight.current = true;
+    setSyncing(true);
+    try {
+      const synced = await syncBungieInventory(setStatus, options.reason || 'manual-sync');
+      if (synced.length) {
+        setRows(synced, `${options.background ? 'Live sync' : 'Loaded'} ${synced.length} Bungie armor items.`);
+        setLastSyncAt(Date.now());
+      }
+    } finally {
+      syncInFlight.current = false;
+      setSyncing(false);
+    }
   }, [setRows, setStatus]);
 
   const importCsv = useCallback(async (file: File) => {
@@ -102,5 +122,5 @@ export function useArmorInventory(setStatus: (status: string) => void): {
     });
   }, []);
 
-  return { rows, setRows, sync, importCsv, restoreCache, clearCache, updateTag, dismissRecent };
+  return { rows, syncing, lastSyncAt, setRows, sync, importCsv, restoreCache, clearCache, updateTag, dismissRecent };
 }
