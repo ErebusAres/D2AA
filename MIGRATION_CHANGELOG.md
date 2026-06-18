@@ -100,6 +100,11 @@ This file tracks migration decisions and larger changes while porting the archiv
   - added live-chip state metadata and signed-out/manual/current/syncing dot colors.
   - restored the archived feed head spinner treatment and masterworked feed row striping.
   - wired the feed refresh control to the real sync state so it disables and animates while manual/live sync is active.
+- Fixed masterwork presentation and detection:
+  - stopped treating Bungie `energyCapacity >= 10` as proof that an item is fully masterworked.
+  - masterwork styling now requires audited masterwork bonuses or an active masterwork plug signal.
+  - replaced diagonal stripe imagery with a subtler in-game-style gold edge, icon border, and title glow.
+- Unified small card/feed action chip backgrounds so tag, ID, group, rank, and dismiss controls share the same filled badge language.
   - tightened slot headings to include the archived count label plus right-aligned count badge.
   - improved mobile command bar wrapping so sign-in/sync controls stay compact instead of crowding the header.
 

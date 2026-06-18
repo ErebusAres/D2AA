@@ -106,7 +106,7 @@ async function buildArmorRows(profile: BungieProfileResponse, membershipType: nu
       IconUrl: ornament?.icon || bungieIconUrl(def.displayProperties?.icon),
       BaseIconUrl: bungieIconUrl(def.displayProperties?.icon),
       OrnamentName: ornament?.name || '',
-      IsMasterworked: Number(instance?.energy?.energyCapacity || 0) >= 10,
+      IsMasterworked: isMasterworked(activePlugDefs, audit.row),
       IsLocked: Boolean(stateValue & ITEM_STATE_LOCKED),
       StatAudit: audit.audit,
       ...audit.row,
@@ -215,6 +215,14 @@ function gearTierForItem(instance: BungieItemInstance | undefined, rarity: strin
 
 function getLightLevel(instance: BungieItemInstance | undefined, item: BungieInventoryItem): number {
   return Number(instance?.primaryStat?.value ?? instance?.quality ?? item.primaryStat?.value ?? item.power ?? item.light ?? 0) || 0;
+}
+
+function isMasterworked(activePlugDefs: DestinyInventoryItemDefinition[], auditedRow: { MasterworkBonusTotal?: unknown }): boolean {
+  if (Number(auditedRow.MasterworkBonusTotal || 0) >= 10) return true;
+  return activePlugDefs.some((plug) => {
+    const text = normalize(`${plug.displayProperties?.name || ''} ${plug.displayProperties?.description || ''} ${plug.itemTypeDisplayName || ''} ${plug.plug?.plugCategoryIdentifier || ''}`);
+    return text.includes('masterwork') || text.includes('armor masterwork') || text.includes('upgrade armor');
+  });
 }
 
 function activeOrnament(activePlugDefs: DestinyInventoryItemDefinition[]): { name: string; icon: string } | null {

@@ -193,9 +193,11 @@
   transition: border-color .14s ease, background .14s ease, transform .14s ease;
 }
 .feed-card.is-masterworked {
-  background-image:
-    repeating-linear-gradient(135deg, rgba(255, 226, 135, .16) 0 2px, transparent 2px 8px),
-    linear-gradient(90deg, rgba(255, 255, 255, .04), rgba(255, 255, 255, .02));
+  border-color: rgba(242, 205, 111, .40);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 231, 168, .26),
+    inset 0 -1px 0 rgba(116, 81, 22, .38),
+    inset 0 0 18px rgba(216, 180, 91, .08);
 }
 .feed-card:hover, .feed-card:focus-within {
   border-color: rgba(216, 180, 91, .38);
@@ -234,7 +236,11 @@
 .feed-card strong, .feed-card small { display: block; }
 .feed-card strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .feed-card small { color: var(--muted); }
-.feed-card button { border: 1px solid var(--line); background: rgba(255, 255, 255, .05); }
+.feed-card button {
+  border: 1px solid rgba(255, 255, 255, .22);
+  background: linear-gradient(180deg, rgba(30, 34, 43, .94), rgba(10, 12, 17, .88));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08), 0 1px 5px rgba(0, 0, 0, .22);
+}
 .feed-meta {
   display: flex;
   align-items: center;
@@ -263,6 +269,20 @@
 }
 .feed-empty strong { color: #fff; }
 .feed-empty span { font-size: 12px; line-height: 1.35; }
+.dismiss {
+  width: 24px;
+  min-width: 24px;
+  height: 24px;
+  padding: 0;
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1;
+}
+.dismiss:hover, .dismiss:focus-visible {
+  border-color: rgba(216, 180, 91, .58);
+  color: #fff;
+  outline: none;
+}
 .feed-stat-popout {
   position: fixed;
   z-index: 2147483000;
