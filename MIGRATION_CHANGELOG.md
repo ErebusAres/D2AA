@@ -122,6 +122,7 @@ This file tracks migration decisions and larger changes while porting the archiv
   - reduced the masterwork cap height and added a softer gold glow.
   - improved progress-fill text contrast over white and green completion fills.
 - Normalized remaining small controls and modal buttons to the same clipped rank-chip shape.
+- Updated the masterwork cap animation so the gold bar stays static while a narrow sheen visibly sweeps left-to-right, with a subtle top underglow like the reference.
   - tightened slot headings to include the archived count label plus right-aligned count badge.
   - improved mobile command bar wrapping so sign-in/sync controls stay compact instead of crowding the header.
 
