@@ -71,6 +71,15 @@
   box-shadow: 0 0 14px rgba(216, 180, 91, .8);
   animation: livePulse 900ms ease-in-out infinite;
 }
+.live-chip[data-live-state="queued"] {
+  color: var(--gold-bright);
+  border-color: rgba(216, 180, 91, .42);
+}
+.live-chip[data-live-state="queued"] span {
+  background: var(--gold);
+  box-shadow: 0 0 14px rgba(216, 180, 91, .8);
+  animation: livePulse 900ms ease-in-out infinite;
+}
 .live-chip.is-manual span {
   background: #9aa3b2;
   box-shadow: 0 0 8px rgba(154, 163, 178, .55);

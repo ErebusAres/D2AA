@@ -18,12 +18,13 @@ interface HeaderProps {
   isSyncing: boolean;
   liveEnabled: boolean;
   lastSyncAt: number;
+  queuedActions: number;
 }
 
-export default function Header({ status, auth, filters, allRows, onFiltersChange, onOptionsToggle, onSync, isSyncing, liveEnabled, lastSyncAt }: HeaderProps) {
-  const liveLabel = isSyncing ? 'Syncing' : liveEnabled ? 'Live' : 'Manual';
+export default function Header({ status, auth, filters, allRows, onFiltersChange, onOptionsToggle, onSync, isSyncing, liveEnabled, lastSyncAt, queuedActions }: HeaderProps) {
+  const liveLabel = queuedActions ? `Queued ${queuedActions}` : isSyncing ? 'Syncing' : liveEnabled ? 'Live' : 'Manual';
   const lastSyncLabel = lastSyncAt ? `Last sync ${new Date(lastSyncAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}` : status;
-  const liveState = isSyncing ? 'syncing' : auth.isSignedIn ? liveEnabled ? 'current' : 'manual' : 'signed-out';
+  const liveState = queuedActions ? 'queued' : isSyncing ? 'syncing' : auth.isSignedIn ? liveEnabled ? 'current' : 'manual' : 'signed-out';
   const activeProgress = useMemo(() => parseProgressStatus(status), [status]);
   const [recentProgress, setRecentProgress] = useState<ProgressStatus | null>(null);
   const [showCompleteFlash, setShowCompleteFlash] = useState(false);
@@ -49,7 +50,7 @@ export default function Header({ status, auth, filters, allRows, onFiltersChange
   return (
     <header className="command-bar">
       <button type="button" className="gear-button" aria-label="Options" onClick={onOptionsToggle}>⚙</button>
-      <div className={`live-chip ${isSyncing ? 'is-syncing' : ''} ${liveEnabled ? 'is-live' : 'is-manual'}`} data-live-state={liveState} title={lastSyncLabel}><span />{liveLabel}</div>
+      <div className={`live-chip ${isSyncing ? 'is-syncing' : ''} ${queuedActions ? 'is-queued' : ''} ${liveEnabled ? 'is-live' : 'is-manual'}`} data-live-state={liveState} title={queuedActions ? `${queuedActions} queued Bungie action${queuedActions === 1 ? '' : 's'}. ${lastSyncLabel}` : lastSyncLabel}><span />{liveLabel}</div>
       <div className="brand-lockup">
         <span className="brand-diamond">◆</span>
         <div>

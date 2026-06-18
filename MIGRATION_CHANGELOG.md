@@ -149,6 +149,8 @@ This file tracks migration decisions and larger changes while porting the archiv
   - local catalog rows require active set-selector evidence, reducing incorrect Aion Adapter `Force Absorption` / `Reactive Shock` rows on unrelated gear.
 - Bumped the displayed app version to `v.08`.
 - Adjusted the masterwork sheen so it fully enters and exits the gold cap before the animation loops.
+- Bumped the displayed app version to `v.09`.
+- Added a queued-action indicator to the command-bar live chip so pending Bungie transfers/locks are visible while waiting behind sync.
 
 ## Prior Completed Migration Work
 

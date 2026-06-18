@@ -127,6 +127,7 @@ function D2AAApp() {
         isSyncing={loading || externalSyncing}
         liveEnabled={liveSync.enabled}
         lastSyncAt={liveSync.lastSyncAt || inventory.lastSyncAt}
+        queuedActions={actionQueue.queuedCount}
       />
       <aside className={`side-panel ${optionsOpen ? 'is-open' : ''}`} aria-label="Options panel">
         <Toolbar onImportCsv={(file) => runAction(() => inventory.importCsv(file))} onRestore={() => runAction(inventory.restoreCache)} onClear={() => runAction(inventory.clearCache)} />
