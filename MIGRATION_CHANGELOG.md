@@ -106,6 +106,8 @@ This file tracks migration decisions and larger changes while porting the archiv
   - replaced diagonal stripe imagery with a subtler in-game-style gold edge, icon border, and title glow.
 - Unified small card/feed action chip backgrounds so tag, ID, group, rank, and dismiss controls share the same filled badge language.
 - Adjusted the latest-items refresh control so the button background stays static while only the refresh arrow spins during sync.
+- Removed the redundant floating `Working...` status bar; detailed sync progress remains in the command bar status text.
+- Normalized top command-bar controls to the same filled clipped badge shape used by rank/tag chips, with matching heights for options, live, title, class, search, sign-in, and sync controls.
   - tightened slot headings to include the archived count label plus right-aligned count badge.
   - improved mobile command bar wrapping so sign-in/sync controls stay compact instead of crowding the header.
 

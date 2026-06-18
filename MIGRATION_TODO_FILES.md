@@ -29,6 +29,7 @@ Use this as the live scratchpad for what changed, what still needs parity work, 
 - `src/components/ArmorGrid.tsx` - slot stack grouping.
 - `src/components/Header.tsx` - old command bar parity.
   - includes live/manual/syncing status indicator.
+  - top controls now share the clipped filled badge shape and matching 38px height.
 - `src/components/ItemFeed.tsx` - right rail latest items, empty states, and icon stat popouts.
 - `src/components/ActiveFilterChips.tsx` - React replacement for old `#activeChips` rendering.
 - `src/components/CopyItemIdButton.tsx` - React replacement for old `id-copy-patch.js` copy control.
@@ -57,6 +58,7 @@ Use this as the live scratchpad for what changed, what still needs parity work, 
 
 - Continue visual parity against archived InGame after a browser screenshot pass:
   - compare command bar spacing, card proportions, right feed, and side panel controls at desktop width after the angular/accent-rail and basic-control polish passes.
+  - verify the command bar remains readable after removing the redundant floating `Working...` bar; detailed Bungie progress should stay in the title/status text.
   - compare mobile wrapping for command bar, cards, feed, and tooltips.
 - Verify real synced Bungie rows show:
   - archetype API icon and tooltip.

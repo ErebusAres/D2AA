@@ -10,7 +10,6 @@ import DuplicateCompareModal from '../components/DuplicateCompareModal';
 import ItemFeed from '../components/ItemFeed';
 import EmptyState from '../components/EmptyState';
 import ErrorState from '../components/ErrorState';
-import LoadingState from '../components/LoadingState';
 import { useAuth } from '../hooks/useAuth';
 import { useArmorFilters } from '../hooks/useArmorFilters';
 import { useArmorInventory } from '../hooks/useArmorInventory';
@@ -126,7 +125,6 @@ function D2AAApp() {
       </aside>
       <ActiveFilterChips value={filters} onChange={setFilters} />
       {error ? <ErrorState message={error} /> : null}
-      {loading ? <LoadingState label="Working" /> : null}
       <main>
         {filteredRows.length ? (
           <ArmorGrid rows={filteredRows} onTag={inventory.updateTag} onAction={runArmorAction} onCompareGroup={setCompareGroupKey} />

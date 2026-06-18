@@ -20,9 +20,10 @@
   width: 42px;
   height: 38px;
   border: 1px solid var(--line);
-  background: rgba(255, 255, 255, .055);
+  background: linear-gradient(180deg, rgba(30, 34, 43, .94), rgba(10, 12, 17, .88));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08), 0 1px 5px rgba(0, 0, 0, .22);
   color: var(--gold);
-  clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+  clip-path: polygon(5px 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%, 0 5px);
 }
 .gear-button:hover, .gear-button:focus-visible {
   border-color: rgba(216, 180, 91, .55);
@@ -30,7 +31,7 @@
   outline: none;
 }
 .live-chip, .brand-lockup, .class-toggle, .search-wrap, .command-button {
-  clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+  clip-path: polygon(5px 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%, 0 5px);
 }
 .live-chip {
   display: flex;
@@ -40,7 +41,8 @@
   padding: 0 10px;
   border: 1px solid rgba(255, 255, 255, .1);
   color: var(--muted);
-  background: rgba(255, 255, 255, .04);
+  background: linear-gradient(180deg, rgba(30, 34, 43, .94), rgba(10, 12, 17, .88));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08), 0 1px 5px rgba(0, 0, 0, .22);
   text-transform: uppercase;
   font-size: 12px;
   letter-spacing: .08em;
@@ -86,10 +88,12 @@
   display: flex;
   gap: 10px;
   align-items: center;
+  height: 38px;
   min-width: 0;
-  padding: 0;
-  border: 0;
-  background: transparent;
+  padding: 0 11px;
+  border: 1px solid var(--line);
+  background: linear-gradient(180deg, rgba(30, 34, 43, .94), rgba(10, 12, 17, .88));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08), 0 1px 5px rgba(0, 0, 0, .22);
 }
 .brand-lockup > div { min-width: 0; }
 .brand-lockup strong { display: block; color: var(--text); text-transform: uppercase; letter-spacing: .08em; }
@@ -107,12 +111,13 @@
   font-variant-numeric: tabular-nums;
 }
 .class-toggle button {
-  min-height: 38px;
+  height: 38px;
   border: 1px solid var(--line);
-  background: rgba(255, 255, 255, .055);
+  background: linear-gradient(180deg, rgba(30, 34, 43, .94), rgba(10, 12, 17, .88));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08), 0 1px 5px rgba(0, 0, 0, .22);
   padding: 8px 12px;
   white-space: nowrap;
-  clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+  clip-path: polygon(5px 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%, 0 5px);
   transition: border-color .14s ease, background .14s ease;
 }
 .class-toggle button.is-active {
@@ -131,9 +136,11 @@
   grid-template-columns: auto 1fr;
   align-items: center;
   gap: 8px;
+  height: 38px;
   padding: 8px 10px;
   border: 1px solid var(--line);
-  background: rgba(255, 255, 255, .045);
+  background: linear-gradient(180deg, rgba(30, 34, 43, .94), rgba(10, 12, 17, .88));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08), 0 1px 5px rgba(0, 0, 0, .22);
 }
 .search-wrap span { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .08em; }
 .search-wrap input {
@@ -145,15 +152,15 @@
 }
 .command-button {
   display: grid;
-  grid-template-columns: 28px auto;
-  grid-template-rows: auto auto;
-  column-gap: 8px;
+  grid-template-columns: 24px minmax(0, auto);
+  gap: 8px;
   align-items: center;
+  height: 38px;
   min-width: 118px;
   border: 1px solid var(--line);
-  min-height: 38px;
-  background: rgba(255, 255, 255, .055);
-  padding: 8px 10px;
+  background: linear-gradient(180deg, rgba(30, 34, 43, .94), rgba(10, 12, 17, .88));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08), 0 1px 5px rgba(0, 0, 0, .22);
+  padding: 0 10px;
   transition: border-color .14s ease, background .14s ease, transform .14s ease;
 }
 .command-button:hover, .command-button:focus-visible {
@@ -161,10 +168,13 @@
   background: rgba(216, 180, 91, .10);
   outline: none;
 }
-.command-button span { grid-row: 1 / 3; display: grid; place-items: center; }
+.command-button span { display: grid; place-items: center; }
 .command-button b { font-size: 13px; }
-.command-button small { color: var(--muted); font-size: 11px; }
-.command-button--gold { border-color: rgba(216, 180, 91, 0.42); background: rgba(216, 180, 91, 0.12); }
+.command-button small { display: none; color: var(--muted); font-size: 11px; }
+.command-button--gold {
+  border-color: rgba(216, 180, 91, 0.42);
+  background: linear-gradient(180deg, rgba(58, 48, 29, .96), rgba(16, 13, 9, .92));
+}
 .command-button:disabled {
   cursor: wait;
   opacity: .78;
