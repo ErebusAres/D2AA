@@ -100,10 +100,10 @@
 .brand-lockup span:last-child { display: block; color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .brand-diamond { color: var(--gold); }
 .brand-title-row {
-  display: grid !important;
-  grid-template-columns: minmax(0, 1fr) auto;
+  display: inline-flex !important;
   align-items: baseline;
-  gap: 10px;
+  gap: 8px;
+  max-width: 100%;
 }
 .brand-title-row b {
   color: var(--gold);

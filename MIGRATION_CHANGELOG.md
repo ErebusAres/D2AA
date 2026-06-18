@@ -132,6 +132,8 @@ This file tracks migration decisions and larger changes while porting the archiv
   - improved mobile command bar wrapping so sign-in/sync controls stay compact instead of crowding the header.
 - Bumped the displayed app version to `v.03`.
 - Clamped floating UI placement so the tag picker and latest-item stat popout stay inside the viewport on narrow or short screens.
+- Bumped the displayed app version to `v.04`.
+- Pulled the header version label inline with `D2 Armor Analyzer` so it reads as a compact title/version pair instead of spreading across the brand block.
 
 ## Prior Completed Migration Work
 
