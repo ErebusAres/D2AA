@@ -4,7 +4,7 @@ import AuthButtons from './AuthButtons';
 import type { ArmorItem } from '../types/armor';
 import type { AuthState } from '../types/auth';
 import type { FilterState } from '../types/filters';
-import { CLASS_ORDER } from '../utils/constants';
+import { APP_VERSION, CLASS_ORDER } from '../utils/constants';
 import { rowMatchesClass } from '../data/armorNormalization';
 
 interface HeaderProps {
@@ -52,7 +52,10 @@ export default function Header({ status, auth, filters, allRows, onFiltersChange
       <div className={`live-chip ${isSyncing ? 'is-syncing' : ''} ${liveEnabled ? 'is-live' : 'is-manual'}`} data-live-state={liveState} title={lastSyncLabel}><span />{liveLabel}</div>
       <div className="brand-lockup">
         <span className="brand-diamond">◆</span>
-        <div><strong>D2 Armor Analyzer</strong><StatusLine status={status} progress={shownProgress} complete={showCompleteFlash} /></div>
+        <div>
+          <span className="brand-title-row"><strong>D2 Armor Analyzer</strong><b>{APP_VERSION}</b></span>
+          <StatusLine status={status} progress={shownProgress} complete={showCompleteFlash} />
+        </div>
       </div>
       <nav className="class-toggle" aria-label="Class filter">
         {CLASS_ORDER.map((className) => (

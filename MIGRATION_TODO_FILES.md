@@ -32,6 +32,9 @@ Use this as the live scratchpad for what changed, what still needs parity work, 
   - includes live/manual/syncing status indicator.
   - top controls now share the clipped filled badge shape and matching 38px height.
   - parses `done/total` status text into a temporary command-bar progress fill.
+  - shows `APP_VERSION` in the top-right of the D2 Armor Analyzer brand block.
+- `src/utils/constants.ts` - shared constants.
+  - `APP_VERSION` must be bumped for every new commit: `v.01` through `v.99`, then `v1.00`, `v1.01`, and so on.
 - `src/components/ItemFeed.tsx` - right rail latest items, empty states, and icon stat popouts.
 - `src/components/ActiveFilterChips.tsx` - React replacement for old `#activeChips` rendering.
 - `src/components/CopyItemIdButton.tsx` - React replacement for old `id-copy-patch.js` copy control.

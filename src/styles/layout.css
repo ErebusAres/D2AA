@@ -99,6 +99,20 @@
 .brand-lockup strong { display: block; color: var(--text); text-transform: uppercase; letter-spacing: .08em; }
 .brand-lockup span:last-child { display: block; color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .brand-diamond { color: var(--gold); }
+.brand-title-row {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 10px;
+}
+.brand-title-row b {
+  color: var(--gold);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: .08em;
+  line-height: 1;
+  text-transform: uppercase;
+}
 .status-progress {
   position: relative;
   isolation: isolate;
