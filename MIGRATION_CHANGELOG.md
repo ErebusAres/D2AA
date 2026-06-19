@@ -163,6 +163,8 @@ This file tracks migration decisions and larger changes while porting the archiv
   - lock/unlock clears pending after the action POST succeeds instead of waiting on a full inventory sync.
   - pull/vault actions optimistically patch item location locally after Bungie accepts the transfer.
   - queued actions now schedule one delayed background verification sync instead of forcing a full sync after every item action.
+- Bumped the displayed app version to `v.13`.
+- Removed the old unused inventory-hook `toggleLock` path that still performed full lock-verify sync loops; lock/unlock now only flows through the queued fast action path.
 
 ## Prior Completed Migration Work
 

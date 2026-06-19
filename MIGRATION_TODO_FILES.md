@@ -44,6 +44,8 @@ Use this as the live scratchpad for what changed, what still needs parity work, 
   - patches lock/location state optimistically and schedules a delayed background verification sync instead of full-syncing after every action.
   - auto-locks synced Bungie armor when tagged `favorite` or `keep`.
   - exposes queue count for the command-bar live chip.
+- `src/hooks/useArmorInventory.ts` - inventory restore/sync/cache/tag state.
+  - lock/unlock mutation is intentionally not handled here; use `useActionQueue` so item actions stay queued and optimistic.
 - `src/utils/constants.ts` - shared constants.
   - `APP_VERSION` must be bumped for every new commit: `v.01` through `v.99`, then `v1.00`, `v1.01`, and so on.
 - `scripts/bump-version.mjs` - local helper for incrementing `APP_VERSION`.
