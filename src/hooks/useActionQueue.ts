@@ -29,6 +29,7 @@ interface ActionQueueOptions {
 
 export function useActionQueue({ rows, externalSyncing, sync, patchRow, setStatus, setError, setLoading }: ActionQueueOptions) {
   const [queue, setQueue] = useState<QueuedAction[]>([]);
+  const [runningAction, setRunningAction] = useState<QueuedAction | null>(null);
   const runningRef = useRef(false);
   const verifyTimerRef = useRef<number | null>(null);
   const rowsRef = useRef(rows);
@@ -84,6 +85,7 @@ export function useActionQueue({ rows, externalSyncing, sync, patchRow, setStatu
     const [next, ...rest] = queue;
     setQueue(rest);
     runningRef.current = true;
+    setRunningAction(next);
     setLoading(true);
     setError('');
     void runQueuedAction(next, { rowsRef, patchRow, setStatus, scheduleVerifySync })
@@ -95,6 +97,7 @@ export function useActionQueue({ rows, externalSyncing, sync, patchRow, setStatu
       })
       .finally(() => {
         runningRef.current = false;
+        setRunningAction(null);
         setLoading(false);
       });
   }, [externalSyncing, patchRow, queue, scheduleVerifySync, setError, setLoading, setStatus]);
@@ -103,7 +106,13 @@ export function useActionQueue({ rows, externalSyncing, sync, patchRow, setStatu
     if (verifyTimerRef.current) window.clearTimeout(verifyTimerRef.current);
   }, []);
 
-  return useMemo(() => ({ enqueueTransfer, enqueueGroupPull, enqueueLock, queuedCount: queue.length }), [enqueueGroupPull, enqueueLock, enqueueTransfer, queue.length]);
+  return useMemo(() => ({
+    enqueueTransfer,
+    enqueueGroupPull,
+    enqueueLock,
+    queuedCount: queue.length + (runningAction ? 1 : 0),
+    runningLabel: runningAction?.label || ''
+  }), [enqueueGroupPull, enqueueLock, enqueueTransfer, queue.length, runningAction]);
 }
 
 async function runQueuedAction(action: QueuedAction, options: { rowsRef: MutableRefObject<ArmorItem[]>; patchRow: ActionQueueOptions['patchRow']; setStatus: ActionQueueOptions['setStatus']; scheduleVerifySync: () => void }): Promise<void> {

@@ -165,6 +165,8 @@ This file tracks migration decisions and larger changes while porting the archiv
   - queued actions now schedule one delayed background verification sync instead of forcing a full sync after every item action.
 - Bumped the displayed app version to `v.13`.
 - Removed the old unused inventory-hook `toggleLock` path that still performed full lock-verify sync loops; lock/unlock now only flows through the queued fast action path.
+- Bumped the displayed app version to `v.14`.
+- Improved command-bar action status so the live chip counts the currently running Bungie action plus queued actions and exposes the running action label in its tooltip.
 
 ## Prior Completed Migration Work
 

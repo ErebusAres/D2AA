@@ -33,7 +33,7 @@ Use this as the live scratchpad for what changed, what still needs parity work, 
 - `src/components/ArmorGrid.tsx` - slot stack grouping.
 - `src/components/Header.tsx` - old command bar parity.
   - includes live/manual/syncing status indicator.
-  - shows queued Bungie action count in the live chip when transfers/locks are waiting.
+  - shows active plus queued Bungie action count in the live chip when transfers/locks are running or waiting.
   - top controls now share the clipped filled badge shape and matching 38px height.
   - parses `done/total` status text into a temporary command-bar progress fill.
   - shows `APP_VERSION` inline with the D2 Armor Analyzer title.
@@ -43,7 +43,7 @@ Use this as the live scratchpad for what changed, what still needs parity work, 
   - waits for active sync before running queued Bungie mutations.
   - patches lock/location state optimistically and schedules a delayed background verification sync instead of full-syncing after every action.
   - auto-locks synced Bungie armor when tagged `favorite` or `keep`.
-  - exposes queue count for the command-bar live chip.
+  - exposes active plus queued count and running action label for the command-bar live chip.
 - `src/hooks/useArmorInventory.ts` - inventory restore/sync/cache/tag state.
   - lock/unlock mutation is intentionally not handled here; use `useActionQueue` so item actions stay queued and optimistic.
 - `src/utils/constants.ts` - shared constants.
