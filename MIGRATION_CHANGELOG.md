@@ -167,6 +167,11 @@ This file tracks migration decisions and larger changes while porting the archiv
 - Removed the old unused inventory-hook `toggleLock` path that still performed full lock-verify sync loops; lock/unlock now only flows through the queued fast action path.
 - Bumped the displayed app version to `v.14`.
 - Improved command-bar action status so the live chip counts the currently running Bungie action plus queued actions and exposes the running action label in its tooltip.
+- Bumped the displayed app version to `v.15`.
+- Added a focused UI/UX cleanup pass:
+  - disabled card/compare action chips now look inactive instead of clickable while queued or unavailable.
+  - archetype tooltips switch to a top popover on narrow screens instead of overflowing sideways.
+  - the latest-items feed becomes a full-width lower panel on tablet/mobile layouts instead of a narrow desktop rail.
 
 ## Prior Completed Migration Work
 

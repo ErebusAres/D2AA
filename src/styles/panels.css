@@ -401,12 +401,13 @@
     top: auto;
     right: auto;
     bottom: auto;
-    width: 340px;
-    max-width: calc(100% - 32px);
-    height: 360px;
-    margin: 12px 0 0;
+    width: auto;
+    max-width: none;
+    height: min(380px, 58vh);
+    margin: 12px 16px 0;
     border-left: 0;
     border-top: 1px solid var(--line);
+    box-shadow: 0 -12px 34px rgba(0, 0, 0, .28);
   }
   .feed-stat-popout {
     left: 8px !important;

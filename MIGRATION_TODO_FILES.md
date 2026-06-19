@@ -21,7 +21,10 @@ Use this as the live scratchpad for what changed, what still needs parity work, 
 - `src/styles/global.css` - page background and main workspace spacing.
 - `src/styles/layout.css` - command bar, feed, active filter chip spacing, global shell.
 - `src/styles/panels.css` - side options panel, filter controls, display toggles.
+  - latest-items feed switches from fixed right rail to a full-width lower panel below desktop widths.
 - `src/styles/armor-card.css` - armor card, title blocks, stat bars, tooltips, set bonus rows.
+  - shared disabled action-chip styling keeps unavailable lock/location/copy/compare controls visually inactive.
+  - archetype tooltips use a mobile top-popover placement to avoid sideways overflow.
 - `src/components/ArmorCard.tsx` - archetype, perk rows, card composition.
   - archetype icon uses a dedicated wrapper so tooltip spans are not forced into icon dimensions.
 - `src/components/ArmorStats.tsx` - stat/tuning visual display.
@@ -83,7 +86,7 @@ Use this as the live scratchpad for what changed, what still needs parity work, 
 - Continue visual parity against archived InGame after a browser screenshot pass:
   - compare command bar spacing, card proportions, right feed, and side panel controls at desktop width after the angular/accent-rail and basic-control polish passes.
   - verify the command bar remains readable after removing the redundant floating `Working...` bar; detailed Bungie progress should stay in the title/status text.
-  - compare mobile wrapping for command bar, cards, feed, and tooltips.
+  - compare mobile wrapping for command bar, cards, feed, and tooltips after the responsive feed and archetype-tooltip cleanup.
 - Verify real synced Bungie rows show:
   - archetype API icon and tooltip.
   - set bonus rows with Bungie API icons.
