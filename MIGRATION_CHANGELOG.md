@@ -183,6 +183,10 @@ This file tracks migration decisions and larger changes while porting the archiv
   - helmet, gauntlets, chest, legs, and class item headings are React buttons with `aria-expanded`.
   - collapsed slot state is saved in local storage and restored after refresh.
   - collapsed sections preserve the archived angular header style while hiding card grids.
+- Bumped the displayed app version to `v.18`.
+- Added immediate post-sign-in armor sync:
+  - once Bungie OAuth completes and auth state becomes connected, the app starts the normal Bungie inventory sync automatically.
+  - the one-shot auto-sync resets on logout so a later sign-in can sync again.
 
 ## Prior Completed Migration Work
 

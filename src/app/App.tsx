@@ -1,4 +1,4 @@
-import { Component, useCallback, useState } from 'react';
+import { Component, useCallback, useEffect, useRef, useState } from 'react';
 import type { ErrorInfo, ReactNode } from 'react';
 import Header from '../components/Header';
 import Toolbar from '../components/Toolbar';
@@ -65,6 +65,7 @@ function D2AAApp() {
   const [loading, setLoading] = useState(false);
   const [optionsOpen, setOptionsOpen] = useState(false);
   const [compareGroupKey, setCompareGroupKey] = useState('');
+  const signInSyncStarted = useRef(false);
   const [filters, setFilters] = useLocalStorage<FilterState>(STORAGE_KEYS.settings, defaultFilterState, normalizeFilterState);
   const auth = useAuth(setStatus);
   const inventory = useArmorInventory(setStatus);
@@ -94,6 +95,19 @@ function D2AAApp() {
       setLoading(false);
     }
   }, []);
+
+  useEffect(() => {
+    if (!auth.isSignedIn) {
+      signInSyncStarted.current = false;
+      return;
+    }
+    if (signInSyncStarted.current) return;
+    signInSyncStarted.current = true;
+    setStatus('Signed in. Syncing armor...');
+    void runAction(async () => {
+      await inventory.sync({ reason: 'sign-in-sync' });
+    });
+  }, [auth.isSignedIn, inventory.sync, runAction]);
 
   const runArmorAction = useCallback((row: ArmorItem) => {
     actionQueue.enqueueTransfer(row);

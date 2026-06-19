@@ -45,6 +45,7 @@ Use this as the live scratchpad for what changed, what still needs parity work, 
   - parses `done/total` status text into a temporary command-bar progress fill.
   - shows `APP_VERSION` inline with the D2 Armor Analyzer title.
 - `src/app/App.tsx` - main app orchestration.
+  - triggers a one-shot Bungie armor sync immediately after auth state becomes signed in.
 - `src/hooks/useActionQueue.ts` - queued Bungie action orchestration.
   - queues transfer/group-pull actions above lock actions.
   - waits for active sync before running queued Bungie mutations.
