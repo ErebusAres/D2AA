@@ -536,8 +536,23 @@
   gap: 8px;
   align-items: center;
 }
-.stat-row.has-tuning { grid-template-columns: 22px 14px minmax(0, 1fr) 28px; gap: 5px; }
+.stat-row.has-tuning-column {
+  grid-template-columns: 15px 22px minmax(0, 1fr) 28px;
+  column-gap: 6px;
+}
 .stat-row > img { width: 18px; height: 18px; opacity: .86; }
+.stat-tuning-slot {
+  display: grid;
+  place-items: center;
+  width: 15px;
+  height: 18px;
+  color: transparent;
+  pointer-events: none;
+}
+.stat-tuning-slot.is-tuned-stat {
+  color: #d8dde7;
+  pointer-events: auto;
+}
 .stat-tuning-marker {
   position: relative;
   display: grid;
@@ -548,11 +563,24 @@
   cursor: help;
   opacity: .95;
 }
+.stat-tuning-marker .real-tuning-stat-icon {
+  display: block;
+  width: 14px;
+  height: 14px;
+  object-fit: contain;
+  opacity: .96;
+  filter: drop-shadow(0 0 3px rgba(216, 180, 91, .35)) drop-shadow(0 1px 1px rgba(0, 0, 0, .9));
+}
 .stat-tuning-marker svg {
   width: 14px;
   height: 14px;
   color: #dce2ea;
   filter: drop-shadow(0 0 5px rgba(255, 255, 255, .22));
+}
+.stat-row.has-positive-tuning-stat:hover,
+.stat-row.has-negative-tuning-stat:hover {
+  outline: 1px solid rgba(216, 180, 91, .26);
+  outline-offset: 2px;
 }
 .stat-tuning-marker .d2-tooltip { left: -18px; bottom: calc(100% + 10px); }
 .bar {

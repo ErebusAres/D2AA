@@ -8,6 +8,8 @@ export interface ArmorTuning {
   summary: string;
   mode: string;
   source: string;
+  hash?: number | string;
+  description?: string;
 }
 
 export function detectArmorTuning(row: ArmorItem): ArmorTuning | null {
@@ -19,7 +21,15 @@ export function detectArmorTuning(row: ArmorItem): ArmorTuning | null {
       const text = normalize(`${entry?.name || ''} ${entry?.category || ''}`);
       return text.includes('tuning') || text.includes('tuned') || text.includes('attunement');
     });
-    return normalizeTuning({ name: plug?.name || 'Armor Tuning', icon: plug?.icon || '', stats: auditStats, mode: 'focused', source: 'Stat audit' });
+    return normalizeTuning({
+      name: plug?.name || 'Armor Tuning',
+      icon: plug?.icon || '',
+      stats: auditStats,
+      mode: 'focused',
+      source: 'Stat audit',
+      hash: plug?.hash,
+      description: plug?.description
+    });
   }
   return null;
 }
@@ -39,15 +49,24 @@ function tuningStatsFromAudit(row: ArmorItem): Partial<ArmorStats> | null {
 
 function tuningFromObject(value: unknown): ArmorTuning | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
-  const input = value as { name?: string; icon?: string; stats?: Partial<ArmorStats>; mode?: string; source?: string };
+  const input = value as { name?: string; icon?: string; stats?: Partial<ArmorStats>; mode?: string; source?: string; hash?: number | string; description?: string };
   const tuning = normalizeTuning(input);
   return isSafeSmallShift(tuning.stats) ? tuning : null;
 }
 
-function normalizeTuning(input: { name?: string; icon?: string; stats?: Partial<ArmorStats>; mode?: string; source?: string }): ArmorTuning {
+function normalizeTuning(input: { name?: string; icon?: string; stats?: Partial<ArmorStats>; mode?: string; source?: string; hash?: number | string; description?: string }): ArmorTuning {
   const stats = Object.fromEntries(Object.entries(input.stats || {}).filter(([, value]) => Number(value || 0)).map(([key, value]) => [key, Number(value)])) as Partial<ArmorStats>;
   const summary = Object.entries(stats).map(([key, value]) => `${Number(value) > 0 ? '+' : ''}${value} ${STAT_LABELS[key as StatKey] || key}`).join(' / ');
-  return { name: input.name || 'Armor Tuning', icon: normalizeIcon(input.icon || ''), stats, summary, mode: input.mode || 'focused', source: input.source || '' };
+  return {
+    name: input.name || 'Armor Tuning',
+    icon: normalizeIcon(input.icon || ''),
+    stats,
+    summary,
+    mode: input.mode || 'focused',
+    source: input.source || '',
+    hash: input.hash,
+    description: input.description || ''
+  };
 }
 
 function isSafeSmallShift(stats: Partial<ArmorStats>): boolean {

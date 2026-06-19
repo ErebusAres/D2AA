@@ -28,7 +28,9 @@ Use this as the live scratchpad for what changed, what still needs parity work, 
 - `src/components/ArmorCard.tsx` - archetype, perk rows, card composition.
   - archetype icon uses a dedicated wrapper so tooltip spans are not forced into icon dimensions.
 - `src/components/ArmorStats.tsx` - stat/tuning visual display.
-  - uses an inline DIM-style tuned-stat glyph for non-zero armor tuning adjustments, including negative values.
+  - reserves the archived tuning indicator column for every stat row.
+  - uses the real Bungie tuning plug icon for positive tuned stats when available, with a fallback DIM-style glyph for non-icon/negative tuning markers.
+  - tuning tooltips include the plug identifier, tuned stat value, and plug description/summary.
 - `src/components/ArmorBadges.tsx` - tags, location/action chip, grade chip.
   - includes optimistic lock/unlock control with pending and failed states.
 - `src/components/TagPicker.tsx` - floating React emoji tag picker used by cards and feed rows.
@@ -66,11 +68,11 @@ Use this as the live scratchpad for what changed, what still needs parity work, 
 - `src/data/armorArchetype.ts` - resolves canonical archetype names/icons/descriptions from Bungie plug definitions.
 - `src/data/armorBonuses.ts` - resolves set bonus, armor bonus, exotic perk, and catalyst display rows.
   - active set-selector plugs identify selected set identity only and are not rendered as bonus rows.
-  - official real set-bonus plugs are preferred; catalog rows fill in selected-set 2-piece/4-piece text when Bungie exposes only selector metadata.
+  - official real set-bonus plugs are preferred only from active plug definitions; catalog rows fill in selected-set 2-piece/4-piece text when Bungie exposes only selector metadata.
 - `src/data/armorSetCatalog.ts` - local Armor 3.0 set bonus catalog used when Bungie plugs only provide weak selector/name data.
   - official Bungie set-bonus plugs are preferred before local catalog rows.
   - local fallback now requires active selector plug evidence; do not infer from item names or all reusable selector options.
-  - prefers Bungie selector icons when active plug metadata exposes them.
+  - uses Bungie selector icons when active plug metadata exposes them; generated non-Destiny catalog SVGs were removed.
 - `src/data/armorTuning.ts` - isolates tuning icon/stat presentation.
 - `src/data/actions.ts` - Bungie item transfer actions and fallback copy behavior.
   - includes typed duplicate group pull/copy behavior.
@@ -89,9 +91,9 @@ Use this as the live scratchpad for what changed, what still needs parity work, 
   - compare mobile wrapping for command bar, cards, feed, and tooltips after the responsive feed and archetype-tooltip cleanup.
 - Verify real synced Bungie rows show:
   - archetype API icon and tooltip.
-  - set bonus rows with Bungie API icons.
+  - set bonus rows with Bungie API icons; active-plug filtering should prevent inactive set bonuses from leaking onto the wrong armor.
   - exotic intrinsic/catalyst rows.
-  - tuning markers in stat rows.
+  - tuning markers in stat rows, including real tuning plug icons for positive tuned stats.
   - stat calculation titles/tooltip text explaining base source, visible bonus parts, and absolute totals.
   - item feed popouts show the same stat breakdowns; viewport clamping is implemented, but still needs browser verification at desktop/mobile widths.
   - masterwork styling only appears on armor with audited masterwork stat bonuses after cache restore or Bungie sync.

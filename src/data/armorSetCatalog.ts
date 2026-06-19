@@ -7,7 +7,6 @@ interface ArmorSetBonusCatalogEntry {
   source: string;
   aliases: string[];
   bonuses: Array<{ pieces: 2 | 4; name: string; description: string }>;
-  icon: string;
 }
 
 export interface SelectedArmorSet {
@@ -27,7 +26,6 @@ const SETS: ArmorSetBonusCatalogEntry[] = [
     name: 'Aion Adapter',
     source: 'Kepler activities',
     aliases: ['aion adapter'],
-    icon: catalogIcon('#7cb7ff', 'AA'),
     bonuses: [
       { pieces: 2, name: 'Force Absorption', description: 'Rocket and grenade launcher final blows briefly reduce incoming area-of-effect damage.' },
       { pieces: 4, name: 'Reactive Shock', description: 'While Force Absorption is active, taking melee damage emits a one-time disorienting burst.' }
@@ -38,7 +36,6 @@ const SETS: ArmorSetBonusCatalogEntry[] = [
     name: 'Aion Renewal',
     source: 'Kepler activities',
     aliases: ['aion renewal'],
-    icon: catalogIcon('#7ee8e1', 'AR'),
     bonuses: [
       { pieces: 2, name: 'Force Converter', description: 'After a rocket or grenade launcher final blow, sprinting briefly grants Speed Booster.' },
       { pieces: 4, name: 'Reactive Booster', description: 'Once per Force Converter activation, sprinting while critical, suspended, or slowed by Stasis immediately grants brief Speed Booster.' }
@@ -49,7 +46,6 @@ const SETS: ArmorSetBonusCatalogEntry[] = [
     name: 'Bushido',
     source: 'Pinnacle Ops',
     aliases: ['bushido'],
-    icon: catalogIcon('#ffcf66', 'BU'),
     bonuses: [
       { pieces: 2, name: 'Iaido', description: 'Final blows with freshly drawn or reloaded weapons heal you.' },
       { pieces: 4, name: 'Unfaltering Focus', description: 'Bow, shotgun, or sword final blows reduce incoming damage for a short time; damaging targets with those weapons extends the effect.' }
@@ -60,7 +56,6 @@ const SETS: ArmorSetBonusCatalogEntry[] = [
     name: 'Techsec',
     source: 'Fireteam Ops',
     aliases: ['techsec', 'tech sec'],
-    icon: catalogIcon('#66c7ff', 'TS'),
     bonuses: [
       { pieces: 2, name: 'Wrecker', description: 'Kinetic damage is greatly increased against combatant shields, overshields, vehicles, and battlefield constructs.' },
       { pieces: 4, name: 'Concussive Rounds', description: 'Defeating powerful combatants or breaking a combatant shield with kinetic damage releases a disorienting kinetic shockwave.' }
@@ -71,7 +66,6 @@ const SETS: ArmorSetBonusCatalogEntry[] = [
     name: 'Twofold Crown',
     source: 'Trials of Osiris',
     aliases: ['twofold crown'],
-    icon: catalogIcon('#d8b45b', 'TC'),
     bonuses: [
       { pieces: 2, name: 'Crook and Flail', description: 'Picking up an ammo brick heals you.' },
       { pieces: 4, name: 'Gift of Sight', description: 'Primary ammo final blows briefly increase radar resolution.' }
@@ -82,7 +76,6 @@ const SETS: ArmorSetBonusCatalogEntry[] = [
     name: 'Last Discipline',
     source: 'Crucible',
     aliases: ['last discipline', 'last disciple'],
-    icon: catalogIcon('#d58bff', 'LD'),
     bonuses: [
       { pieces: 2, name: 'Terminal Velocity', description: 'Primary ammo final blows grant increased reload speed to primary weapons for a short time.' },
       { pieces: 4, name: 'Power Loader', description: 'Picking up an Orb of Power grants special ammo meter progress.' }
@@ -93,7 +86,6 @@ const SETS: ArmorSetBonusCatalogEntry[] = [
     name: 'Collective Psyche',
     source: 'The Desert Perpetual raid',
     aliases: ['collective psyche'],
-    icon: catalogIcon('#a97cff', 'CP'),
     bonuses: [
       { pieces: 2, name: 'Accretion', description: 'Picking up ammo grants a stacking bonus to weapon swap and stow speed until death.' },
       { pieces: 4, name: 'Doppler Effect', description: 'Suspend, unravel, sever, radiant, and restoration effects last longer.' }
@@ -104,7 +96,6 @@ const SETS: ArmorSetBonusCatalogEntry[] = [
     name: 'Lustrous',
     source: 'Solstice',
     aliases: ['lustrous'],
-    icon: catalogIcon('#ff8f66', 'LU'),
     bonuses: [
       { pieces: 2, name: 'Photogalvanic', description: 'Receiving healing briefly improves solar weapon flinch resistance, handling, and reload speed.' },
       { pieces: 4, name: 'Cauterize', description: 'Rapid solar final blows heal you.' }
@@ -120,7 +111,7 @@ export function resolveCatalogSetBonuses(args: {
     label: `${bonus.pieces}-Piece Set Bonus`,
     name: bonus.name,
     description: `${args.selectedSet.entry.name}: ${bonus.description}`,
-    icon: args.selectedSet.icon || args.selectedSet.entry.icon,
+    icon: args.selectedSet.icon,
     hash: `catalog:${args.selectedSet.entry.key}:${bonus.pieces}`,
     source: args.selectedSet.entry.source,
     setName: args.selectedSet.entry.name,
@@ -143,7 +134,7 @@ export function resolveSelectedArmorSet(args: {
     ].join(' '));
     if (!isActiveSetSelector(plug, plugText)) continue;
     const entry = SETS.find((candidate) => candidate.aliases.some((alias) => plugText.includes(normalize(alias))));
-    if (entry) return { entry, icon: args.iconUrl(plug.displayProperties?.icon) };
+    if (entry) return { entry, icon: args.iconUrl(displayIconPath(plug)) };
   }
   return null;
 }
@@ -159,9 +150,8 @@ function isActiveSetSelector(plug: DestinyInventoryItemDefinition, text: string)
   );
 }
 
-function catalogIcon(color: string, label: string): string {
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><path fill="#080a0d" d="M32 4l24 14v28L32 60 8 46V18z"/><path fill="${color}" d="M32 9l19 11v24L32 55 13 44V20z"/><path fill="#11151c" d="M32 15l14 8v18l-14 8-14-8V23z"/><text x="32" y="38" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" font-weight="700" fill="${color}">${label}</text></svg>`;
-  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+function displayIconPath(plug: DestinyInventoryItemDefinition): string {
+  return plug.displayProperties?.icon || plug.displayProperties?.iconSequences?.[0]?.frames?.[0] || '';
 }
 
 function normalize(value: unknown): string {

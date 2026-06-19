@@ -172,6 +172,12 @@ This file tracks migration decisions and larger changes while porting the archiv
   - disabled card/compare action chips now look inactive instead of clickable while queued or unavailable.
   - archetype tooltips switch to a top popover on narrow screens instead of overflowing sideways.
   - the latest-items feed becomes a full-width lower panel on tablet/mobile layouts instead of a narrow desktop rail.
+- Bumped the displayed app version to `v.16`.
+- Restored tuning and set-bonus parity details:
+  - stat rows now reserve the archived tuning indicator column and use the real Bungie tuning plug icon for positive tuned stats when available.
+  - tuning tooltips include the tuning plug identifier, tuned stat value, and plug description/summary.
+  - displayed official set bonuses now come only from active set-bonus plugs, avoiding inactive reusable plug definitions leaking the wrong set text onto unrelated armor.
+  - catalog fallback rows use the selected Bungie set plug icon instead of generated non-Destiny SVG badges.
 
 ## Prior Completed Migration Work
 

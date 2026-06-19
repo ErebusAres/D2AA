@@ -18,21 +18,24 @@ export default function ArmorStats({ row }: ArmorStatsProps) {
         const model = statModel(row, key);
         const tuningValue = Number(tuning?.stats?.[key] || 0);
         const hasTuning = tuningValue !== 0;
+        const tuningLabel = tuning ? tuningTitle(tuning, key) : '';
         const title = statCalculationTitle(key, model, row);
         let left = Math.min(100, Math.max(0, model.base));
         return (
-          <div className={`stat-row has-tooltip ${hasTuning ? 'has-tuning' : ''}`} key={key} title={title}>
-            <img src={STAT_ICONS[key]} alt="" />
-            {hasTuning ? (
-              <span className="stat-tuning-marker" tabIndex={0} title={tuningTitle(tuning, key)}>
-                <TunedStatIcon />
+          <div className={`stat-row has-tooltip has-tuning-column ${hasTuning ? `has-tuning-stat ${tuningValue > 0 ? 'has-positive-tuning-stat' : 'has-negative-tuning-stat'}` : ''}`} key={key} title={hasTuning ? tuningLabel : title}>
+            <span className={`stat-tuning-slot ${hasTuning ? 'is-tuned-stat' : ''}`} aria-hidden={hasTuning ? undefined : 'true'}>
+              {hasTuning ? (
+              <span className="stat-tuning-marker" tabIndex={0} role="img" aria-label={tuningLabel || 'Tuned stat'} title={tuningLabel}>
+                {tuning?.icon && tuningValue > 0 ? <img className="real-tuning-stat-icon" src={tuning.icon} alt="" /> : <TunedStatIcon />}
                 <span className="d2-tooltip">
                   <b>{tuning?.name || 'Armor Tuning'}</b>
-                  <em>{tuningValue > 0 ? `+${tuningValue}` : tuningValue} {STAT_LABELS[key]}</em>
-                  <p>{tuningTitle(tuning, key)}</p>
+                  <em>{tuningIdentifier(tuning?.hash)}{tuningValue > 0 ? `+${tuningValue}` : tuningValue} {STAT_LABELS[key]}</em>
+                  <p>{tuning?.description || tuningLabel}</p>
                 </span>
               </span>
-            ) : null}
+              ) : null}
+            </span>
+            <img src={STAT_ICONS[key]} alt="" />
             <div className="bar">
               <span className="bar-base" style={{ width: `${Math.min(100, model.base)}%` }} />
               {model.parts.map((part, index) => {
@@ -69,6 +72,10 @@ function TunedStatIcon() {
       <path fill="currentColor" d="M2,14.25 h28 v3.5 h-28zM2,10.5 l7,-7 l7,7 h-4.5 l-2.5,-2.5 l-2.5,2.5 zM30,21.5 l-7,7 l-7,-7 h4.5 l2.5,2.5 l2.5,-2.5 z" />
     </svg>
   );
+}
+
+function tuningIdentifier(hash: unknown): string {
+  return hash ? `Tuning ${hash} - ` : '';
 }
 
 function statCalculationTitle(key: (typeof STAT_KEYS)[number], model: ReturnType<typeof statModel>, row: ArmorItem): string {

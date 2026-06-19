@@ -19,7 +19,7 @@ export function resolvePotentialSetBonuses(args: {
   iconUrl: (value: unknown) => string;
 }): ArmorPerk[] {
   const selectedSet = resolveSelectedArmorSet({ activePlugDefs: args.activePlugDefs, iconUrl: args.iconUrl });
-  const officialBonuses = uniquePerks([...args.activePlugDefs, ...args.allPlugDefs]
+  const officialBonuses = uniquePerks(args.activePlugDefs
     .filter((plug) => isSetBonus(plug, args.archetypeHash))
     .filter((plug) => !isSetSelector(plug))
     .filter((plug) => !selectedSet || matchesSelectedSet(plug, selectedSet.entry.name))
@@ -116,9 +116,9 @@ function perkInfo(plug: DestinyInventoryItemDefinition, kind: string, iconUrl: (
 
 function setBonusLabel(plug: DestinyInventoryItemDefinition): string {
   const text = searchableText(plug);
-  if (/\b2\s*piece\b/.test(text) || text.includes('wearing 2') || text.includes('two piece')) return 'Potential 2-Piece Bonus';
-  if (/\b4\s*piece\b/.test(text) || text.includes('wearing 4') || text.includes('four piece')) return 'Potential 4-Piece Bonus';
-  return 'Potential Armor Set Bonus';
+  if (/\b2\s*piece\b/.test(text) || text.includes('wearing 2') || text.includes('two piece')) return '2-Piece Set Bonus';
+  if (/\b4\s*piece\b/.test(text) || text.includes('wearing 4') || text.includes('four piece')) return '4-Piece Set Bonus';
+  return 'Armor Set Bonus';
 }
 
 function searchableText(plug: DestinyInventoryItemDefinition): string {
