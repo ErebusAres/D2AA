@@ -178,6 +178,11 @@ This file tracks migration decisions and larger changes while porting the archiv
   - tuning tooltips include the tuning plug identifier, tuned stat value, and plug description/summary.
   - displayed official set bonuses now come only from active set-bonus plugs, avoiding inactive reusable plug definitions leaking the wrong set text onto unrelated armor.
   - catalog fallback rows use the selected Bungie set plug icon instead of generated non-Destiny SVG badges.
+- Bumped the displayed app version to `v.17`.
+- Reintroduced collapsible armor slot categories:
+  - helmet, gauntlets, chest, legs, and class item headings are React buttons with `aria-expanded`.
+  - collapsed slot state is saved in local storage and restored after refresh.
+  - collapsed sections preserve the archived angular header style while hiding card grids.
 
 ## Prior Completed Migration Work
 

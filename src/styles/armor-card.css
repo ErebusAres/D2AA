@@ -15,6 +15,7 @@
   letter-spacing: .1em;
   clip-path: var(--clip-section);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, .06), 0 8px 18px rgba(0, 0, 0, .18);
+  cursor: pointer;
 }
 .slot-heading::before {
   content: "";
@@ -24,7 +25,23 @@
   background: linear-gradient(180deg, transparent, var(--gold), transparent);
   opacity: .85;
 }
-.slot-caret { display: grid; place-items: center; width: 18px; height: 18px; color: var(--gold); }
+.slot-heading:hover, .slot-heading:focus-visible {
+  border-color: rgba(216, 180, 91, .54);
+  background: linear-gradient(90deg, rgba(216, 180, 91, .19), rgba(255, 255, 255, .06));
+  outline: none;
+}
+.slot-caret {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  color: var(--gold);
+  transition: transform .16s ease, color .16s ease;
+}
+.slot-section.is-collapsed .slot-caret { transform: rotate(-45deg) scale(.82); color: #c5cbd6; }
+.slot-section.is-collapsed .slot-heading {
+  background: linear-gradient(90deg, rgba(255, 255, 255, .07), rgba(255, 255, 255, .025));
+}
 .slot-heading strong { font-size: 13px; color: #e7ebf2; }
 .slot-heading span:not(.slot-caret) {
   overflow: hidden;

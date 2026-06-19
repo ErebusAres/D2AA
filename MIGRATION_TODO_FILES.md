@@ -25,6 +25,7 @@ Use this as the live scratchpad for what changed, what still needs parity work, 
 - `src/styles/armor-card.css` - armor card, title blocks, stat bars, tooltips, set bonus rows.
   - shared disabled action-chip styling keeps unavailable lock/location/copy/compare controls visually inactive.
   - archetype tooltips use a mobile top-popover placement to avoid sideways overflow.
+  - slot headings support collapsed visual state while preserving the angular header style.
 - `src/components/ArmorCard.tsx` - archetype, perk rows, card composition.
   - archetype icon uses a dedicated wrapper so tooltip spans are not forced into icon dimensions.
 - `src/components/ArmorStats.tsx` - stat/tuning visual display.
@@ -36,6 +37,7 @@ Use this as the live scratchpad for what changed, what still needs parity work, 
 - `src/components/TagPicker.tsx` - floating React emoji tag picker used by cards and feed rows.
   - clamps menu placement into the viewport for shorter/narrower screens.
 - `src/components/ArmorGrid.tsx` - slot stack grouping.
+  - slot categories are collapsible React sections with persisted local storage state.
 - `src/components/Header.tsx` - old command bar parity.
   - includes live/manual/syncing status indicator.
   - shows active plus queued Bungie action count in the live chip when transfers/locks are running or waiting.
@@ -53,6 +55,7 @@ Use this as the live scratchpad for what changed, what still needs parity work, 
   - lock/unlock mutation is intentionally not handled here; use `useActionQueue` so item actions stay queued and optimistic.
 - `src/utils/constants.ts` - shared constants.
   - `APP_VERSION` must be bumped for every new commit: `v.01` through `v.99`, then `v1.00`, `v1.01`, and so on.
+  - includes storage keys for filters, cache metadata, and collapsed slot categories.
 - `scripts/bump-version.mjs` - local helper for incrementing `APP_VERSION`.
   - run `npm run version:bump` before commits that change app behavior or visuals.
 - `src/components/ItemFeed.tsx` - right rail latest items, empty states, and icon stat popouts.
