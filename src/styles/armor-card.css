@@ -561,7 +561,7 @@
 .stat-tuning-slot {
   display: grid;
   place-items: center;
-  width: 15px;
+  width: 16px;
   height: 18px;
   color: transparent;
   pointer-events: none;
@@ -574,23 +574,23 @@
   position: relative;
   display: grid;
   place-items: center;
-  width: 14px;
-  height: 14px;
+  width: 16px;
+  height: 16px;
   color: #dce2ea;
   cursor: help;
   opacity: .95;
 }
 .stat-tuning-marker .real-tuning-stat-icon {
   display: block;
-  width: 14px;
-  height: 14px;
+  width: 16px;
+  height: 16px;
   object-fit: contain;
   opacity: .96;
-  filter: drop-shadow(0 0 3px rgba(216, 180, 91, .35)) drop-shadow(0 1px 1px rgba(0, 0, 0, .9));
+  filter: drop-shadow(0 0 4px rgba(216, 180, 91, .44)) drop-shadow(0 1px 1px rgba(0, 0, 0, .9));
 }
 .stat-tuning-marker svg {
-  width: 14px;
-  height: 14px;
+  width: 16px;
+  height: 16px;
   color: #dce2ea;
   filter: drop-shadow(0 0 5px rgba(255, 255, 255, .22));
 }
