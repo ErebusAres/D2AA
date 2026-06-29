@@ -9,6 +9,7 @@ interface ArmorStatsProps {
 
 export default function ArmorStats({ row }: ArmorStatsProps) {
   const tuning = detectArmorTuning(row);
+  const tuningIdentity = tuningIdentifier(tuning?.hash);
   const totalBase = baseTotal(row);
   const totalCurrent = currentTotal(row);
   const totalParts = totalBonusParts(row);
@@ -17,19 +18,20 @@ export default function ArmorStats({ row }: ArmorStatsProps) {
       {STAT_KEYS.map((key) => {
         const model = statModel(row, key);
         const tuningValue = Number(tuning?.stats?.[key] || 0);
-        const hasTuning = tuningValue !== 0;
+        const hasTuningShift = tuningValue !== 0;
+        const showsTuningMarker = tuningValue > 0;
         const tuningLabel = tuning ? tuningTitle(tuning, key) : '';
         const title = statCalculationTitle(key, model, row);
         let left = Math.min(100, Math.max(0, model.base));
         return (
-          <div className={`stat-row has-tooltip has-tuning-column ${hasTuning ? `has-tuning-stat ${tuningValue > 0 ? 'has-positive-tuning-stat' : 'has-negative-tuning-stat'}` : ''}`} key={key} title={hasTuning ? tuningLabel : title}>
-            <span className={`stat-tuning-slot ${hasTuning ? 'is-tuned-stat' : ''}`} aria-hidden={hasTuning ? undefined : 'true'}>
-              {hasTuning ? (
+          <div className={`stat-row has-tooltip has-tuning-column ${hasTuningShift ? `has-tuning-stat ${showsTuningMarker ? 'has-positive-tuning-stat' : 'has-negative-tuning-stat'}` : ''}`} key={key} title={showsTuningMarker ? tuningLabel : title}>
+            <span className={`stat-tuning-slot ${showsTuningMarker ? 'is-tuned-stat' : ''}`} aria-hidden={showsTuningMarker ? undefined : 'true'}>
+              {showsTuningMarker ? (
               <span className="stat-tuning-marker" tabIndex={0} role="img" aria-label={tuningLabel || 'Tuned stat'} title={tuningLabel}>
-                {tuning?.icon && tuningValue > 0 ? <img className="real-tuning-stat-icon" src={tuning.icon} alt="" /> : <TunedStatIcon />}
+                {tuning?.icon ? <img className="real-tuning-stat-icon" src={tuning.icon} alt="" /> : <TunedStatIcon />}
                 <span className="d2-tooltip">
                   <b>{tuning?.name || 'Armor Tuning'}</b>
-                  <em>{tuningIdentifier(tuning?.hash)}{tuningValue > 0 ? `+${tuningValue}` : tuningValue} {STAT_LABELS[key]}</em>
+                  <em>{tuningIdentity ? `${tuningIdentity} - ` : ''}{tuning?.summary || `+${tuningValue} ${STAT_LABELS[key]}`}</em>
                   <p>{tuning?.description || tuningLabel}</p>
                 </span>
               </span>
@@ -75,7 +77,7 @@ function TunedStatIcon() {
 }
 
 function tuningIdentifier(hash: unknown): string {
-  return hash ? `Tuning ${hash} - ` : '';
+  return hash ? `Plug ${hash}` : '';
 }
 
 function statCalculationTitle(key: (typeof STAT_KEYS)[number], model: ReturnType<typeof statModel>, row: ArmorItem): string {
